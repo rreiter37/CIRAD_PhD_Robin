@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 from IPython.display import display
+import networkx as nx
 
 from pinard import utils
 from pinard import preprocessing as pp
@@ -98,21 +99,29 @@ def dissim_KS(X1, X2):
 
 # Function that enable the comparison betwwen diverse preprocessing methods based on their dissimilarities.
 
-def compare_preprocessings(preprocessing_list, preprocessing_names, Xcal, distance_fn=dissim_KS, normalize_dissim=False):
+def compare_preprocessings(preprocessings, Xcal, distance_fn=dissim_KS, normalize_dissim=False, threshold=("value",0.1)):
     """
     Computes dissimetries between the datasets transformed by the selected preprocessing methods.
     
     Parameters:
-        preprocessing_list (list of arrays): A list where each element is a preprocessing method.
-        preprocessing_names (list of strings): A list with the name of each preprocessing method.
-        Xcal (pandas dataframe): A dataset containing the calibration spectra.
+        preprocessings (dict): - key: preprocessing name (string)
+        - value: preprocessing method (object).
+        Xcal (pandas dataframe or numpy ndarray): A dataset containing the calibration spectra.
         distance_fn (function): A function to compute the distance between two datasets.
         normalize_dissim (bool): If True, normalize the dissimilarity values by their maximum value.
-        
+        threshold (string, float): - string: whether "value" or "proportion",
+        - float: if string is "value", the threshold is the maximum dissimilarity value to consider two preprocessing methods as similar.
+        IF string is "proportion", the threshold gives the proportion of preprocessing pairs to consider as similar.
+
     Returns:
-        dissim_matrix (ndarray): A square matrix of pairwise distances.
+        dict, similar_pairs (dict, list of string couples): dict gathers a couple of preprocessing names as a key,
+        the dissimilarity associated as a value. 
+        similar_pairs is a list of tuples containing the names of the preprocessing methods that are considered as similar.
     """
+    preprocessing_list = list(preprocessings.values())
+    preprocessing_names = list(preprocessings.keys())
     n = len(preprocessing_list)
+
     dict = {}
     for i, j in combinations(range(n), 2):
         u, v = preprocessing_list[i], preprocessing_list[j]
@@ -126,7 +135,13 @@ def compare_preprocessings(preprocessing_list, preprocessing_names, Xcal, distan
             val_max = max(dict.values())
             dict = {key: value / val_max for key, value in dict.items()}
 
-    return dict
+        # Determine the similar preprocessing pairs based on the threshold
+        if threshold[0] == "value":
+            similar_pairs = [pair for pair, dist in dict.items() if dist < threshold[1]]
+        else:
+            similar_pairs = [pair for pair, dist in dict.items() if dist < np.percentile(list(dict.values()), threshold[1]*100)]
+
+    return dict, similar_pairs
 
 
 
@@ -158,11 +173,11 @@ def get_meta_att_variable(x):
     # Get the minimum and maximum values
     meta_attributes["min"] = x.min()
     meta_attributes["max"] = x.max()
-
+    
     # Get the kurtosis and skewness
     meta_attributes["kurtosis"] = kurtosis(x)
     meta_attributes["skewness"] = skew(x)
-
+    
     # Get the mean, median, mode, variance and standard deviation for each variable
     meta_attributes["mean"] = x.mean(axis=0)
     meta_attributes["std"] = x.std(axis=0)
@@ -221,6 +236,14 @@ def meta_att_var_paired(X1, X2):
         meta_attributes_x1_i = get_meta_att_variable(x1_i)
         meta_attributes_x2_i = get_meta_att_variable(x2_i)
 
+        # Test if one of the variables is constant, which would lead to NaN values for kurtosis and skewness
+        isnan1 = any(np.isnan(x) for x in meta_attributes_x1_i.values())
+        isnan2 = any(np.isnan(x) for x in meta_attributes_x2_i.values())
+        if isnan1 or isnan2:
+            # Delete the kurtosis and skewness attributes for both variables
+            del meta_attributes_x1_i['kurtosis'], meta_attributes_x1_i['skewness']
+            del meta_attributes_x2_i['kurtosis'], meta_attributes_x2_i['skewness']
+
         # Calculate the Manhattan distance between the meta attributes of the two variables
         distance = sum(abs(meta_attributes_x1_i[key] - meta_attributes_x2_i[key]) for key in meta_attributes_x1_i.keys())
         results.append({
@@ -248,3 +271,40 @@ def dissim_meta_att_var(X1, X2):
     dissimilarity = np.mean([result["distance"] for result in results])
     
     return dissimilarity
+
+
+
+
+
+# Function that shows the preprocessing methods to remove in an optimal way
+
+def preprocessings_to_remove_approx(preprocessings, Xcal, distance_fn=dissim_KS, normalize_dissim=False, threshold=("value",0.1)):
+    """
+    Determines the preprocessing methods that might be removed so that it keeps the maximum number of them in the calibration phase.
+    
+    Parameters:
+        preprocessings (dict): - key: preprocessing name (string)
+        - value: preprocessing method (object).
+        Xcal (pandas dataframe): A dataset containing the calibration spectra.
+        distance_fn (function): A function to compute the distance between two datasets.
+        normalize_dissim (bool): If True, normalize the dissimilarity values by their maximum value.
+        threshold (string, float): - string: whether "value" or "proportion",
+        - float: if string is "value", the threshold is the maximum dissimilarity value to consider two preprocessing methods as similar.
+        IF string is "proportion", the threshold gives the proportion of preprocessing pairs to consider as similar.
+
+    Returns:
+        A list of preprocessing names to remove with an approximation of the minimum vertex cover problem.
+    """
+    # Declare a graph structure
+    G = nx.Graph()
+
+    # Determine the close preprocessing pairs
+    _, close_preprocessings = compare_preprocessings(preprocessings, Xcal, distance_fn, normalize_dissim, threshold)
+
+    # Fill the graph with the close preprocessing pairs
+    G.add_edges_from(close_preprocessings)
+
+    # Find an approximate minimum vertex cover of the graph
+    list_removal = nx.algorithms.approximation.min_weighted_vertex_cover(G)
+
+    return  list_removal
