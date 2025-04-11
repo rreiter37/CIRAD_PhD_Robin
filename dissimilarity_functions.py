@@ -278,7 +278,7 @@ def dissim_meta_att_var(X1, X2):
 
 # Function that shows the preprocessing methods to remove in an optimal way
 
-def preprocessings_to_remove_approx(preprocessings, Xcal, distance_fn=dissim_KS, normalize_dissim=False, threshold=("value",0.1)):
+def preprocessings_to_remove_approx(preprocessings, Xcal, distance_fn=dissim_KS, normalize_dissim=False, threshold=("value",0.1), verbose=False):
     """
     Determines the preprocessing methods that might be removed so that it keeps the maximum number of them in the calibration phase.
     
@@ -291,7 +291,7 @@ def preprocessings_to_remove_approx(preprocessings, Xcal, distance_fn=dissim_KS,
         threshold (string, float): - string: whether "value" or "proportion",
         - float: if string is "value", the threshold is the maximum dissimilarity value to consider two preprocessing methods as similar.
         IF string is "proportion", the threshold gives the proportion of preprocessing pairs to consider as similar.
-
+        verbose (bool): If True, print the names of the preprocessing methods that are removed.
     Returns:
         A list of preprocessing names to remove with an approximation of the minimum vertex cover problem.
     """
@@ -307,4 +307,7 @@ def preprocessings_to_remove_approx(preprocessings, Xcal, distance_fn=dissim_KS,
     # Find an approximate minimum vertex cover of the graph
     list_removal = nx.algorithms.approximation.min_weighted_vertex_cover(G)
 
+    if verbose:
+        print("List of preprocessing methods to remove for %s:" % distance_fn.__name__, list_removal)
+        print("-"*(60 + 20*len(list_removal)))
     return  list_removal
