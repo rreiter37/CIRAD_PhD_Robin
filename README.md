@@ -93,6 +93,9 @@ gestion durable des ressources et l'amélioration de la santé dans les pays du 
 - Lien Overleaf sur la prise de note d'articles, sur quelques idées éventuellement utilisables dans la thèse :  
 🔗 [Lien Overleaf](https://fr.overleaf.com/read/jyjsqtfzbfrr#16f00e))
 
+- Lien tableau des pistes explorées pendant la thèse :  
+🔗 [Tableau](https://docs.google.com/spreadsheets/d/1C_fZ68UYlKwodlAuffRNj_JOBRbEiVaLZdlFl_1nukQ/edit?usp=sharing)
+
 - Importer le projet et utiliser les scripts Python:  
 > git clone https://github.com/rreiter37/CIRAD_PhD_Robin  
 > cd CIRAD_PhD_Robin  
