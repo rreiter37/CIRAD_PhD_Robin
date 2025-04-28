@@ -8,7 +8,7 @@
 	  topics:: 
 	  template:: article template
 - ## Detection of outliers [[Outlier Detection]]
-	- ### Outliers detection with data depth theory
+	- ### Outlier detection with data depth theory
 	  link:: https://www.tandfonline.com/doi/epdf/10.1080/1573062X.2017.1280515?needAccess=true
 	  title:: Outlier detection in UV/Vis spectrophotometric data
 	  author:: Lepot et al.
@@ -41,7 +41,7 @@
 			  
 			  The way this is used to predict outliers with the first approach is not explicitely described in the article. An idea could be to apply the first approach for diverse values of $k_M$ to find first outliers, then estimate the MRS on the filtered data set as the most recurrent spectrum found.
 		-
-	- ### Outliers detection with space transformation
+	- ### Outlier detection with space transformation
 	  link:: https://pure.au.dk/ws/files/68749533/SDM2013.pdf
 	  title:: Outlier Detection with Space Transformation and Spectral Analysis
 	  author:: Dang et al.
@@ -114,14 +114,14 @@
 			  $\mathcal{O}(DN \log N)$
 			  
 			  ---
-	- ### Outliers detection using robust Mahalanobis distance
+	- ### Outlier detection using robust Mahalanobis distance
 	  link:: https://www.sciencedirect.com/science/article/pii/S0098300404002304#fig5
 	  title:: Multivariate outlier detection in exploration geochemistry
 	  author:: Filzmoser et al.
 	  date:: 2005
 	  journal:: Computers & Geosciences
 	  topics:: Outlier detection, Mahalanobis distance, robust distance, adaptative threshold
-	- ### Outliers Detection with deep learning techniques on time series
+	- ### Outlier Detection with deep learning techniques on time series
 	  link:: https://dl.acm.org/doi/10.1145/3691338
 	  title:: Deep Learning for Time Series Anomaly Detection: A Survey 
 	  author:: Darban et al.
