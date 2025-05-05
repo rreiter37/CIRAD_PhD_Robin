@@ -113,6 +113,11 @@
 	  date:: 2005
 	  journal:: Computers & Geosciences
 	  topics:: Outlier detection, Mahalanobis distance, robust distance, adaptative threshold
+		- This approach makes use of the **Mahalanobis distance** to compute a distance of a spectrum to the "center" of the whole data set. A common problem with this approach is that the Mahalanobis distance is very sensitive to the presence of outliers. A robust estimate of the covariance matrix and of the center of the data set is therefore necessary. 
+		  
+		  The paper provides a method that aims to get a **robust estimate** of the Mahalanobis distance for every spectrum in the data set. For instance, in order to estimate the center of the data set $\mathcal{X}$, it is proposed to compute the centroid from the subset $\mathcal{X_s}$ of fixed size $h$, that minimizes the determinant of the sample covariance matrix. $h$ is here defined as $0.75 n$, where $n$ is the sample size. **Multivariate quantiles**  can then be defined as the points whose Mahalanobis distance is equal to the quantile of the distribution of all Mahalanobis distances.
+		  
+		  Nevertheless, the approach requires the **normality** of every variable in the data set, in order to approximate the distribution of the Mahalanobis distances as a chi-squared distribution. The hypothesis tests performed revealed that **the condition of normality is not realistic**. To apply the method anyways, it might be possible to find another approximation of the distances' distribution. It would however lead to higher biases in the estimates since the approximate would not be as precise as the one proposed by the authors.
 	- ### Outlier Detection with deep learning techniques on time series
 	  link:: https://dl.acm.org/doi/10.1145/3691338
 	  title:: Deep Learning for Time Series Anomaly Detection: A Survey

@@ -1,0 +1,12 @@
+### Procédure CSI
+	- Mai : Le doctorant fait son rapport annuel d'activité selon le modèle proposé (ADUM). Après avis/commentaires du DT, le doctorant transmet le rapport signé et ses annexes au référent scientifique de la spécialité doctorale concernée, ainsi qu'à tous les membres du CSI en précisant les dates et heures des échéances suivantes.
+	- Juin-Juillet : Le doctorant présente l'avancement l'avancement de ses recherches aux membres du CSI, éventuellement par visioconférence, éventuellement en public.
+	- À partir du 15 Juillet : Le doctorant dépose sur ADUM le rapport annuel avec ses annexes & le rapport du CSI; il peut alors initier la procédure de réinscription.
+	- #### Composition du CSI:
+		- Aucun membre de l'équipe d'encadrement
+		- Désigné avant le 1er Juin
+		- Constitué par le RS du doctorant après consultation du DT & du doctorant
+		- Au moins un membre spécialiste du domaine de recherche de la thèse (informatique)
+		- Au moins un membre non spécialiste du domaine
+		- Le RS de la spécialité doctorale concernée ou son représentant
+		- Dans la mesure du possible, le comité comprend un membre extérieur à l'établissement d'inscription
