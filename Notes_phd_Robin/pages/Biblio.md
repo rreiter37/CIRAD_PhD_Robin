@@ -113,6 +113,7 @@
 	  date:: 2005
 	  journal:: Computers & Geosciences
 	  topics:: Outlier detection, Mahalanobis distance, robust distance, adaptative threshold
+	  collapsed:: true
 		- This approach makes use of the **Mahalanobis distance** to compute a distance of a spectrum to the "center" of the whole data set. A common problem with this approach is that the Mahalanobis distance is very sensitive to the presence of outliers. A robust estimate of the covariance matrix and of the center of the data set is therefore necessary. 
 		  
 		  The paper provides a method that aims to get a **robust estimate** of the Mahalanobis distance for every spectrum in the data set. For instance, in order to estimate the center of the data set $\mathcal{X}$, it is proposed to compute the centroid from the subset $\mathcal{X_s}$ of fixed size $h$, that minimizes the determinant of the sample covariance matrix. $h$ is here defined as $0.75 n$, where $n$ is the sample size. **Multivariate quantiles**  can then be defined as the points whose Mahalanobis distance is equal to the quantile of the distribution of all Mahalanobis distances.
@@ -120,17 +121,15 @@
 		  Nevertheless, the approach requires the **normality** of every variable in the data set, in order to approximate the distribution of the Mahalanobis distances as a chi-squared distribution. The hypothesis tests performed revealed that **the condition of normality is not realistic**. To apply the method anyways, it might be possible to find another approximation of the distances' distribution. It would however lead to higher biases in the estimates since the approximate would not be as precise as the one proposed by the authors.
 	- ### Outlier Detection with deep learning techniques on time series
 	  link:: https://dl.acm.org/doi/10.1145/3691338
-	  title:: Deep Learning for Time Series Anomaly Detection: A Survey
+	  title:: Deep Learning for Time Series Anomaly Detection: A Survey 
 	  author:: Darban et al.
 	  date:: 2024
 	  journal:: ACM Computing Surveys, Volume 57, Issue 1
 	  topics:: Outlier detection, Deep Learning, time series
-	  collapsed:: true
 		- This paper presents the state of the art **time series anomaly detection (TSAD)** with an approach based on deep learning. Both cases of univariate and multivariate time series are treated in this article. We will focus on univariate time series since our spectra are unidimensional.
 		- The proposed techniques use diverse structures including RNN, HTM (Hierarchical Temporal Memory), CNN, VAE, AE. These can be whether unsupervised, semi-supervised or supervised. Semi-supervised means it requires laballed normal data, unlike unsupervised methods that require a fully labelled dataset of both normal and anomalous points.
 		  In our case, it might be better to focus on unsupervised or semi-supervised since NIRS does not give information about abnormal spectra. It lets us 11 different methods to explore in the litterature, including 4 RNN, 2 HTM, 1 CNN, 3 VAE and 1 AE.
 		- #### RNN
-		  collapsed:: true
 			- ### Anomaly detection with LSTM Neural Networks
 			  link:: https://www.semanticscholar.org/paper/Unsupervised-Anomaly-Detection-With-LSTM-Neural-Ergen-Kozat/898a12f14553bf5d5cb18458719b963c14bb81c8
 			  title:: Unsupervised and Semi-supervised Anomaly Detection with LSTM Neural Networks
