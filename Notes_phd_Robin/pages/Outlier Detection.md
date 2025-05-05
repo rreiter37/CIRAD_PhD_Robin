@@ -1,0 +1,14 @@
+### Adaptation du modèle aux outliers
+	- #### Différencier les types d'outliers (Chandola et al. 2009)
+		- Observation unique déviante
+		- Anomalies relatives à leur voisinage
+		- Ensemble de points aberrants
+	- #### Prétraitement spécifique des outliers (Xu et al. 2020)
+		- Alignement dynamique (Dynamic Time Warping), ou *baseline correction* spécifique ///// Wasserstein (Lauriane)
+		- Autoencodeurs entraînés sur les inliers pour corriger les outliers vers un espace latent plus proche
+	- #### Modèles spécialisés pour les outliers (Aytekin et al. 2018; Aggarwal 2016)
+		- Un modèle principal entraîné sur les inliers
+		- Un sous-modèle ou une correction entraînée spécifiquement sur les outliers, voire avec des techniques de transfert
+	- #### Enrichir le modèle par des outlier-aware ensembles (Jacobs et al. 1991)
+		- Dans la stack, ajouter un meta-learner qui utilise une distance aux inliers (e.g. Mahalanobis) comme feature additionnelle
+		- Introduire un gating mechanism inspiré des Mixtures of Experts
