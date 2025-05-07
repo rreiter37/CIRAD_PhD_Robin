@@ -267,6 +267,42 @@
 					  
 					  The way this is used to predict outliers with the first approach is not explicitely described in the article. An idea could be to apply the first approach for diverse values of $k_M$ to find first outliers, then estimate the MRS on the filtered data set as the most recurrent spectrum found.
 				-
+			- ### Outlier detection with Bi-LSTM
+			  link:: https://www.researchgate.net/publication/369368513_A_Bi-LSTM_Autoencoder_Framework_for_Anomaly_Detection_--_A_Case_Study_of_a_Wind_Power_Dataset
+			  title:: A Bi-LSTM Autoencoder Framework for Anomaly Detection -- A Case Study of a Wind Power Dataset
+			  author:: Raihan & Ahmed
+			  date:: 2023
+			  journal:: IEEE 19th Conference on Automation and Engineering (CASE)
+			  topics:: Outlier detection, Deep Learning, LSTM, RNN, time series
+			  collapsed:: true
+				- # A Bi-LSTM Autoencoder Framework for Anomaly Detection -- A Case Study of a Wind Power Dataset
+				- # A Bi-LSTM Autoencoder Framework for Anomaly Detection -- A Case Study of a Wind Power Dataset
+				- # A Bi-LSTM Autoencoder Framework for Anomaly Detection -- A Case Study of a Wind Power Dataset
+				- Proposal of two techniques of outlier detection in UV/Vis spectroscopic data:
+					- **Method 1 : PCA** performed on the **centered** data set, and computation of scores for each spectrum. Then are considered outliers spectra with **PC1 scores** outside the interval defined by the estimated mean of scores $\mu$, and by the estimated standard deviation $\sigma$: $\bm{\mu \pm 2 \sigma}$.
+					  
+					  -------
+					- **Method 2 :**  A first approach based on **Data Depth Theory**. Let A be defined as the matrix of absorbances of size $N_T \times n_x$, containing $N_T$ recorded spectra. Each spectrum measures $n_x$ wavelenghts.
+					  
+					  For a given spectrum j, we compute the Euclidian distance: 
+					  $$ED_j = \frac{1}{N_T} \sqrt{\underset{i=1}{\overset{n_x}{\sum}}(A_{j,i} - A_{k \neq j, i})^2}$$
+					  Then a threshold is defined to detect an outlier if the Euclidian distance associated to a spectrum is considered too high:
+					  $$ED_j > k_M \times median([ED_1:ED_{N_T}])$$
+					  With $k_M$ a multiplicative coefficient, hyperparameter of the method. The detection of outliers is therefore sensitive to the subjective value of $k_M$.
+					  --------
+					- **Method 2 bis :** In order to increase the objectivity and the robustness of this first approach, a complementary method is proposed. After removing from the spectral data set the first outliers detected with the latter approach based on Euclidian distances, we compare the positions of spectra to find the **Most Representative Spectrum (MRS)**.
+					  
+					  For each wavelength $i$, the spectra with a higher/equal/lower than in spectrum j are counted, and those counts are stored in vectors *Lower, Equal, Higher* respectively.
+					  Then the difference between the number of higher and lower absorbances is computed and stored in the vector *Diff*. $$\text{Diff} = |L_1 - L_3|$$
+					  
+					  This is repeated for every wavelength i and every spectrum j to create the matrices *DIFF* and *EQUAL*. Those matrices are summed over the wavelenghts into the column vectors $S_{DIFF}$ and $S_{EQUAL}$. Then the MRS is identified as the one that maximizes $S_{EQUAL}$ amongst the spectra that minimize $S_{DIFF}$.
+					  
+					  A measure of dissimilarity between each spectrum and the MRS can be used (e.g. the Mahalanobis distance):
+					  $$d_j = \| X_j - X_{MRS} \|$$
+					  If the distance is abnormally high, the associated spectrum is considered an outlier.
+					  
+					  The way this is used to predict outliers with the first approach is not explicitely described in the article. An idea could be to apply the first approach for diverse values of $k_M$ to find first outliers, then estimate the MRS on the filtered data set as the most recurrent spectrum found.
+				-
 		- #### HTM
 		  collapsed:: true
 			- ### Real-time anomaly detection with HTM
