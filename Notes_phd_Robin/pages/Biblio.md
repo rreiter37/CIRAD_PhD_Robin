@@ -6,7 +6,6 @@
 	  date:: 2017
 	  journal:: Urban Water Journal
 	  topics:: Outlier detection, Spectroscopic data
-	  collapsed:: true
 		- Proposal of two techniques of outlier detection in UV/Vis spectroscopic data:
 			- **Method 1 : PCA** performed on the **centered** data set, and computation of scores for each spectrum. Then are considered outliers spectra with **PC1 scores** outside the interval defined by the estimated mean of scores $\mu$, and by the estimated standard deviation $\sigma$: $\bm{\mu \pm 2 \sigma}$.
 			  
@@ -31,7 +30,6 @@
 			  If the distance is abnormally high, the associated spectrum is considered an outlier.
 			  
 			  The way this is used to predict outliers with the first approach is not explicitely described in the article. An idea could be to apply the first approach for diverse values of $k_M$ to find first outliers, then estimate the MRS on the filtered data set as the most recurrent spectrum found.
-		-
 	- ### Outlier detection with space transformation
 	  link:: https://pure.au.dk/ws/files/68749533/SDM2013.pdf
 	  title:: Outlier Detection with Space Transformation and Spectral Analysis
@@ -125,7 +123,6 @@
 	  date:: 2024
 	  journal:: ACM Computing Surveys, Volume 57, Issue 1
 	  topics:: Outlier detection, Deep Learning, time series
-	  collapsed:: true
 		- This paper presents the state of the art **time series anomaly detection (TSAD)** with an approach based on deep learning. Both cases of univariate and multivariate time series are treated in this article. We will focus on univariate time series since our spectra are unidimensional.
 		- The proposed techniques use diverse structures including RNN, HTM (Hierarchical Temporal Memory), CNN, VAE, AE. These can be whether unsupervised, semi-supervised or supervised. Semi-supervised means it requires laballed normal data, unlike unsupervised methods that require a fully labelled dataset of both normal and anomalous points.
 		  In our case, it might be better to focus on unsupervised or semi-supervised since NIRS does not give information about abnormal spectra. It lets us 11 different methods to explore in the litterature, including 4 RNN, 2 HTM, 1 CNN, 3 VAE and 1 AE.
@@ -245,14 +242,17 @@
 		  topics:: Outlier detection, Deep Learning, Transformers, attention mechanisms
 		  collapsed:: true
 			- This paper presents the architecture of Transformers for transduction tasks. It consists of using Multi-Head Attention layers in both encoder and decoder processes. It allows a less sequential structure, and subsequently the possibility to parallelize tasks during the training phase, thus it reduces the computation time compared to sequential and convolutional layers.
+		- ---
 		- #### Anomaly Transformer
 		  link:: https://arxiv.org/abs/2110.02642
-		  title:: Anomaly Transformer: Time Series Anomaly Detection with Association Discrepancy 
+		  title:: Anomaly Transformer: Time Series Anomaly Detection with Association Discrepancy
 		  author:: Xu et al.
 		  date:: 2021
 		  journal:: CoRR
 		  topics:: Outlier detection, Deep Learning, Transformers, time series
+		  collapsed:: true
 			- Ce modèle introduit le concept de *assocation discrepancy* en exploitant les poids d'attention pour identifier les anomalies. L'idée principale est que les points anormaux ont des associations faibles avec le reste de la série, ce qui les rend détectables via une attention auto-référencée.
+		- ---
 		- #### W-Transformer used for prediction of time series
 		  link:: https://arxiv.org/abs/2209.03945
 		  title:: W-Transformers : A Wavelet-based Transformer Framework for Univariate Time Series Forecasting
@@ -260,8 +260,10 @@
 		  date:: 2022
 		  journal:: 2022 21st IEEE International Conference on Machine Learning and Applications (ICMLA)
 		  topics:: Prediction, Deep Learning, Transformers, time series
+		  collapsed:: true
 			- Ce modèle combine la transformation en ondelettes discrètes à recouvrement maximal (MODWT) avec des Transformers locaux pour capturer les dépendances non stationnaires et non linéaires à long terme dans les séries temporelles univariées.
 			  -> **Attention cet article évoque la prédiction de séries temporelles mais pas la détection d'anomalies!**
+		- ---
 		- #### Stacked Transformer representation & one-dimensional convolutional network (STOC)
 		  link:: https://www.sciencedirect.com/science/article/pii/S0952197623001483
 		  title:: Time-series anomaly detection with stacked Transformer representations and 1D convolutional network
@@ -269,7 +271,60 @@
 		  date:: 2023
 		  journal:: Engineering Applications of Artificial Intelligence
 		  topics:: Outlier detection, Deep Learning, Transformers, time series
-			- Cette méthode non supervisée empile les représentations de chaque couche d'un encodeur Transformer et utilise une couche de convolution 1D pour fusionner ces représentations, permettant ainsi de capturer à la fois les tendances globales et les variations locales des séries temporelles.
+		  collapsed:: true
+			- **Résumé rapide :** Cette méthode non supervisée empile les représentations de chaque couche d'un encodeur basé sur l'architecture d'un Transformer et utilise dans le decodeur une couche de convolution 1D pour fusionner ces représentations, permettant ainsi de capturer à la fois les tendances globales et les variations locales des séries temporelles.
+			- ---
+			- **Résumé détaillé :**
+				- **Objectif:** L’article propose une méthode d’apprentissage **non supervisé** pour la détection d’anomalies dans des séries temporelles, en combinant :
+					- la **capacité du Transformer** à modéliser les dépendances globales,
+					- et la **compacité du CNN 1D** pour fusionner efficacement des représentations multi-niveaux.
+					  
+					  ---
+				- **Contexte:** La détection d’anomalies dans des séries temporelles est cruciale pour la maintenance préventive dans de nombreux domaines (IT, industrie, santé). La rareté des anomalies rend les approches **non supervisées** attractives. Les approches classiques (LSTM, CNN, autoencodeurs, GAN) souffrent de limitations : dépendance locale, reconstruction imprécise, mauvaise gestion des variations globales.
+				  
+				  ---
+				- **Principes clés:**
+					- **Approche prédictive non supervisée** : le modèle est entraîné à prédire la suite d’une séquence normale.
+					- Les anomalies sont détectées comme des points où **l’erreur de prédiction** est anormalement élevée.
+					- Utilisation de **représentations multi-niveaux empilées** issues des couches intermédiaires du Transformer.
+					  
+					  ---
+				- **Architecture du modèle:**
+					- #### **1. Entrée**
+					- Série temporelle univariée ou multivariée divisée en fenêtres glissantes de taille fixe `L`.
+					- Chaque fenêtre devient une séquence d’entrée pour le modèle.
+					- #### **2. Encodeur : Stacked Transformer Layers**
+					- L’entrée est d’abord projetée dans un espace de dimension `d_model`.
+					- Une **positional encoding** est ajoutée pour intégrer la notion de temps.
+					- La séquence passe à travers `N` **couches Transformer encoders**, chacune dotée :
+						- d’un **masked multi-head self-attention** (pas d’accès au futur),
+						- et d’un feedforward network.
+					- Les **représentations de chaque couche sont empilées** (`stack`) pour capturer :
+						- les **dépendances locales** (couches basses),
+						- les **dépendances globales** (couches hautes).
+					- #### **3. Décodeur : 1D CNN**
+					- La représentation empilée (shape : `d_model × N × L`) est fusionnée via une **convolution 1D** :
+						- permet d'extraire efficacement les **motifs invariants** dans le temps.
+						- compense les fluctuations locales ou le bruit.
+					- Une couche **linéaire** prédit la suite de la séquence (horizon `τ`).
+					- #### **4. Perte**
+					- La fonction de perte est la **MSE** entre la séquence prédite et la séquence réelle décalée de `τ`.
+					- Le modèle apprend à **prédire la dynamique normale** du signal.
+					  
+					  ---
+				- **Score d’anomalie:**
+					- Pour chaque point temporel, le score est :
+					  
+					  st=∥xt−x^t∥2s_t = \left\| x_t - \hat{x}_t \right\|_2
+					  st​=∥xt​−x^t​∥2​
+					- Un **seuil dynamique** peut être défini (ex: `μ + kσ`) pour détecter les points comme anormaux.
+					  
+					  ---
+				- **Avantages de STOC:**
+					- **Fusion multi-niveaux** : exploite toute la richesse hiérarchique des couches Transformer.
+					- **Convolution 1D efficace** : capture les régularités, atténue les anomalies isolées.
+					- **Adaptable** à divers types de séries : bruitées, saisonnières, multivariées.
+		- ---
 		- ### Decompose Auto-Transformer Network (DATN)
 		  link:: https://www.mdpi.com/2079-9292/12/2/354
 		  title:: Decompose Auto-Transformer Time Series Anomaly Detection for Network Management
