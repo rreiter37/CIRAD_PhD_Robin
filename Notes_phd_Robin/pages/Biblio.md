@@ -120,11 +120,12 @@
 		  Nevertheless, the approach requires the **normality** of every variable in the data set, in order to approximate the distribution of the Mahalanobis distances as a chi-squared distribution. The hypothesis tests performed revealed that **the condition of normality is not realistic**. To apply the method anyways, it might be possible to find another approximation of the distances' distribution. It would however lead to higher biases in the estimates since the approximate would not be as precise as the one proposed by the authors.
 	- ### Outlier Detection with deep learning techniques on time series
 	  link:: https://dl.acm.org/doi/10.1145/3691338
-	  title:: Deep Learning for Time Series Anomaly Detection: A Survey 
+	  title:: Deep Learning for Time Series Anomaly Detection: A Survey
 	  author:: Darban et al.
 	  date:: 2024
 	  journal:: ACM Computing Surveys, Volume 57, Issue 1
 	  topics:: Outlier detection, Deep Learning, time series
+	  collapsed:: true
 		- This paper presents the state of the art **time series anomaly detection (TSAD)** with an approach based on deep learning. Both cases of univariate and multivariate time series are treated in this article. We will focus on univariate time series since our spectra are unidimensional.
 		- The proposed techniques use diverse structures including RNN, HTM (Hierarchical Temporal Memory), CNN, VAE, AE. These can be whether unsupervised, semi-supervised or supervised. Semi-supervised means it requires laballed normal data, unlike unsupervised methods that require a fully labelled dataset of both normal and anomalous points.
 		  In our case, it might be better to focus on unsupervised or semi-supervised since NIRS does not give information about abnormal spectra. It lets us 11 different methods to explore in the litterature, including 4 RNN, 2 HTM, 1 CNN, 3 VAE and 1 AE.
@@ -137,6 +138,7 @@
 			  date:: 2019
 			  journal:: IEEE Transactions on Neural Networks and Learning Systems
 			  topics:: Outlier detection, Deep Learning, LSTM, RNN, time series
+			  collapsed:: true
 			- ### LSTM for anomaly detection
 			  link:: https://www.researchgate.net/publication/304782562_Long_Short_Term_Memory_Networks_for_Anomaly_Detection_in_Time_Series
 			  title:: Long Short Term Memory Networks for Anomaly Detection in Time Series
@@ -174,6 +176,7 @@
 			  date:: 2017
 			  journal:: Neurocomputing (volume 262, pages 134-147)
 			  topics:: Outlier detection, Deep Learning, HTM, time series
+			  collapsed:: true
 			- ### Anomaly detection with HTM
 			  link:: https://www.sciencedirect.com/science/article/pii/S0925231217313887
 			  title:: Hierarchical Temporal Memory method for time-series-based anomaly detection
@@ -190,6 +193,7 @@
 			  date:: 2019
 			  journal:: Association for Computing Machinery
 			  topics:: Outlier detection, Deep Learning, CNN, time series
+			  collapsed:: true
 		- #### VAE
 		  collapsed:: true
 			- ### Anomaly detection with VAE for Seasonal KPIs
@@ -199,6 +203,7 @@
 			  date:: 2018
 			  journal:: International World Wide Web Conferences Steering Committee
 			  topics:: Outlier detection, Deep Learning, VAE, time series
+			  collapsed:: true
 			- ### Anomaly Detection with conditional variational autoencodeur
 			  link:: https://www.researchgate.net/publication/333072648_Robust_and_Unsupervised_KPI_Anomaly_Detection_Based_on_Conditional_Variational_Autoencoder
 			  title:: Robust and Unsupervised KPI Anomaly Detection Based on Conditional Variational Autoencoder
@@ -222,16 +227,38 @@
 			  date:: 2016
 			  journal:: 
 			  topics:: Outlier detection, Deep Learning, AE, time series
-- ### Using the architecture of transformers
-	- #### Founding article on the architecture of transformers
-	  link:: https://proceedings.neurips.cc/paper_files/paper/2017/file/3f5ee243547dee91fbd053c1c4a845aa-Paper.pdf
-	  title:: Attention Is All You Need
-	  author:: Vaswani et al.
-	  date:: 2017
-	  journal:: Computing Research Repository (CoRR)
-	  topics:: Outlier detection, Deep Learning, Transformers, attention mechanisms
-	  collapsed:: true
-		- This paper presents the architecture of Transformers for transduction tasks. It consists of using Multi-Head Attention layers in both encoder and decoder processes. It allows a less sequential structure, and subsequently the possibility to parallelize tasks during the training phase, thus it reduces the computation time compared to sequential and convolutional layers.
+			  collapsed:: true
+	- ### Using the architecture of transformers
+		- #### Founding article on the architecture of transformers
+		  link:: https://proceedings.neurips.cc/paper_files/paper/2017/file/3f5ee243547dee91fbd053c1c4a845aa-Paper.pdf
+		  title:: Attention Is All You Need
+		  author:: Vaswani et al.
+		  date:: 2017
+		  journal:: Computing Research Repository (CoRR)
+		  topics:: Outlier detection, Deep Learning, Transformers, attention mechanisms
+		  collapsed:: true
+			- This paper presents the architecture of Transformers for transduction tasks. It consists of using Multi-Head Attention layers in both encoder and decoder processes. It allows a less sequential structure, and subsequently the possibility to parallelize tasks during the training phase, thus it reduces the computation time compared to sequential and convolutional layers.
+		- #### Anomaly Transformer
+		  link:: https://arxiv.org/abs/2110.02642
+		  title:: Anomaly Transformer: Time Series Anomaly Detection with Association Discrepancy 
+		  author:: Xu et al.
+		  date:: 2021
+		  journal:: CoRR
+		  topics:: Outlier detection, Deep Learning, Transformers, time series
+		- #### W-Transformer used for prediction of time series
+		  link:: https://arxiv.org/abs/2209.03945
+		  title:: W-Transformers : A Wavelet-based Transformer Framework for Univariate Time Series Forecasting
+		  author:: Sasal et al.
+		  date:: 2022
+		  journal:: 2022 21st IEEE International Conference on Machine Learning and Applications (ICMLA)
+		  topics:: Prediction, Deep Learning, Transformers, time series
+		- #### Stacked Transformer representation & one-dimensional convolutional network (STOC)
+		  link:: https://www.sciencedirect.com/science/article/pii/S0952197623001483
+		  title:: Time-series anomaly detection with stacked Transformer representations and 1D convolutional network
+		  author:: Kim et al.
+		  date:: 2023
+		  journal:: Engineering Applications of Artificial Intelligence
+		  topics:: Outlier detection, Deep Learning, Transformers, time series
 - ## Template for articles
 	- ### Descriptive title
 	  link:: link to the see the article
