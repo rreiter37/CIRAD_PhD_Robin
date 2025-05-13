@@ -146,6 +146,7 @@
 			  date:: 2015
 			  journal:: ESANN
 			  topics:: Outlier detection, Deep Learning, LSTM, RNN, time series
+			  collapsed:: true
 			- ### LSTM for anomaly detection in ECG time series
 			  link:: https://www.researchgate.net/publication/308852664_Anomaly_detection_in_ECG_time_signals_via_deep_long_short-term_memory_networks
 			  title:: Anomaly detection in ECG time signals via deep long short term memory networks
@@ -153,6 +154,7 @@
 			  date:: 2015
 			  journal:: IEEE International Conference on Data Science and Advanced Analytics (DSAA)
 			  topics:: Outlier detection, Deep Learning, LSTM, RNN, time series
+			  collapsed:: true
 			- ### Collective outlier detection with LSTM
 			  link:: https://www.researchgate.net/publication/309370951_Collective_Anomaly_Detection_Based_on_Long_Short-Term_Memory_Recurrent_Neural_Networks
 			  title:: Collective Anomaly Detection Based on Long Short-Term Memory Recurrent Neural Networks
@@ -160,6 +162,7 @@
 			  date:: 2016
 			  journal:: Future Data and Security Engineering (FDSE conference)
 			  topics:: Outlier detection, Deep Learning, LSTM, RNN, time series
+			  collapsed:: true
 			- ### Outlier detection with Bi-LSTM
 			  link:: https://www.researchgate.net/publication/369368513_A_Bi-LSTM_Autoencoder_Framework_for_Anomaly_Detection_--_A_Case_Study_of_a_Wind_Power_Dataset
 			  title:: A Bi-LSTM Autoencoder Framework for Anomaly Detection -- A Case Study of a Wind Power Dataset
@@ -167,6 +170,7 @@
 			  date:: 2023
 			  journal:: IEEE 19th Conference on Automation and Engineering (CASE)
 			  topics:: Outlier detection, Deep Learning, LSTM, RNN, time series
+			  collapsed:: true
 		- #### HTM
 		  collapsed:: true
 			- ### Real-time anomaly detection with HTM
@@ -184,6 +188,7 @@
 			  date:: 2018
 			  journal:: Neurocomputing (volume 273, pages 535-546)
 			  topics:: Outlier detection, Deep Learning, HTM, time series
+			  collapsed:: true
 		- #### CNN
 		  collapsed:: true
 			- ### Anomaly detection with CNN
@@ -211,6 +216,7 @@
 			  date:: 2018
 			  journal:: IPCC Conference
 			  topics:: Outlier detection, Deep Learning, VAE, time series
+			  collapsed:: true
 			- ### Anomaly Detection with Adversarial Training of VAE
 			  link:: https://www.researchgate.net/publication/333851045_Unsupervised_Anomaly_Detection_for_Intricate_KPIs_via_Adversarial_Training_of_VAE
 			  title:: Unsupervised Anomaly Detection for Intricate KPIs via Adversarial Training of VAE
@@ -218,6 +224,7 @@
 			  date:: 2019
 			  journal:: IEEE Conference on Computer Communications INFOCOM
 			  topics:: Outlier detection, Deep Learning, VAE, time series
+			  collapsed:: true
 		- #### AE
 		  collapsed:: true
 			- ### Anomaly detection with AE
@@ -245,6 +252,7 @@
 		  date:: 2021
 		  journal:: CoRR
 		  topics:: Outlier detection, Deep Learning, Transformers, time series
+			- Ce modèle introduit le concept de *assocation discrepancy* en exploitant les poids d'attention pour identifier les anomalies. L'idée principale est que les points anormaux ont des associations faibles avec le reste de la série, ce qui les rend détectables via une attention auto-référencée.
 		- #### W-Transformer used for prediction of time series
 		  link:: https://arxiv.org/abs/2209.03945
 		  title:: W-Transformers : A Wavelet-based Transformer Framework for Univariate Time Series Forecasting
@@ -252,6 +260,8 @@
 		  date:: 2022
 		  journal:: 2022 21st IEEE International Conference on Machine Learning and Applications (ICMLA)
 		  topics:: Prediction, Deep Learning, Transformers, time series
+			- Ce modèle combine la transformation en ondelettes discrètes à recouvrement maximal (MODWT) avec des Transformers locaux pour capturer les dépendances non stationnaires et non linéaires à long terme dans les séries temporelles univariées.
+			  -> **Attention cet article évoque la prédiction de séries temporelles mais pas la détection d'anomalies!**
 		- #### Stacked Transformer representation & one-dimensional convolutional network (STOC)
 		  link:: https://www.sciencedirect.com/science/article/pii/S0952197623001483
 		  title:: Time-series anomaly detection with stacked Transformer representations and 1D convolutional network
@@ -259,6 +269,23 @@
 		  date:: 2023
 		  journal:: Engineering Applications of Artificial Intelligence
 		  topics:: Outlier detection, Deep Learning, Transformers, time series
+			- Cette méthode non supervisée empile les représentations de chaque couche d'un encodeur Transformer et utilise une couche de convolution 1D pour fusionner ces représentations, permettant ainsi de capturer à la fois les tendances globales et les variations locales des séries temporelles.
+		- ### Decompose Auto-Transformer Network (DATN)
+		  link:: https://www.mdpi.com/2079-9292/12/2/354
+		  title:: Decompose Auto-Transformer Time Series Anomaly Detection for Network Management
+		  author:: Wu et al.
+		  date:: 2023
+		  journal:: Electronics, 12(2), 354
+		  topics:: Outlier detection, Deep Learning, Transformers, time series
+			- Ce modèle décompose les séries temporelles en composantes saisonnières et de tendance, puis utilise un Transformer pour modéliser ces composantes séparément. Cette approche permet de mieux capturer les motifs périodiques et les tendances à long terme pour une détection d'anomalies plus précise.
+		- ### Reversible Instance Normalized Anomaly Transformer
+		  link:: https://www.mdpi.com/1424-8220/23/22/9272
+		  title:: Anomaly Detection in Time Series Data Using Reversible Instance Normalized Anomaly Transformer
+		  author:: Baidya & Jeong
+		  date:: 2023
+		  journal:: Sensors, 23(22), 9272
+		  topics:: Outlier detection, Deep Learning, Transformers, time series
+			- Ce modèle améliore l'architecture Anomaly Transformer en intégrant une normalisation d'instance réversible, ce qui permet de mieux gérer les variations de distribution dans les séries temporelles univariées et d'améliorer la détection d'anomalies.
 - ## Template for articles
 	- ### Descriptive title
 	  link:: link to the see the article
