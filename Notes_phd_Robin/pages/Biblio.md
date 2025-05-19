@@ -6,6 +6,7 @@
 	  date:: 2017
 	  journal:: Urban Water Journal
 	  topics:: Outlier detection, Spectroscopic data
+	  collapsed:: true
 		- Proposal of two techniques of outlier detection in UV/Vis spectroscopic data:
 			- **Method 1 : PCA** performed on the **centered** data set, and computation of scores for each spectrum. Then are considered outliers spectra with **PC1 scores** outside the interval defined by the estimated mean of scores $\mu$, and by the estimated standard deviation $\sigma$: $\bm{\mu \pm 2 \sigma}$.
 			  
@@ -123,6 +124,7 @@
 	  date:: 2024
 	  journal:: ACM Computing Surveys, Volume 57, Issue 1
 	  topics:: Outlier detection, Deep Learning, time series
+	  collapsed:: true
 		- This paper presents the state of the art **time series anomaly detection (TSAD)** with an approach based on deep learning. Both cases of univariate and multivariate time series are treated in this article. We will focus on univariate time series since our spectra are unidimensional.
 		- The proposed techniques use diverse structures including RNN, HTM (Hierarchical Temporal Memory), CNN, VAE, AE. These can be whether unsupervised, semi-supervised or supervised. Semi-supervised means it requires laballed normal data, unlike unsupervised methods that require a fully labelled dataset of both normal and anomalous points.
 		  In our case, it might be better to focus on unsupervised or semi-supervised since NIRS does not give information about abnormal spectra. It lets us 11 different methods to explore in the litterature, including 4 RNN, 2 HTM, 1 CNN, 3 VAE and 1 AE.
@@ -240,7 +242,6 @@
 		  date:: 2017
 		  journal:: Computing Research Repository (CoRR)
 		  topics:: Outlier detection, Deep Learning, Transformers, attention mechanisms
-		  collapsed:: true
 			- This paper presents the architecture of Transformers for transduction tasks. It consists of using Multi-Head Attention layers in both encoder and decoder processes. It allows a less sequential structure, and subsequently the possibility to parallelize tasks during the training phase, thus it reduces the computation time compared to sequential and convolutional layers.
 		- ---
 		- #### Anomaly Transformer
@@ -250,7 +251,6 @@
 		  date:: 2021
 		  journal:: CoRR
 		  topics:: Outlier detection, Deep Learning, Transformers, time series
-		  collapsed:: true
 			- Ce modèle introduit le concept de *assocation discrepancy* en exploitant les poids d'attention pour identifier les anomalies. L'idée principale est que les points anormaux ont des associations faibles avec le reste de la série, ce qui les rend détectables via une attention auto-référencée.
 		- ---
 		- #### W-Transformer used for prediction of time series
@@ -260,7 +260,6 @@
 		  date:: 2022
 		  journal:: 2022 21st IEEE International Conference on Machine Learning and Applications (ICMLA)
 		  topics:: Prediction, Deep Learning, Transformers, time series
-		  collapsed:: true
 			- Ce modèle combine la transformation en ondelettes discrètes à recouvrement maximal (MODWT) avec des Transformers locaux pour capturer les dépendances non stationnaires et non linéaires à long terme dans les séries temporelles univariées.
 			  -> **Attention cet article évoque la prédiction de séries temporelles mais pas la détection d'anomalies!**
 		- ---
@@ -271,7 +270,6 @@
 		  date:: 2023
 		  journal:: Engineering Applications of Artificial Intelligence
 		  topics:: Outlier detection, Deep Learning, Transformers, time series
-		  collapsed:: true
 			- **Résumé rapide :** Cette méthode non supervisée empile les représentations de chaque couche d'un encodeur basé sur l'architecture d'un Transformer et utilise dans le decodeur une couche de convolution 1D pour fusionner ces représentations, permettant ainsi de capturer à la fois les tendances globales et les variations locales des séries temporelles.
 			- ---
 			- **Résumé détaillé :**
@@ -332,7 +330,56 @@
 		  date:: 2023
 		  journal:: Electronics, 12(2), 354
 		  topics:: Outlier detection, Deep Learning, Transformers, time series
-			- Ce modèle décompose les séries temporelles en composantes saisonnières et de tendance, puis utilise un Transformer pour modéliser ces composantes séparément. Cette approche permet de mieux capturer les motifs périodiques et les tendances à long terme pour une détection d'anomalies plus précise.
+			- **Résumé rapide:** Ce modèle décompose les séries temporelles en composantes saisonnières et de tendance, puis utilise un Transformer pour modéliser ces composantes séparément. Cette approche permet de mieux capturer les motifs périodiques et les tendances à long terme pour une détection d'anomalies plus précise.
+			- **Résumé complet:**
+			  L’article présente **DATN (Decompose Auto-Transformer Network)**, un modèle d’apprentissage non supervisé pour la détection d’anomalies dans les séries temporelles, spécifiquement destiné à la gestion de réseaux. Le principal enjeu est de modéliser la complexité des dépendances temporelles et la nature stochastique des données réseaux. DATN s’appuie sur une **décomposition de séries temporelles** en composants **tendance** et **saisonnier**, couplée à des modules de **transformer auto-attentifs** pour améliorer la détection.
+			  
+			  ---
+			- **Problem Formulation**
+			  
+			  Cette section formelle le problème comme suit :
+			- Une **série temporelle multivariée** est représentée par $X = \{x_0, ..., x_{T-1}\}$, avec $x_t \in \mathbb{R}^m$.
+			- L’objectif est de détecter les anomalies dans une série test $\hat{X}$ sans supervision, en produisant une séquence de sorties $Y = \{y_0, ..., y_{T-1}\}$, où $y_t \in \{0, 1\}$ indique la présence ou non d'une anomalie.
+			  
+			  La série est modélisée comme la **somme de deux composantes** :
+			  
+			  $$x_t = s_t + p_t$$
+			- $s_t$​ : composante **saisonnière** (patterns périodiques)
+			- $p_t$​ : composante **tendance** (évolution à long terme)
+			  
+			  L’architecture Transformer est décrite, avec attention multi-têtes et réseaux feedforward. Elle sert de base à la modélisation des relations temporelles dans les séries.
+			  
+			  ---
+			- #### Section 4 – Decompose Auto-Transformer (DATN)
+			  
+			  Cette partie détaille l’architecture DATN, illustrée dans la Figure 1 de l’article.
+				- **Décomposition:** Le bloc de décomposition sépare chaque série X en deux composantes :
+				  $$Xt=MA(X), \quad Xs=X−Xt$$
+				  **MA** est une moyenne mobile
+				  $X_s$​ (saisonnier), $X_t​$ (tendance)
+				- **Auto-Attention par FFT:** Une nouveauté clé est l’**auto-attention**, qui :
+				  Utilise la **transformée de Fourier (FFT)** pour détecter les principales périodes dominantes dans la série.
+				  Sélectionne les **top K fréquences** puis les reconvertit en domaine temporel (inverse FFT) pour renforcer les patterns périodiques dominants.
+				  $$Γ_k=F(x_n), \quad x_n = \mathcal{F}^{-1}(\Gamma_k)$$
+				  
+				  Cette opération est appliquée **séparément aux composantes saisonnières et de tendance** avant leur passage dans les blocs Transformer.
+				- **Encodage:** Chaque couche de l’encodeur suit cette séquence :
+				  -Décomposition : $$X_s, X_t = \text{SeriesDecomp}(X)$$
+				  -Auto-attention : extraction des patterns périodiques
+				  -Attention multi-têtes
+				  -Fusion additive des sorties $O_s + O_t$​
+			- **Décodage et détection:** Un **simple décodeur linéaire** reconstruit la série.
+			  L’anomalie est détectée par la **distance euclidienne** entre la série d'entrée et sa reconstruction :
+			  $$s_t = \sum_{i=1}^m \| \hat{x}_t - x_t \|_2​$$
+			  Un score élevé indique une anomalie probable.
+			  
+			  ---
+			- #### Conclusion du modèle
+			  
+			  DATN améliore l’interprétation des séries complexes :
+				- La **décomposition** simplifie les patterns.
+				- L’**auto-attention FFT** renforce les périodicités significatives.
+				- Le **décodage simplifié** favorise l’efficacité sans compromettre la performance.
 		- ### Reversible Instance Normalized Anomaly Transformer
 		  link:: https://www.mdpi.com/1424-8220/23/22/9272
 		  title:: Anomaly Detection in Time Series Data Using Reversible Instance Normalized Anomaly Transformer
