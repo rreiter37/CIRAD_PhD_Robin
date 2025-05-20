@@ -242,15 +242,17 @@
 		  date:: 2017
 		  journal:: Computing Research Repository (CoRR)
 		  topics:: Outlier detection, Deep Learning, Transformers, attention mechanisms
+		  collapsed:: true
 			- This paper presents the architecture of Transformers for transduction tasks. It consists of using Multi-Head Attention layers in both encoder and decoder processes. It allows a less sequential structure, and subsequently the possibility to parallelize tasks during the training phase, thus it reduces the computation time compared to sequential and convolutional layers.
 		- ---
 		- #### Anomaly Transformer
 		  link:: https://arxiv.org/abs/2110.02642
 		  title:: Anomaly Transformer: Time Series Anomaly Detection with Association Discrepancy
 		  author:: Xu et al.
-		  date:: 2021
+		  date:: 2022
 		  journal:: CoRR
 		  topics:: Outlier detection, Deep Learning, Transformers, time series
+		  collapsed:: true
 			- Ce modèle introduit le concept de *assocation discrepancy* en exploitant les poids d'attention pour identifier les anomalies. L'idée principale est que les points anormaux ont des associations faibles avec le reste de la série, ce qui les rend détectables via une attention auto-référencée.
 		- ---
 		- #### W-Transformer used for prediction of time series
@@ -260,6 +262,7 @@
 		  date:: 2022
 		  journal:: 2022 21st IEEE International Conference on Machine Learning and Applications (ICMLA)
 		  topics:: Prediction, Deep Learning, Transformers, time series
+		  collapsed:: true
 			- Ce modèle combine la transformation en ondelettes discrètes à recouvrement maximal (MODWT) avec des Transformers locaux pour capturer les dépendances non stationnaires et non linéaires à long terme dans les séries temporelles univariées.
 			  -> **Attention cet article évoque la prédiction de séries temporelles mais pas la détection d'anomalies!**
 		- ---
@@ -270,6 +273,7 @@
 		  date:: 2023
 		  journal:: Engineering Applications of Artificial Intelligence
 		  topics:: Outlier detection, Deep Learning, Transformers, time series
+		  collapsed:: true
 			- **Résumé rapide :** Cette méthode non supervisée empile les représentations de chaque couche d'un encodeur basé sur l'architecture d'un Transformer et utilise dans le decodeur une couche de convolution 1D pour fusionner ces représentations, permettant ainsi de capturer à la fois les tendances globales et les variations locales des séries temporelles.
 			- ---
 			- **Résumé détaillé :**
@@ -330,6 +334,7 @@
 		  date:: 2023
 		  journal:: Electronics, 12(2), 354
 		  topics:: Outlier detection, Deep Learning, Transformers, time series
+		  collapsed:: true
 			- **Résumé rapide:** Ce modèle décompose les séries temporelles en composantes saisonnières et de tendance, puis utilise un Transformer pour modéliser ces composantes séparément. Cette approche permet de mieux capturer les motifs périodiques et les tendances à long terme pour une détection d'anomalies plus précise.
 			- **Résumé complet:**
 			  L’article présente **DATN (Decompose Auto-Transformer Network)**, un modèle d’apprentissage non supervisé pour la détection d’anomalies dans les séries temporelles, spécifiquement destiné à la gestion de réseaux. Le principal enjeu est de modéliser la complexité des dépendances temporelles et la nature stochastique des données réseaux. DATN s’appuie sur une **décomposition de séries temporelles** en composants **tendance** et **saisonnier**, couplée à des modules de **transformer auto-attentifs** pour améliorer la détection.
@@ -387,7 +392,45 @@
 		  date:: 2023
 		  journal:: Sensors, 23(22), 9272
 		  topics:: Outlier detection, Deep Learning, Transformers, time series
-			- Ce modèle améliore l'architecture Anomaly Transformer en intégrant une normalisation d'instance réversible, ce qui permet de mieux gérer les variations de distribution dans les séries temporelles univariées et d'améliorer la détection d'anomalies.
+			- **Résumé rapide:** Ce modèle améliore l'architecture Anomaly Transformer en intégrant une normalisation d'instance réversible, ce qui permet de mieux gérer les variations de distribution dans les séries temporelles univariées et d'améliorer la détection d'anomalies.
+			- **Résumé complet:**
+				- **Objectif:** L'article propose **RINAT**, un modèle non supervisé pour la détection d'anomalies dans les séries temporelles, basé sur une version améliorée du **Anomaly Transformer**. Le modèle introduit deux innovations principales :
+					- **Reversible Instance Normalization (RevIN)** appliquée uniquement aux associations de séries.
+					- **Attention bi-branche** distinguant les associations **prior** (voisinage local) et **series** (global) pour mieux capturer les anomalies rares.
+				- ---
+				- **Méthode proposée : RINAT**
+					- Anomaly Transformer (Rappel)
+						- Basé sur l'architecture Transformer.
+						- Introduit deux types d’attention :
+							- **Series association** : attention classique entre tous les points temporels (par auto-attention).
+							- **Prior association** : attention basée sur un **noyau gaussien** centré autour de chaque point.
+						- La **discrépance d’association** (association discrepancy) est calculée via la **divergence KL** entre ces deux attentions.
+					- ---
+			- **Reversible Instance Normalization (RevIN):**
+				- Normalise les séquences temporelles instance par instance (par spectre dans notre cas).
+				- Le processus est réversible, permettant de **restaurer l’échelle d’origine**.
+				- Elle est **appliquée uniquement sur les données servant au calcul des series associations**, car :
+					- Les anomalies rares sont noyées lors de la normalisation.
+					- Leur impact est donc préservé dans la branche *prior* qui reçoit les données non normalisées.
+				- ---
+				- **Architecture RINAT:**
+					- #### Étapes clés :
+						- **Embedding** : encodage linéaire des données temporelles.
+						- **RevIN** : normalisation réversible pour la branche series.
+						- **Attention duale** :
+							- **Series attention** : via auto-attention sur les données normalisées.
+							- **Prior attention** : via noyau gaussien learnable sur les données brutes.
+						- **Association discrepancy** :
+							- Calculée comme moyenne symétrique de KL(Series || Prior) et KL(Prior || Series).
+						- **Feedforward + LayerNorm**
+						- **Reconstruction + denormalization**
+						- **Loss** :
+							- Reconstruction loss (`||X - X̂||`)
+							- Moins pondéré par la discrepancy (`- λ * discrepancy`), avec stratégie **minimax** :
+								- *min* : prior s’adapte à series
+								- *max* : series diverge du prior (pour renforcer les anomalies)
+						- Fonction de perte finale : $\text{Loss} = ||X - \hat{X}|| - \lambda * KL(\text{Prior}, \text{Series})$
+						- Score d’anomalie final : $AS(X) = \text{SoftMax}(-KL) × ||X - \hat{X}||$
 - ## Template for articles
 	- ### Descriptive title
 	  link:: link to the see the article
