@@ -12,3 +12,13 @@
 	- #### Enrichir le modèle par des outlier-aware ensembles (Jacobs et al. 1991)
 		- Dans la stack, ajouter un meta-learner qui utilise une distance aux inliers (e.g. Mahalanobis) comme feature additionnelle
 		- Introduire un gating mechanism inspiré des Mixtures of Experts
+- ### Idées sur l'adaptation aux outliers
+	- On commence par différencier les types d'outliers
+		- Observation unique déviante -> baseline correction spécifique: lissage de cette anomalie unique
+		- Anomalies relatives à leur voisinage -> récupération du spectre reconstruit par un décodeur? baseline correction?
+		- Ensemble de points aberrants -> transport optimal de la distribution des outliers vers la distribution des inliers // entraînement d'un modèle propre à ces outliers dans la stack
+	- Comment différencier les types d'outliers ?
+		- Faire un clustering sur les scores d'anomalies de reconstruction -> si plusieurs clusters, alors il y a au moins un ensemble de points aberrants
+		- Distance de Wasserstein -> sensible aux outliers ayant une distribution différente de celle des inliers, pas juste une observation unique déviante
+		- Coefficient $R^2$ entre un spectre reconstruit et son vrai spectre -> si faible, la distribution du spectre est différente de celle des inliers
+		- Analyse des résidus locaux -> pour chaque longueur d'onde $i$, on calcule la médiane des valeurs d'absorbance $m_i$. Si $|s_i - m_i| > k.\text{MAD}_i$, où $\text{MAD}_i$ est l'écart absolu médian, alors la valeur est aberrante pour cette longueur d'onde. Si seules quelques longueurs d'onde sont aberrantes, alors le spectre n'est probablement qu'une anomalie locale.
