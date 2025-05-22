@@ -394,6 +394,7 @@
 		  topics:: Outlier detection, Deep Learning, Transformers, time series
 			- **Résumé rapide:** Ce modèle améliore l'architecture Anomaly Transformer en intégrant une normalisation d'instance réversible, ce qui permet de mieux gérer les variations de distribution dans les séries temporelles univariées et d'améliorer la détection d'anomalies.
 			- **Résumé complet:**
+			  collapsed:: true
 				- **Objectif:** L'article propose **RINAT**, un modèle non supervisé pour la détection d'anomalies dans les séries temporelles, basé sur une version améliorée du **Anomaly Transformer**. Le modèle introduit deux innovations principales :
 					- **Reversible Instance Normalization (RevIN)** appliquée uniquement aux associations de séries.
 					- **Attention bi-branche** distinguant les associations **prior** (voisinage local) et **series** (global) pour mieux capturer les anomalies rares.
@@ -406,31 +407,31 @@
 							- **Prior association** : attention basée sur un **noyau gaussien** centré autour de chaque point.
 						- La **discrépance d’association** (association discrepancy) est calculée via la **divergence KL** entre ces deux attentions.
 					- ---
-			- **Reversible Instance Normalization (RevIN):**
-				- Normalise les séquences temporelles instance par instance (par spectre dans notre cas).
-				- Le processus est réversible, permettant de **restaurer l’échelle d’origine**.
-				- Elle est **appliquée uniquement sur les données servant au calcul des series associations**, car :
-					- Les anomalies rares sont noyées lors de la normalisation.
-					- Leur impact est donc préservé dans la branche *prior* qui reçoit les données non normalisées.
-				- ---
-				- **Architecture RINAT:**
-					- #### Étapes clés :
-						- **Embedding** : encodage linéaire des données temporelles.
-						- **RevIN** : normalisation réversible pour la branche series.
-						- **Attention duale** :
-							- **Series attention** : via auto-attention sur les données normalisées.
-							- **Prior attention** : via noyau gaussien learnable sur les données brutes.
-						- **Association discrepancy** :
-							- Calculée comme moyenne symétrique de KL(Series || Prior) et KL(Prior || Series).
-						- **Feedforward + LayerNorm**
-						- **Reconstruction + denormalization**
-						- **Loss** :
-							- Reconstruction loss (`||X - X̂||`)
-							- Moins pondéré par la discrepancy (`- λ * discrepancy`), avec stratégie **minimax** :
-								- *min* : prior s’adapte à series
-								- *max* : series diverge du prior (pour renforcer les anomalies)
-						- Fonction de perte finale : $\text{Loss} = ||X - \hat{X}|| - \lambda * KL(\text{Prior}, \text{Series})$
-						- Score d’anomalie final : $AS(X) = \text{SoftMax}(-KL) × ||X - \hat{X}||$
+				- **Reversible Instance Normalization (RevIN):**
+					- Normalise les séquences temporelles instance par instance (par spectre dans notre cas).
+					- Le processus est réversible, permettant de **restaurer l’échelle d’origine**.
+					- Elle est **appliquée uniquement sur les données servant au calcul des series associations**, car :
+						- Les anomalies rares sont noyées lors de la normalisation.
+						- Leur impact est donc préservé dans la branche *prior* qui reçoit les données non normalisées.
+					- ---
+					- **Architecture RINAT:**
+						- #### Étapes clés :
+							- **Embedding** : encodage linéaire des données temporelles.
+							- **RevIN** : normalisation réversible pour la branche series.
+							- **Attention duale** :
+								- **Series attention** : via auto-attention sur les données normalisées.
+								- **Prior attention** : via noyau gaussien learnable sur les données brutes.
+							- **Association discrepancy** :
+								- Calculée comme moyenne symétrique de KL(Series || Prior) et KL(Prior || Series).
+							- **Feedforward + LayerNorm**
+							- **Reconstruction + denormalization**
+							- **Loss** :
+								- Reconstruction loss (`||X - X̂||`)
+								- Moins pondéré par la discrepancy (`- λ * discrepancy`), avec stratégie **minimax** :
+									- *min* : prior s’adapte à series
+									- *max* : series diverge du prior (pour renforcer les anomalies)
+							- Fonction de perte finale : $\text{Loss} = ||X - \hat{X}|| - \lambda * KL(\text{Prior}, \text{Series})$
+							- Score d’anomalie final : $AS(X) = \text{SoftMax}(-KL) × ||X - \hat{X}||$
 - ## Template for articles
 	- ### Descriptive title
 	  link:: link to the see the article
