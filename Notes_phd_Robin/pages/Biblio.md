@@ -334,7 +334,6 @@
 		  date:: 2023
 		  journal:: Electronics, 12(2), 354
 		  topics:: Outlier detection, Deep Learning, Transformers, time series
-		  collapsed:: true
 			- **Résumé rapide:** Ce modèle décompose les séries temporelles en composantes saisonnières et de tendance, puis utilise un Transformer pour modéliser ces composantes séparément. Cette approche permet de mieux capturer les motifs périodiques et les tendances à long terme pour une détection d'anomalies plus précise.
 			- **Résumé complet:**
 			  L’article présente **DATN (Decompose Auto-Transformer Network)**, un modèle d’apprentissage non supervisé pour la détection d’anomalies dans les séries temporelles, spécifiquement destiné à la gestion de réseaux. Le principal enjeu est de modéliser la complexité des dépendances temporelles et la nature stochastique des données réseaux. DATN s’appuie sur une **décomposition de séries temporelles** en composants **tendance** et **saisonnier**, couplée à des modules de **transformer auto-attentifs** pour améliorer la détection.

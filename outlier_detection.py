@@ -1,5 +1,7 @@
 ### Libraries importation
 
+import json
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -29,9 +31,35 @@ simplefilter(action="ignore", category=RuntimeWarning)
 
 
 
+### Function to save results in a json file
+
+def save_results_to_json(name_method, data_source, exec_time, scores, dataset_size, epochs, name_cost, dict_outliers):
+    """
+    Save results to a JSON file.
+    """
+    file_path = "Outputs/outliers_detection/%s/%s.json" % (name_method, data_source)
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+    # Convert numpy arrays to lists to ensure JSON compatibility
+    dict_outliers_serializable = {k:v.tolist() for k, v in dict_outliers.items()}
+    
+    results = {
+        "Method": name_method,
+        "Execution time (s)": exec_time,
+        "Reconstruction scores": scores,
+        "Dataset size": dataset_size,
+        "Epochs": epochs,
+        "Cost func": name_cost,
+        "Outliers detected": dict_outliers_serializable
+    }
+    with open(file_path, 'w') as f:
+        json.dump(results, f, indent=4)
+    print(f"Results saved to {file_path}")
+
+
 ### Function to plot outliers that are given as a list of indices
 
-def plot_spectra_outliers(X, dict_outliers, names, data_source, title='Visualization of the spectra with outliers', save_fig=False, name_method = "PCA"):
+def plot_spectra_outliers(X, dict_outliers, names, data_source, title='Visualization of the spectra with outliers', save_fig=False, name_method = "PCA", save_results=True, exec_time=0, scores={}, dataset_size=0, epochs=0, name_loss="MSE"):
     """
     Plots the spectra with outliers highlighted in red for each preprocessing method used.
     
@@ -79,10 +107,14 @@ def plot_spectra_outliers(X, dict_outliers, names, data_source, title='Visualiza
     plt.tight_layout()
     plt.subplots_adjust(top=0.9)
     plt.suptitle(title, fontweight='bold')
+
+    # Save results if required in the folder Outputs/outliers_detection
+    if save_results:
+        save_results_to_json(name_method, data_source, exec_time, scores, dataset_size, epochs, name_loss, dict_outliers)
     
     # Save figure if required in the folder Figures/outliers_detection
     if save_fig: 
-        fig.savefig("Figures/outliers_detection/%s/%s_comp_dissimilarity.png" % (name_method, data_source), dpi=300)
+        fig.savefig("Figures/outliers_detection/%s/%s.png" % (name_method, data_source), dpi=300)
     plt.show()
 
 
