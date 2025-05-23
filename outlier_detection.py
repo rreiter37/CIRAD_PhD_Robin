@@ -88,11 +88,6 @@ def plot_spectra_outliers(X, dict_outliers, names, data_source, title='Visualiza
 
 
 
-
-
-
-
-
 ###  Function to find the outliers with the PCA method
 
 def outlier_detection_PCA(X):
