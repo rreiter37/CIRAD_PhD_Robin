@@ -23,6 +23,10 @@ from tensorflow.keras.models import Sequential, Model # type: ignore
 from tensorflow.keras.layers import Input, Bidirectional, LSTM, RepeatVector, TimeDistributed, Dense # type: ignore
 from tensorflow.keras.optimizers import Adam # type: ignore
 
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch.utils.data import DataLoader, TensorDataset
 
 # import warnings filter
 from warnings import simplefilter
@@ -67,7 +71,7 @@ def save_results_to_json(name_method, data_source, exec_time, scores, dataset_si
     """
     Save results to a JSON file.
     """
-    file_path = "Outputs/outliers_detection/%s/%s.json" % (name_method, data_source)
+    file_path = "Outputs/outliers_detection/%s/%s/results_outlier_detection.json" % (name_method, data_source)
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
     # Convert numpy arrays to lists to ensure JSON compatibility
@@ -78,6 +82,7 @@ def save_results_to_json(name_method, data_source, exec_time, scores, dataset_si
     
     results = {
         "Method": name_method,
+        "Name Dataset": data_source,
         "Execution time (s)": exec_time,
         "Reconstruction scores": scores,
         "Dataset size": dataset_size,
@@ -147,8 +152,10 @@ def plot_spectra_outliers(X, dict_outliers, names, data_source, title='Visualiza
         save_results_to_json(name_method, data_source, exec_time, scores, dataset_size, epochs, name_loss, dict_outliers)
     
     # Save figure if required in the folder Figures/outliers_detection
-    if save_fig: 
-        fig.savefig("Figures/outliers_detection/%s/%s.png" % (name_method, data_source), dpi=300)
+    if save_fig:
+        file_path = "Figures/outliers_detection/%s/%s/see_outliers.png" % (name_method, data_source)
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        fig.savefig(file_path, dpi=300)
     plt.show()
 
 
@@ -750,3 +757,15 @@ def pipeline_bilstm_autoencoder(X, X_normal, time_steps=1, latent_dim=64, epochs
 
     return outliers
 
+
+
+
+
+### Function that computes the reconstruction score of a decoder
+def compute_reconstruction_scores(model, data, device=torch.device("cuda" if torch.cuda.is_available() else "cpu")):
+    model.eval()
+    with torch.no_grad():
+        x_tensor = torch.tensor(data, dtype=torch.float32).to(device)
+        pred = model(x_tensor).to(device).numpy()
+    errors = np.linalg.norm(data - pred, axis=1) # norm 2 between the real spectrum and its reconstruction
+    return errors

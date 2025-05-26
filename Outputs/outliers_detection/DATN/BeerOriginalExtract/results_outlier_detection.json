@@ -1,0 +1,81 @@
+{
+    "Method": "DATN",
+    "Name Dataset": "BeerOriginalExtract",
+    "Execution time (s)": 124.19670152664185,
+    "Reconstruction scores": {
+        "id": 47.70693588256836,
+        "baseline": 1.1329963207244873,
+        "derivate": 1.208428978919983,
+        "detrend": 3.2888622283935547,
+        "MSC": 10.537271499633789,
+        "normalize": 1.1974635124206543,
+        "RNV": 22.099010467529297,
+        "savgol": 47.93709182739258,
+        "simplescale": 5.705227851867676,
+        "SNV": 23.341543197631836,
+        "haar": 1.056225061416626,
+        "gaussian": 0.9796608090400696,
+        "PCA": 0.42946022748947144
+    },
+    "Dataset size": 40,
+    "Epochs": 100,
+    "Cost func": "MSE",
+    "Outliers detected": {
+        "id": [
+            21
+        ],
+        "baseline": [
+            1,
+            27
+        ],
+        "derivate": [
+            10,
+            24
+        ],
+        "detrend": [
+            12,
+            31
+        ],
+        "MSC": [
+            6,
+            8,
+            21
+        ],
+        "normalize": [
+            4,
+            9,
+            24
+        ],
+        "RNV": [
+            9,
+            22,
+            31,
+            34
+        ],
+        "savgol": [
+            14
+        ],
+        "simplescale": [
+            3,
+            15,
+            22,
+            32,
+            33
+        ],
+        "SNV": [
+            15,
+            20,
+            37
+        ],
+        "haar": [
+            2,
+            35
+        ],
+        "gaussian": [],
+        "PCA": [
+            8,
+            11,
+            38
+        ]
+    }
+}
