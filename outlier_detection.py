@@ -6,6 +6,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 from collections import Counter
+from itertools import combinations
+from collections import defaultdict
 from scipy.spatial.distance import mahalanobis
 
 from sklearn.preprocessing import StandardScaler
@@ -31,6 +33,34 @@ simplefilter(action="ignore", category=RuntimeWarning)
 
 
 
+
+
+### Functions to compute the mean score of Jaccard between outliers detected by different methods
+
+def jaccard_score(set_a, set_b):
+    inter = len(set_a & set_b)
+    union = len(set_a | set_b)
+    return inter / union if union > 0 else 0.0
+
+def jaccard_mean_scores(outlier_dict):
+    methods = list(outlier_dict.keys())
+    sets = {m: set(outlier_dict[m]) for m in methods}
+    scores = {}
+
+    for m in methods:
+        jaccards = [
+            jaccard_score(sets[m], sets[other])
+            for other in methods if other != m
+        ]
+        scores[m] = sum(jaccards) / len(jaccards) if jaccards else 0.0
+
+    return scores
+
+
+
+
+
+
 ### Function to save results in a json file
 
 def save_results_to_json(name_method, data_source, exec_time, scores, dataset_size, epochs, name_cost, dict_outliers):
@@ -42,6 +72,9 @@ def save_results_to_json(name_method, data_source, exec_time, scores, dataset_si
 
     # Convert numpy arrays to lists to ensure JSON compatibility
     dict_outliers_serializable = {k:v.tolist() for k, v in dict_outliers.items()}
+
+    # Compute Jaccard mean scores
+    dict_jaccard = jaccard_mean_scores(dict_outliers_serializable)
     
     results = {
         "Method": name_method,
@@ -50,7 +83,8 @@ def save_results_to_json(name_method, data_source, exec_time, scores, dataset_si
         "Dataset size": dataset_size,
         "Epochs": epochs,
         "Cost func": name_cost,
-        "Outliers detected": dict_outliers_serializable
+        "Outliers detected": dict_outliers_serializable,
+        "Jaccard mean scores": dict_jaccard,
     }
     with open(file_path, 'w') as f:
         json.dump(results, f, indent=4)
@@ -150,7 +184,6 @@ def outlier_detection_PCA(X):
     ]
 
     return outliers.index.tolist()
-
 
 
 
