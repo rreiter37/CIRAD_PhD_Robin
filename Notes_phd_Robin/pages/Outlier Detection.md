@@ -14,7 +14,7 @@
 		- Introduire un gating mechanism inspiré des Mixtures of Experts
 - ### Idées sur l'adaptation aux outliers
 	- On commence par différencier les types d'outliers
-		- Observation unique déviante -> baseline correction spécifique: lissage de cette anomalie unique
+		- Observation unique déviante -> baseline correction spécifique: lissage de cette anomalie unique. D'après les encadrants, c'est très peu probable que ça arrive avec les données dont on dispose. => Pas besoin de traiter ce cas dans la pipeline !
 		- Anomalies relatives à leur voisinage -> récupération du spectre reconstruit par un décodeur? baseline correction?
 		- Ensemble de points aberrants -> transport optimal de la distribution des outliers vers la distribution des inliers // entraînement d'un modèle propre à ces outliers dans la stack
 	- Comment différencier les types d'outliers ?

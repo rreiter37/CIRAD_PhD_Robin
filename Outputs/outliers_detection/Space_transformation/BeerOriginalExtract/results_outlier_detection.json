@@ -1,0 +1,39 @@
+{
+    "Method": "Space_transformation",
+    "Name Dataset": "BeerOriginalExtract",
+    "Execution time (s)": 0.4683074951171875,
+    "Reconstruction scores": {},
+    "Dataset size": 40,
+    "Epochs": 0,
+    "Cost func": "No loss",
+    "Outliers detected": {
+        "id": [],
+        "baseline": [],
+        "derivate": [],
+        "detrend": [],
+        "MSC": [],
+        "normalize": [],
+        "RNV": [],
+        "savgol": [],
+        "simplescale": [],
+        "SNV": [],
+        "haar": [],
+        "gaussian": [],
+        "PCA": []
+    },
+    "Jaccard mean scores": {
+        "id": 0.0,
+        "baseline": 0.0,
+        "derivate": 0.0,
+        "detrend": 0.0,
+        "MSC": 0.0,
+        "normalize": 0.0,
+        "RNV": 0.0,
+        "savgol": 0.0,
+        "simplescale": 0.0,
+        "SNV": 0.0,
+        "haar": 0.0,
+        "gaussian": 0.0,
+        "PCA": 0.0
+    }
+}

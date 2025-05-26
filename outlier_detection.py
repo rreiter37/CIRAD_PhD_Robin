@@ -75,8 +75,14 @@ def save_results_to_json(name_method, data_source, exec_time, scores, dataset_si
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
     # Convert numpy arrays to lists to ensure JSON compatibility
-    dict_outliers_serializable = {k:v.tolist() for k, v in dict_outliers.items()}
-
+    dict_outliers_serializable = {}
+    for key, value in dict_outliers.items():
+        if len(value) == 0:
+            dict_outliers_serializable[key] = []
+        elif isinstance(value, np.ndarray):
+            dict_outliers_serializable[key] = list(set(value.tolist()))
+        else:
+            dict_outliers_serializable[key] = list(set(value))
     # Compute Jaccard mean scores
     dict_jaccard = jaccard_mean_scores(dict_outliers_serializable)
     
@@ -159,6 +165,12 @@ def plot_spectra_outliers(X, dict_outliers, names, data_source, title='Visualiza
     plt.show()
 
 
+### Function to compute the dynamic threshold for the outliers detection
+def compute_dynamic_threshold(scores, n_test):
+        mean = np.mean(scores)
+        std = np.std(scores)
+        coeff_threshold = np.sqrt(n_test) / np.log(n_test+2)
+        return mean + coeff_threshold * std
 
 
 ###  Function to find the outliers with the PCA method
@@ -545,7 +557,7 @@ def outdst(X, l_neighbors=10, gamma=0.7, c=0.05, d=3, with_distance=False, scale
     outliers = np.unique(outliers).astype(int)
 
     # If we spectra have been detected as outliers because they are equal to zero, remove it from the list
-    outliers = [idx for idx in outliers if not np.all(X[idx] == 0)]
+    outliers = [int(idx) for idx in outliers if not np.all(X[idx] == 0)]
 
     return outliers
 
@@ -634,7 +646,7 @@ def pipeline_find_normal_spectra(X, method = 'kNN', k = 10, percentile = 95):
 
 ### Functions to detect the outliers based on the LSTM AutoEncoder method
 
-def pipeline_lstm_outliers(X, X_normal, time_steps=1, latent_dim=64, epochs=100, batch_size=32, threshold_percentile=95):
+def pipeline_lstm_outliers(X, X_normal, time_steps=1, latent_dim=64, epochs=100, batch_size=32, validation_split=0.2, lr=1e-4, verbose=False):
     """
     Detects outliers in the dataset using a LSTM AutoEncoder architecture.
     
@@ -666,25 +678,27 @@ def pipeline_lstm_outliers(X, X_normal, time_steps=1, latent_dim=64, epochs=100,
         TimeDistributed(Dense(X_train.shape[2]))
     ])
 
-    model.compile(optimizer='adam', loss='mse')
+    model.compile(optimizer=Adam(learning_rate=lr), loss='mse')
 
     # --- Train the autoencoder ---
     history = model.fit(X_train, X_train,
                         epochs=epochs,
                         batch_size=batch_size,
                         shuffle=True,
-                        validation_split=0.1,
-                        verbose=0)
+                        validation_split=validation_split,
+                        verbose=verbose)
 
     # --- Compute reconstruction error on all spectra ---
-    X_pred = model.predict(X_full)
-    reconstruction_errors = np.mean((X_full - X_pred)**2, axis=(1, 2))
+    X_pred = model.predict(X_full, verbose=verbose)
+    reconstruction_scores = np.mean((X_full - X_pred)**2, axis=-1)
 
-    # --- Define anomaly threshold ---
-    threshold = np.percentile(reconstruction_errors, threshold_percentile)
-    outliers = np.where(reconstruction_errors > threshold)[0]
+    # Dynamic thresholding
+    threshold = compute_dynamic_threshold(reconstruction_scores, X.shape[0])
 
-    return outliers
+    anomalies = reconstruction_scores > threshold
+    outliers_indices = np.where(anomalies)[0]
+
+    return outliers_indices, reconstruction_scores
 
 
 
@@ -702,14 +716,14 @@ def pipeline_lstm_outliers(X, X_normal, time_steps=1, latent_dim=64, epochs=100,
 
 ### Function to detect the outliers with the bi-LSTM AutoEncoder method
 
-def pipeline_bilstm_autoencoder(X, X_normal, time_steps=1, latent_dim=64, epochs=100, batch_size=32, threshold_percentile=95):
+def pipeline_bilstm_autoencoder(X, X_normal, time_steps=1, latent_dim=64, epochs=100, batch_size=32, lr=1e-4, verbose=False, validation_split=0.2):
     """
     Detects outliers in the dataset using a Bi-LSTM AutoEncoder architecture.
     
     Parameters:
         X (numpy.ndarray): The spectral data set from which outliers must be detected.
         X_normal (numpy.ndarray): The normal spectra used to train the Bi-LSTM AutoEncoder.
-        TIME_STEPS (int): Number of time steps for LSTM input.
+        time_steps (int): Number of time steps for LSTM input.
         latent_dim (int): Dimensionality of the latent space.
         epochs (int): Number of epochs for training the model.
         batch_size (int): Batch size for training the model.
@@ -737,25 +751,27 @@ def pipeline_bilstm_autoencoder(X, X_normal, time_steps=1, latent_dim=64, epochs
 
     # Define the model
     model = Model(inputs=input_layer, outputs=output_layer)
-    model.compile(optimizer=Adam(learning_rate=1e-3), loss='mse')
+    model.compile(optimizer=Adam(learning_rate=lr), loss='mse')
 
     # Training phase
     history = model.fit(X_train, X_train,
                         epochs=epochs,
                         batch_size=batch_size,
-                        validation_split=0.1,
+                        validation_split=validation_split,
                         shuffle=True,
-                        verbose=0)
+                        verbose=verbose)
 
     # Reconstruction of all spectra
-    X_pred = model.predict(X_all_reshaped)
-    reconstruction_errors = np.mean((X_all_reshaped - X_pred)**2, axis=(1, 2))
+    X_pred = model.predict(X_all_reshaped, verbose=verbose)
+    reconstruction_scores = np.linalg.norm(X_all_reshaped - X_pred, axis=-1) # norm 2 between the real spectrum and its reconstruction
 
-    # Anomaly threshold 
-    threshold = np.percentile(reconstruction_errors, threshold_percentile)
-    outliers = np.where(reconstruction_errors > threshold)[0]
+    # Dynamic thresholding
+    threshold = compute_dynamic_threshold(reconstruction_scores, X.shape[0])
 
-    return outliers
+    anomalies = reconstruction_scores > threshold
+    outliers_indices = np.where(anomalies)[0]
+
+    return outliers_indices, reconstruction_scores
 
 
 
@@ -766,6 +782,10 @@ def compute_reconstruction_scores(model, data, device=torch.device("cuda" if tor
     model.eval()
     with torch.no_grad():
         x_tensor = torch.tensor(data, dtype=torch.float32).to(device)
-        pred = model(x_tensor).to(device).numpy()
-    errors = np.linalg.norm(data - pred, axis=1) # norm 2 between the real spectrum and its reconstruction
+        try:
+            pred = model(x_tensor).to(device).numpy()
+        except:
+            pred = model(x_tensor)[0]
+            pred = pred.to(device).numpy()
+    errors = np.linalg.norm(data - pred, axis=-1) # norm 2 between the real spectrum and its reconstruction
     return errors

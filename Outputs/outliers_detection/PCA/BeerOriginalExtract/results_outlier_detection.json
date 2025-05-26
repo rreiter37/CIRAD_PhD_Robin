@@ -1,0 +1,88 @@
+{
+    "Method": "PCA",
+    "Name Dataset": "BeerOriginalExtract",
+    "Execution time (s)": 0.029285430908203125,
+    "Reconstruction scores": {},
+    "Dataset size": 40,
+    "Epochs": 0,
+    "Cost func": "No loss",
+    "Outliers detected": {
+        "id": [
+            0,
+            37,
+            39
+        ],
+        "baseline": [
+            0,
+            37,
+            39
+        ],
+        "derivate": [
+            0,
+            39
+        ],
+        "detrend": [
+            0,
+            1,
+            39
+        ],
+        "MSC": [],
+        "normalize": [
+            0,
+            37,
+            38,
+            39
+        ],
+        "RNV": [
+            0,
+            37,
+            38,
+            39
+        ],
+        "savgol": [
+            0,
+            37,
+            39
+        ],
+        "simplescale": [
+            0,
+            34,
+            37,
+            39,
+            30
+        ],
+        "SNV": [
+            0,
+            37,
+            39
+        ],
+        "haar": [
+            28,
+            37
+        ],
+        "gaussian": [
+            10,
+            20
+        ],
+        "PCA": [
+            0,
+            37,
+            39
+        ]
+    },
+    "Jaccard mean scores": {
+        "id": 0.6263888888888889,
+        "baseline": 0.6263888888888889,
+        "derivate": 0.44999999999999996,
+        "detrend": 0.35833333333333334,
+        "MSC": 0.0,
+        "normalize": 0.5291666666666667,
+        "RNV": 0.5291666666666667,
+        "savgol": 0.6263888888888889,
+        "simplescale": 0.40833333333333327,
+        "SNV": 0.6263888888888889,
+        "haar": 0.15138888888888888,
+        "gaussian": 0.0,
+        "PCA": 0.6263888888888889
+    }
+}
