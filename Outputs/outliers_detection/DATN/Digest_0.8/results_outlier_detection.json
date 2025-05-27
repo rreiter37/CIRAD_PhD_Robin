@@ -1,0 +1,77 @@
+{
+    "Method": "DATN",
+    "Name Dataset": "Digest_0.8",
+    "Execution time (s)": 3984.62731051445,
+    "Reconstruction scores": {
+        "id": 2.094899084083652,
+        "baseline": 2.0845181938417596,
+        "derivate": 0.8016307443293471,
+        "detrend": 0.4813982606497895,
+        "MSC": 2.128860454513334,
+        "normalize": 0.10705948624840267,
+        "RNV": 19.346890074526335,
+        "savgol": 2.08654405389048,
+        "simplescale": 4.999810252653725,
+        "SNV": 27.048065370438557,
+        "haar": 0.01617402235455941,
+        "gaussian": 0.013303522749122446,
+        "PCA": 2.0910933844896578
+    },
+    "Dataset size": 1504,
+    "Epochs": 100,
+    "Cost func": "MSE",
+    "Outliers detected": {
+        "id": [],
+        "baseline": [],
+        "derivate": [],
+        "detrend": [
+            1024,
+            545,
+            1217,
+            1248,
+            1220,
+            1377,
+            1327,
+            1328,
+            597,
+            309
+        ],
+        "MSC": [
+            413,
+            526
+        ],
+        "normalize": [],
+        "RNV": [],
+        "savgol": [],
+        "simplescale": [],
+        "SNV": [],
+        "haar": [
+            1384,
+            913,
+            1487,
+            1215
+        ],
+        "gaussian": [
+            544,
+            1227,
+            863,
+            311
+        ],
+        "PCA": []
+    },
+    "Jaccard mean scores": {
+        "id": 0.0,
+        "baseline": 0.0,
+        "derivate": 0.0,
+        "detrend": 0.0,
+        "MSC": 0.0,
+        "normalize": 0.0,
+        "RNV": 0.0,
+        "savgol": 0.0,
+        "simplescale": 0.0,
+        "SNV": 0.0,
+        "haar": 0.0,
+        "gaussian": 0.0,
+        "PCA": 0.0
+    }
+}

@@ -1,7 +1,7 @@
 {
     "Method": "PCA",
     "Name Dataset": "Digest_0.8",
-    "Execution time (s)": 2.3730297088623047,
+    "Execution time (s)": 2.5224156379699707,
     "Reconstruction scores": {},
     "Dataset size": 1504,
     "Epochs": 0,
