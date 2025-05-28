@@ -1,0 +1,65 @@
+# Structure de la présentation
+- ## 1- Définition du sujet
+	- Définir ce qu'est un spectre NIRS
+	- Présenter son mode d'acquisition
+	- Définir ce qu'est un assemblage de modèles
+	- Pourquoi on pense que ça marche? Quelques résultats empiriques à ajouter
+- ## 2- Matériel et données
+	- Matériel: PC, clusters JeanZay et AdAstra,... passer vite on a prévu de faire du HPC
+	- Jeux de données à disposition: nombre (régression & classification), tailles, exemples d'analytes
+- ## 3- Structure d'une pipeline
+- Description d'une pipeline type spectres NIRS ---> prédictions de traits:
+	- Acquisition des spectres
+	- Preprocessing propre aux spectro: répétitions spectrales, alignement de signaux issus de capteurs $\neq$
+	- Preprocessing qu'on contrôle: réduction de dimension (orientée sample ou feature), filtre/transformation des spectres
+	- Assemblage de modèles
+	- Prédictions
+- ## 4- Sources de variabilité
+	- Générer de la variabilité dans le modèle -> performances (prédiction + temps de calcul) & sobriété (éventuellement explicabilité)
+	- Critères pour mesurer cette variabilité: combinatoire, métriques (Z-score, fonctions de dissimilarité,...)
+	- Rebosser le schéma global de nirs4all, montrer à chaque fois à quel niveau on se situe
+	- Multiples champs à explorer:
+		- **Feature subsampling:** séparation des pipelines pour chaque capteur du spectromètre, séparation par paquets d'onde,...
+		  -> réduction des biais, amélioraton des prédictions, meilleure explicabilité
+		- **Sample subsampling:** clustering, détection et gestion des outliers
+		  -> réduction du bruit, amélioration des prédictions
+		- **Méthode de splitting:** random, Kennard-Stone, SPXY, ...
+		  -> amélioration des prédictions
+		- **Choix des preprocessings:** quelles familles de preprocessings utiliser // Choix dynamique en fonction des résultats sur les premiers filtres
+		  -> réduction du temps de calcul, meilleure explicabilité
+		- **Redondance des preprocessings:** si plusieurs transformations de X sont très similaires, on n'en garde qu'une seule (notion de dissimilarité entre jeux de données)
+		  -> réduction du temps de calcul, meilleure explicabilité
+		- **Sample augmentation:** en fonction du nombre de spectres, des classes de modèles, des preprocessings,... // Choix dynamique en fonction des premiers résultats.
+		  -> amélioration des prédictions
+		- **Complexification dynamique:** si les modèles les plus rapides ne sont pas suffisamment bons, ajouter progressivement des modèles plus lents/complexes
+		  -> réduction du temps de calcul, meilleure explicabilité
+		- **Choix des métriques d'évaluation:** quelles métriques choisir pour évaluer les performances des modèles de la stack et les comparer?
+		  -> amélioration des prédictions, meilleure explicabilité
+		- **Choix des métriques d'entraînement:** influence sur la calibration d'un modèle; quels critères favoriser?
+		  -> amélioration des prédictions
+		- **Transfer learning:** collection de modèles pré-entraînés aptes à êtres fine tunés (très hypothétique)
+		  -> réduction du temps de calcul, amélioration des prédictions
+		- **Influence des meta-données sur la stack:** répétitions spectrales, type de spectrométrie, ...
+		  -> amélioration des prédictions, meilleure explicabilité
+- ## 5- Volet 1: Suppression des preprocessings redondants
+	- Champ d'exploration **Redondance des preprocessings**
+	- Déterminer la dissimilarité entre deux jeux de données issus de deux preprocessings différents d'une base de donnée commune: 
+	  $$X_1 = f(X), \quad X_2 = g(X)$$
+	- Cette dissimilarité est quantifiée par une fonction de dissimilarité. Si la dissimilarité est trop faible: les deux preprocessings sont catégorisés comme semblables.
+	- On calcule la dissimilarité pour tout couple de preprocessings $(f_i, f_j)$.
+	- On obtient un graphe non-orienté: sommets = méthodes de preprocessings // arrêtes = similarité
+	- On réduit le graphe pour obtenir le graphe minimal où tous les sommets sont reliés au plus une fois (problème classique d'optimisation)
+	- On ne conserve que les preprocessings issus de ce graphe minimal. On les intègre dans une pipeline de prédiction.
+	- Est-ce qu'on peut se passer des preprocessings ?
+- ## 6- Volet 2: Détection et gestion des outliers
+	- Quel est l'intérêt?
+	- Etendre la quedyion, à la gestion de clusters
+	- Processus à plusieurs étapes:
+		- Détection des outliers: PCA, Data depth theory, Space transformation and spectral analysis, Transformers
+		- Classification du type d'outliers: outliers groupés ou outliers isolés (HDBSCAN)
+		- gestion de chaque type: transport optimal pour les outliers isolés vers la distribution des inliers // intégration des outliers groupés dans des modèles à part dans la stack (hypothétique)
+		- Intégration dans la pipeline de prédictions
+- ## 7- Perspectives
+	- Construction optimale de la stack
+	- Voir sources de variabilité à explorer
+	- ROAD MAP au moins sur l'année suivante -> SMA (point1): encapsuler les choses -> utiliser des concepts complexes pour développer une intelligence collective dessus
