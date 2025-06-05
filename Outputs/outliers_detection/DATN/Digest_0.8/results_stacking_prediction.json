@@ -1,10 +1,10 @@
 {
-    "STOC": {
-        "$R^2$": 0.897943848819011,
-        "MAE": 3.6557731182795727,
-        "MSE": 23.632811195161317,
-        "Stack training time": 62.719390869140625,
-        "Outlier gestion time": 667.8074717521667,
+    "DATN": {
+        "$R^2$": 0.8785011735458048,
+        "MAE": 4.301249193548393,
+        "MSE": 28.135088309704365,
+        "Stack training time": 65.17042851448059,
+        "Outlier gestion time": 3984.62731051445,
         "Stacking models": [
             "Linear Regression",
             "PLS",

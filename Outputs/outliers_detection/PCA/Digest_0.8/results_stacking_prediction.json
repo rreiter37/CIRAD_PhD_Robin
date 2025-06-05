@@ -1,0 +1,28 @@
+{
+    "PCA": {
+        "$R^2$": 0.24681594556779418,
+        "MAE": 10.3784185483871,
+        "MSE": 174.41238325787634,
+        "Stack training time": 256.45525431632996,
+        "Outlier gestion time": 2.5224156379699707,
+        "Stacking models": [
+            "Linear Regression",
+            "PLS",
+            "PLS_small",
+            "XGBoost",
+            "LightGBM",
+            "Ridge",
+            "ElasticNet",
+            "LightGBM small",
+            "Linear Regression _outliers",
+            "PLS _outliers",
+            "PLS_small _outliers",
+            "XGBoost _outliers",
+            "LightGBM _outliers",
+            "Ridge _outliers",
+            "ElasticNet _outliers",
+            "LightGBM small _outliers"
+        ],
+        "Stacking meta-model": "Random Forest Regressor"
+    }
+}

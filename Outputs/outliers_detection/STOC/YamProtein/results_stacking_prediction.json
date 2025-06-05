@@ -1,0 +1,28 @@
+{
+    "STOC": {
+        "$R^2$": 0.46911356901561807,
+        "MAE": 0.5571079668571773,
+        "MSE": 0.7682261122315799,
+        "Stack training time": 151.87483191490173,
+        "Outlier gestion time": 419.96875262260437,
+        "Stacking models": [
+            "Linear Regression",
+            "PLS",
+            "PLS_small",
+            "XGBoost",
+            "LightGBM",
+            "Ridge",
+            "ElasticNet",
+            "LightGBM small",
+            "Linear Regression _outliers",
+            "PLS _outliers",
+            "PLS_small _outliers",
+            "XGBoost _outliers",
+            "LightGBM _outliers",
+            "Ridge _outliers",
+            "ElasticNet _outliers",
+            "LightGBM small _outliers"
+        ],
+        "Stacking meta-model": "Random Forest Regressor"
+    }
+}

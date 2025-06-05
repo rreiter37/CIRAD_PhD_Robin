@@ -1,10 +1,10 @@
 {
-    "STOC": {
-        "$R^2$": 0.897943848819011,
-        "MAE": 3.6557731182795727,
-        "MSE": 23.632811195161317,
-        "Stack training time": 62.719390869140625,
-        "Outlier gestion time": 667.8074717521667,
+    "BiLSTM": {
+        "$R^2$": 0.9925857979052671,
+        "MAE": 0.07791738517987883,
+        "MSE": 0.010728817536312989,
+        "Stack training time": 54.26150417327881,
+        "Outlier gestion time": 183.08776116371155,
         "Stacking models": [
             "Linear Regression",
             "PLS",

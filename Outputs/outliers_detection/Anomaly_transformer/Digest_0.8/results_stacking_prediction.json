@@ -1,10 +1,10 @@
 {
-    "STOC": {
-        "$R^2$": 0.897943848819011,
-        "MAE": 3.6557731182795727,
-        "MSE": 23.632811195161317,
-        "Stack training time": 62.719390869140625,
-        "Outlier gestion time": 667.8074717521667,
+    "Anomaly_transformer": {
+        "$R^2$": 0.9055441466908326,
+        "MAE": 3.6480043010752707,
+        "MSE": 21.872834921774217,
+        "Stack training time": 61.32429099082947,
+        "Outlier gestion time": 2859.0284309387207,
         "Stacking models": [
             "Linear Regression",
             "PLS",
