@@ -1,9 +1,9 @@
 {
     "No gestion": {
-        "$R^2$": 0.9925857979052671,
-        "MAE": 0.07791738517987883,
-        "MSE": 0.010728817536312989,
-        "Stack training time": 49.134957790374756,
+        "$R^2$": 0.6560539218703931,
+        "MAE": 0.4715679065028627,
+        "MSE": 0.49771164414368013,
+        "Stack training time": 149.53417658805847,
         "Outlier gestion time": null,
         "Stacking models": [
             "Linear Regression",

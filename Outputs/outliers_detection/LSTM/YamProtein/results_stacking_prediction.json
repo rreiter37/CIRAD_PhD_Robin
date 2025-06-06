@@ -3,7 +3,7 @@
         "$R^2$": 0.9925857979052671,
         "MAE": 0.07791738517987883,
         "MSE": 0.010728817536312989,
-        "Stack training time": 51.77648901939392,
+        "Stack training time": 58.06739687919617,
         "Outlier gestion time": 143.01611399650574,
         "Stacking models": [
             "Linear Regression",
