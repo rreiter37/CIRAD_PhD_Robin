@@ -11,7 +11,7 @@
 			- **Method 1 : PCA** performed on the **centered** data set, and computation of scores for each spectrum. Then are considered outliers spectra with **PC1 scores** outside the interval defined by the estimated mean of scores $\mu$, and by the estimated standard deviation $\sigma$: $\bm{\mu \pm 2 \sigma}$.
 			  
 			  -------
-			- **Method 2 :**  A first approach based on **Data Depth Theory**. Let A be defined as the matrix of absorbances of size $N_T \times n_x$, containing $N_T$ recorded spectra. Each spectrum measures $n_x$ wavelenghts.
+			- **Method 2 :**  A first approach based on **Data Depth Theory**. Let A be defined as the matrix of absorbances of size $N_T \times n_x$, containing $N_T$ recorded spectra. Each spectrum measures $n_x$ wavelengths.
 			  
 			  For a given spectrum j, we compute the Euclidian distance: 
 			  $$ED_j = \frac{1}{N_T} \sqrt{\underset{i=1}{\overset{n_x}{\sum}}(A_{j,i} - A_{k \neq j, i})^2}$$
@@ -137,7 +137,6 @@
 			  date:: 2019
 			  journal:: IEEE Transactions on Neural Networks and Learning Systems
 			  topics:: Outlier detection, Deep Learning, LSTM, RNN, time series
-			  collapsed:: true
 			- ### LSTM for anomaly detection
 			  link:: https://www.researchgate.net/publication/304782562_Long_Short_Term_Memory_Networks_for_Anomaly_Detection_in_Time_Series
 			  title:: Long Short Term Memory Networks for Anomaly Detection in Time Series
@@ -145,7 +144,6 @@
 			  date:: 2015
 			  journal:: ESANN
 			  topics:: Outlier detection, Deep Learning, LSTM, RNN, time series
-			  collapsed:: true
 			- ### LSTM for anomaly detection in ECG time series
 			  link:: https://www.researchgate.net/publication/308852664_Anomaly_detection_in_ECG_time_signals_via_deep_long_short-term_memory_networks
 			  title:: Anomaly detection in ECG time signals via deep long short term memory networks
@@ -169,7 +167,6 @@
 			  date:: 2023
 			  journal:: IEEE 19th Conference on Automation and Engineering (CASE)
 			  topics:: Outlier detection, Deep Learning, LSTM, RNN, time series
-			  collapsed:: true
 		- #### HTM
 		  collapsed:: true
 			- ### Real-time anomaly detection with HTM
@@ -334,6 +331,7 @@
 		  date:: 2023
 		  journal:: Electronics, 12(2), 354
 		  topics:: Outlier detection, Deep Learning, Transformers, time series
+		  collapsed:: true
 			- **Résumé rapide:** Ce modèle décompose les séries temporelles en composantes saisonnières et de tendance, puis utilise un Transformer pour modéliser ces composantes séparément. Cette approche permet de mieux capturer les motifs périodiques et les tendances à long terme pour une détection d'anomalies plus précise.
 			- **Résumé complet:**
 			  L’article présente **DATN (Decompose Auto-Transformer Network)**, un modèle d’apprentissage non supervisé pour la détection d’anomalies dans les séries temporelles, spécifiquement destiné à la gestion de réseaux. Le principal enjeu est de modéliser la complexité des dépendances temporelles et la nature stochastique des données réseaux. DATN s’appuie sur une **décomposition de séries temporelles** en composants **tendance** et **saisonnier**, couplée à des modules de **transformer auto-attentifs** pour améliorer la détection.

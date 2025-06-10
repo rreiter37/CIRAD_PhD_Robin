@@ -596,12 +596,12 @@ def pipeline_find_normal_spectra(X, method = 'kNN', k = 10, percentile = 95):
 
     if method == 'kNN':
         # --- Compute kNN distances (mean distance to k nearest neighbors) ---
-        nn = NearestNeighbors(n_neighbors=k+1, algorithm='auto')  # +1 because point itself is included
+        nn = NearestNeighbors(n_neighbors=k+1, algorithm='auto')  # +1 because the point itself is included
         nn.fit(X)
         distances, _ = nn.kneighbors(X)
         knn_distances = distances[:, 1:].mean(axis=1)  # exclude self-distance at index 0
 
-        # --- Determine distance threshold based on percentile ---
+        # --- Determine distance threshold based on percentile of the flattened version of knn_distances ---
         threshold = np.percentile(knn_distances, percentile)
 
         # --- Filter inliers ---
@@ -646,7 +646,7 @@ def pipeline_find_normal_spectra(X, method = 'kNN', k = 10, percentile = 95):
 
 ### Functions to detect the outliers based on the LSTM AutoEncoder method
 
-def pipeline_lstm_outliers(X, X_normal, time_steps=1, latent_dim=64, epochs=100, batch_size=32, validation_split=0.2, lr=1e-4, verbose=False):
+def pipeline_lstm_outliers(X, X_normal, latent_dim=64, epochs=100, batch_size=32, validation_split=0.2, lr=1e-4, verbose=False):
     """
     Detects outliers in the dataset using a LSTM AutoEncoder architecture.
     
@@ -665,23 +665,23 @@ def pipeline_lstm_outliers(X, X_normal, time_steps=1, latent_dim=64, epochs=100,
     X_all_scaled = scaler.fit_transform(X)
     X_normal_scaled = scaler.transform(X_normal)
 
-    # --- Reshape for LSTM: (samples, time_steps, features) ---
-    # Here, each spectre is reshaped to (1, n_features)
-    X_train = X_normal_scaled.reshape((X_normal_scaled.shape[0], time_steps, X_normal_scaled.shape[1]))
-    X_full = X_all_scaled.reshape((X_all_scaled.shape[0], time_steps, X_all_scaled.shape[1]))
+    # --- Dimensions for LSTM: (samples, features) ---
+    
+    X_train = X_normal_scaled
+    X_full = X_all_scaled
 
     # --- Build LSTM Autoencoder ---
+    input_dim = X_train.shape[1]  # Number of features (wavelengths)
     model = Sequential([
-        LSTM(latent_dim, activation='relu', input_shape=(time_steps, X_train.shape[2]), return_sequences=False),
-        RepeatVector(time_steps),
-        LSTM(latent_dim, activation='relu', return_sequences=True),
-        TimeDistributed(Dense(X_train.shape[2]))
+        LSTM(latent_dim, activation='relu', input_shape=(input_dim), return_sequences=False), # output shape (latent_dim)
+        LSTM(latent_dim, activation='relu', return_sequences=False),
+        Dense(input_dim) # shape
     ])
 
     model.compile(optimizer=Adam(learning_rate=lr), loss='mse')
 
     # --- Train the autoencoder ---
-    history = model.fit(X_train, X_train,
+    model.fit(X_train, X_train,
                         epochs=epochs,
                         batch_size=batch_size,
                         shuffle=True,
@@ -716,7 +716,7 @@ def pipeline_lstm_outliers(X, X_normal, time_steps=1, latent_dim=64, epochs=100,
 
 ### Function to detect the outliers with the bi-LSTM AutoEncoder method
 
-def pipeline_bilstm_autoencoder(X, X_normal, time_steps=1, latent_dim=64, epochs=100, batch_size=32, lr=1e-4, verbose=False, validation_split=0.2):
+def pipeline_bilstm_autoencoder(X, X_normal, latent_dim=64, epochs=100, batch_size=32, lr=1e-4, verbose=False, validation_split=0.2):
     """
     Detects outliers in the dataset using a Bi-LSTM AutoEncoder architecture.
     
@@ -735,19 +735,17 @@ def pipeline_bilstm_autoencoder(X, X_normal, time_steps=1, latent_dim=64, epochs
     X_all_scaled = scaler.fit_transform(X)
     X_normal_scaled = scaler.fit_transform(X_normal)
 
-    # Reshape to fit LSTM (samples, 1, features)
-    X_train = X_normal_scaled.reshape((X_normal_scaled.shape[0], 1, X_normal_scaled.shape[1]))
-    X_all_reshaped = X_all_scaled.reshape((X_all_scaled.shape[0], 1, X_all_scaled.shape[1]))
+    # Reshape to fit LSTM (samples, time_steps)
+    X_train = X_normal_scaled.reshape((X_normal_scaled.shape[0], X_normal_scaled.shape[1]))
+    X_all_reshaped = X_all_scaled.reshape((X_all_scaled.shape[0], X_all_scaled.shape[1]))
 
     # ---- Bi-LSTM Autoencoder ----
-    input_dim = X_train.shape[2]
-
+    input_dim = X_train.shape[1]  # Number of features (wavelengths)
     # Architecture of the model
-    input_layer = Input(shape=(X_train.shape[1], input_dim))
+    input_layer = Input(shape=(input_dim))
     encoded = Bidirectional(LSTM(latent_dim, return_sequences=False))(input_layer)
-    repeated = RepeatVector(time_steps)(encoded)
-    decoded = Bidirectional(LSTM(latent_dim, return_sequences=True))(repeated)
-    output_layer = TimeDistributed(Dense(input_dim))(decoded)
+    decoded = Bidirectional(LSTM(latent_dim, return_sequences=False))(encoded)
+    output_layer = Dense(input_dim)(decoded)
 
     # Define the model
     model = Model(inputs=input_layer, outputs=output_layer)
