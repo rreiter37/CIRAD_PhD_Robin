@@ -275,6 +275,7 @@
 			- ---
 			- **Résumé détaillé :**
 				- **Objectif:** L’article propose une méthode d’apprentissage **non supervisé** pour la détection d’anomalies dans des séries temporelles, en combinant :
+				  collapsed:: true
 					- la **capacité du Transformer** à modéliser les dépendances globales,
 					- et la **compacité du CNN 1D** pour fusionner efficacement des représentations multi-niveaux.
 					  
@@ -314,8 +315,7 @@
 				- **Score d’anomalie:**
 					- Pour chaque point temporel, le score est :
 					  
-					  st=∥xt−x^t∥2s_t = \left\| x_t - \hat{x}_t \right\|_2
-					  st​=∥xt​−x^t​∥2​
+					  $s_t = \left\| x_t - \hat{x}_t \right\|_2$
 					- Un **seuil dynamique** peut être défini (ex: `μ + kσ`) pour détecter les points comme anormaux.
 					  
 					  ---
@@ -331,7 +331,6 @@
 		  date:: 2023
 		  journal:: Electronics, 12(2), 354
 		  topics:: Outlier detection, Deep Learning, Transformers, time series
-		  collapsed:: true
 			- **Résumé rapide:** Ce modèle décompose les séries temporelles en composantes saisonnières et de tendance, puis utilise un Transformer pour modéliser ces composantes séparément. Cette approche permet de mieux capturer les motifs périodiques et les tendances à long terme pour une détection d'anomalies plus précise.
 			- **Résumé complet:**
 			  L’article présente **DATN (Decompose Auto-Transformer Network)**, un modèle d’apprentissage non supervisé pour la détection d’anomalies dans les séries temporelles, spécifiquement destiné à la gestion de réseaux. Le principal enjeu est de modéliser la complexité des dépendances temporelles et la nature stochastique des données réseaux. DATN s’appuie sur une **décomposition de séries temporelles** en composants **tendance** et **saisonnier**, couplée à des modules de **transformer auto-attentifs** pour améliorer la détection.
@@ -391,7 +390,6 @@
 		  topics:: Outlier detection, Deep Learning, Transformers, time series
 			- **Résumé rapide:** Ce modèle améliore l'architecture Anomaly Transformer en intégrant une normalisation d'instance réversible, ce qui permet de mieux gérer les variations de distribution dans les séries temporelles univariées et d'améliorer la détection d'anomalies.
 			- **Résumé complet:**
-			  collapsed:: true
 				- **Objectif:** L'article propose **RINAT**, un modèle non supervisé pour la détection d'anomalies dans les séries temporelles, basé sur une version améliorée du **Anomaly Transformer**. Le modèle introduit deux innovations principales :
 					- **Reversible Instance Normalization (RevIN)** appliquée uniquement aux associations de séries.
 					- **Attention bi-branche** distinguant les associations **prior** (voisinage local) et **series** (global) pour mieux capturer les anomalies rares.
