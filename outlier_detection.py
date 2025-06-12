@@ -1,5 +1,6 @@
 ### Libraries importation
 
+import math
 import json
 import os
 import numpy as np
@@ -27,6 +28,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, TensorDataset
+import torch.fft as fft
 
 # import warnings filter
 from warnings import simplefilter
@@ -225,29 +227,7 @@ def diff_abs_j(X,j):
 
     return X_fin
 
-def detect_outliers_DDT_ED(X, kM=2.0):
-    """
-    Detects outliers in the dataset using the Data Depth Theory method.
 
-    Parameters:
-        X (numpy.ndarray or pandas.DataFrame): The spectral data set from which outliers must be detected.
-        kM (float): Multiplicative coefficient used to fix the threshold value to decide wether a spectrum is an outlier or not.
-    """
-    if isinstance(X, pd.DataFrame):
-        X = X.values
-
-    N_T, n_x = X.shape
-
-    # Compute the ED for each spectrum
-    distances = np.array([diff_abs_j(X,j) for j in range(N_T)])
-    R = np.linalg.norm(distances, axis=1, ord=1)
-    ED = 1/N_T * np.sqrt(R)
-
-    # Define a threshold and detect outliers
-    threshold = kM * np.median(ED)
-    mask = ED > threshold
-    outliers_ind = np.where(mask)
-    return list(outliers_ind[0])
 
 
 def other_outlier_detection(X):
@@ -267,6 +247,45 @@ def other_outlier_detection(X):
             outlier_mask[j] = True
     outliers_ind = list(np.where(outlier_mask)[0])
     return outliers_ind
+
+
+
+
+def outlier_detection_DDT(X, kM=2.0):
+    """
+    Detects outliers in the dataset using the Data Depth Theory method.
+
+    Parameters:
+        X (numpy.ndarray or pandas.DataFrame): The spectral data set from which outliers must be detected.
+        kM (float): Multiplicative coefficient used to fix the threshold value to decide wether a spectrum is an outlier or not.
+    """
+    if isinstance(X, pd.DataFrame):
+        X = X.values
+
+    N_T = X.shape[0]
+
+    # Compute the ED for each spectrum
+    distances = np.array([diff_abs_j(X,j) for j in range(N_T)])
+    R = np.linalg.norm(distances, axis=1, ord=1)
+    ED = 1/N_T * np.sqrt(R)
+
+    # Define a threshold and detect outliers
+    threshold = kM * np.median(ED)
+    mask = ED > threshold
+    outliers_ind = np.where(mask)
+    outliers_ind = list(outliers_ind[0])
+
+    ### Detect other outliers by finding the spectra that are above or below every all spectra
+    x = np.delete(X, outliers_ind, axis=0)
+    outliers_ind_else = other_outlier_detection(x)
+
+    # Store the extreme individuals in the dictionary
+    outliers_ind_all = list(np.concatenate((outliers_ind, outliers_ind_else), axis=0))
+
+    return outliers_ind_all
+
+
+
 
 
 
@@ -370,7 +389,7 @@ def compute_mahalanobis_distances(X, ref_index):
 
 
 
-def detect_outliers_robust_ddt(X, coeffs, scale = False):
+def outlier_detection_DDT_robust(X, coeffs = [1.0, 10.0, 100.0], scale = False):
     """
     Detects the outliers in a spectral dataset with a more robust method than proposed above with Data Depth Theory.
 
@@ -393,14 +412,11 @@ def detect_outliers_robust_ddt(X, coeffs, scale = False):
     mrs_list = []
     for kM in coeffs:
         # Perform outliers detection with the DDT method
-        outliers_ind = detect_outliers_DDT_ED(X, kM=kM)
+        outliers_ind = outlier_detection_DDT(X, kM=kM)
 
         # Filter the data set by removing these first outliers
+        outliers_ind = np.array(outliers_ind, dtype=int)
         x = np.delete(X, outliers_ind, axis=0)
-        outliers_ind_else = other_outlier_detection(x)
-
-        # Filter another set of spectra outliers
-        x = np.delete(x, outliers_ind_else, axis=0)
 
         # Identify the MRS with the filtered data set
         mrs_idx = identify_mrs(x)
@@ -464,7 +480,12 @@ def local_quadratic_entropy(X, neighbors, sigma):
         if len(neighs) == 0:
             QE[i] = 0
         else:
-            QE[i] = -np.log(total / (len(neighs)**2))
+            denom = len(neighs)**2
+            if denom == 0 or total == 0:
+                QE[i] = 0  # ou np.nan si vous voulez marquer explicitement
+            else:
+                QE[i] = -np.log(total / denom)
+
     return QE
 
 def compute_affinity_matrix(X, neighbors, QE, sigma, gamma):
@@ -484,10 +505,12 @@ def compute_affinity_matrix(X, neighbors, QE, sigma, gamma):
                     K[i, j] = 0
                 else:
                     K[i, j] = np.exp(-dist**2 / (2 * coeff))
+            if np.isnan(K[i, j]) or np.isinf(K[i, j]):
+                K[i, j] = 0
             K[j, i] = K[i, j]
     return K
 
-def outdst(X, l_neighbors=10, gamma=0.7, c=0.05, d=3, with_distance=False, scale=False):
+def outlier_detection_Space_transformation(X, l_neighbors=10, gamma=0.7, c=0.05, d=3, with_distance=False, scale=False):
     """Finds the outliers in a spectral dataset using the outdst method.
     
     Parameters:
@@ -505,7 +528,9 @@ def outdst(X, l_neighbors=10, gamma=0.7, c=0.05, d=3, with_distance=False, scale
         scaler = MinMaxScaler()
         X = scaler.fit_transform(X)
 
-    sigma = np.mean(np.std(X, axis=0))  # robust estimate of sd
+    stds = np.std(X, axis=0)
+    stds[stds == 0] = 1e-8
+    sigma = np.mean(stds) # robust estimate of sd
 
     # Find the l nearest neighbors of each individual
     nn = NearestNeighbors(n_neighbors=l_neighbors).fit(X)
@@ -520,6 +545,10 @@ def outdst(X, l_neighbors=10, gamma=0.7, c=0.05, d=3, with_distance=False, scale
 
     # Compute the Laplacian of the graph
     L = laplacian(K, normed=False)
+
+    if np.isnan(L).any() or np.isinf(L).any():
+        raise ValueError("Laplacian matrix contains NaN or Inf values.")
+
 
     # Spectral decomposition
     vals, vecs = eigh(L)
@@ -634,19 +663,9 @@ def pipeline_find_normal_spectra(X, method = 'kNN', k = 10, percentile = 95):
 
 
 
-
-
-
-
-
-
-
-
-
-
 ### Functions to detect the outliers based on the LSTM AutoEncoder method
 
-def pipeline_lstm_outliers(X, X_normal, latent_dim=64, epochs=100, batch_size=32, validation_split=0.2, lr=1e-4, verbose=False):
+def outlier_detection_LSTM(X, latent_dim=64, epochs=10, batch_size=32, validation_split=0.2, lr=1e-4, verbose=False, get_normal=True, normal_method='kNN', k=10, percentile=95, return_scores=False):
     """
     Detects outliers in the dataset using a LSTM AutoEncoder architecture.
     
@@ -660,22 +679,29 @@ def pipeline_lstm_outliers(X, X_normal, latent_dim=64, epochs=100, batch_size=32
         threshold_percentile (float): Percentile for determining the anomaly threshold.
     """
 
-    # --- Normalize all data ---
+    # --- Find the normal spectra to train the model ---
+    if get_normal:
+        X_normal = pipeline_find_normal_spectra(X, method=normal_method, k=k, percentile=percentile)
+    else:
+        X_normal = X
+
+    # --- Preprocess all data ---
     scaler = MinMaxScaler()
     X_all_scaled = scaler.fit_transform(X)
     X_normal_scaled = scaler.transform(X_normal)
 
-    # --- Dimensions for LSTM: (samples, features) ---
+    # --- Dimensions for LSTM: (samples, wavelengths, 1) ---
     
-    X_train = X_normal_scaled
-    X_full = X_all_scaled
+    X_train = X_normal_scaled.reshape((X_normal_scaled.shape[0], X_normal_scaled.shape[1], 1)) # just one feature per time step
+    X_full = X_all_scaled.reshape((X_all_scaled.shape[0], X_all_scaled.shape[1], 1)) 
 
     # --- Build LSTM Autoencoder ---
-    input_dim = X_train.shape[1]  # Number of features (wavelengths)
+    n_wavelengths = X_train.shape[1]  # number of wavelengths
+    input_dim = (n_wavelengths,1)  # shape (wavelengths,1)
     model = Sequential([
-        LSTM(latent_dim, activation='relu', input_shape=(input_dim), return_sequences=False), # output shape (latent_dim)
+        LSTM(latent_dim, activation='relu', input_shape=input_dim, return_sequences=True), 
         LSTM(latent_dim, activation='relu', return_sequences=False),
-        Dense(input_dim) # shape
+        Dense(n_wavelengths) # shape
     ])
 
     model.compile(optimizer=Adam(learning_rate=lr), loss='mse')
@@ -690,7 +716,7 @@ def pipeline_lstm_outliers(X, X_normal, latent_dim=64, epochs=100, batch_size=32
 
     # --- Compute reconstruction error on all spectra ---
     X_pred = model.predict(X_full, verbose=verbose)
-    reconstruction_scores = np.mean((X_full - X_pred)**2, axis=-1)
+    reconstruction_scores = np.mean((X_full.reshape(X_all_scaled.shape[0], X_all_scaled.shape[1]) - X_pred)**2, axis=-1)
 
     # Dynamic thresholding
     threshold = compute_dynamic_threshold(reconstruction_scores, X.shape[0])
@@ -698,8 +724,11 @@ def pipeline_lstm_outliers(X, X_normal, latent_dim=64, epochs=100, batch_size=32
     anomalies = reconstruction_scores > threshold
     outliers_indices = np.where(anomalies)[0]
 
-    return outliers_indices, reconstruction_scores
+    if return_scores:
+    # Return the indices of outliers and their reconstruction scores
+        return outliers_indices, reconstruction_scores
 
+    return outliers_indices
 
 
 
@@ -716,7 +745,7 @@ def pipeline_lstm_outliers(X, X_normal, latent_dim=64, epochs=100, batch_size=32
 
 ### Function to detect the outliers with the bi-LSTM AutoEncoder method
 
-def pipeline_bilstm_autoencoder(X, X_normal, latent_dim=64, epochs=100, batch_size=32, lr=1e-4, verbose=False, validation_split=0.2):
+def outlier_detection_BiLSTM(X, latent_dim=64, epochs=10, batch_size=32, lr=1e-4, verbose=False, validation_split=0.2, get_normal=True, normal_method='kNN', k=10, percentile=95, return_scores=False):
     """
     Detects outliers in the dataset using a Bi-LSTM AutoEncoder architecture.
     
@@ -729,23 +758,29 @@ def pipeline_bilstm_autoencoder(X, X_normal, latent_dim=64, epochs=100, batch_si
         batch_size (int): Batch size for training the model.
         threshold_percentile (float): Percentile for determining the anomaly threshold.
     """
+    # --- Find the normal spectra to train the model ---
+    if get_normal:
+        X_normal = pipeline_find_normal_spectra(X, method='kNN', k=10, percentile=95)
+    else:
+        X_normal = X
 
-    # Normalization
+    # --- Preprocess data ---
     scaler = MinMaxScaler()
     X_all_scaled = scaler.fit_transform(X)
     X_normal_scaled = scaler.fit_transform(X_normal)
 
     # Reshape to fit LSTM (samples, time_steps)
-    X_train = X_normal_scaled.reshape((X_normal_scaled.shape[0], X_normal_scaled.shape[1]))
-    X_all_reshaped = X_all_scaled.reshape((X_all_scaled.shape[0], X_all_scaled.shape[1]))
+    X_train = X_normal_scaled.reshape((X_normal_scaled.shape[0], X_normal_scaled.shape[1], 1))
+    X_all_reshaped = X_all_scaled.reshape((X_all_scaled.shape[0], X_all_scaled.shape[1], 1))
 
     # ---- Bi-LSTM Autoencoder ----
-    input_dim = X_train.shape[1]  # Number of features (wavelengths)
+    n_wavelengths = X_train.shape[1]  # Number of wavelengths
+    input_dim = (n_wavelengths, 1)  # Number of features (wavelengths)
     # Architecture of the model
-    input_layer = Input(shape=(input_dim))
-    encoded = Bidirectional(LSTM(latent_dim, return_sequences=False))(input_layer)
+    input_layer = Input(shape=input_dim)
+    encoded = Bidirectional(LSTM(latent_dim, return_sequences=True))(input_layer)
     decoded = Bidirectional(LSTM(latent_dim, return_sequences=False))(encoded)
-    output_layer = Dense(input_dim)(decoded)
+    output_layer = Dense(n_wavelengths)(decoded)
 
     # Define the model
     model = Model(inputs=input_layer, outputs=output_layer)
@@ -761,7 +796,7 @@ def pipeline_bilstm_autoencoder(X, X_normal, latent_dim=64, epochs=100, batch_si
 
     # Reconstruction of all spectra
     X_pred = model.predict(X_all_reshaped, verbose=verbose)
-    reconstruction_scores = np.linalg.norm(X_all_reshaped - X_pred, axis=-1) # norm 2 between the real spectrum and its reconstruction
+    reconstruction_scores = np.linalg.norm(X_all_reshaped.reshape(X_all_scaled.shape[0], X_all_scaled.shape[1]) - X_pred, axis=-1) # norm 2 between the real spectrum and its reconstruction
 
     # Dynamic thresholding
     threshold = compute_dynamic_threshold(reconstruction_scores, X.shape[0])
@@ -769,9 +804,10 @@ def pipeline_bilstm_autoencoder(X, X_normal, latent_dim=64, epochs=100, batch_si
     anomalies = reconstruction_scores > threshold
     outliers_indices = np.where(anomalies)[0]
 
-    return outliers_indices, reconstruction_scores
+    if return_scores:
+        return outliers_indices, reconstruction_scores
 
-
+    return outliers_indices
 
 
 
@@ -787,3 +823,844 @@ def compute_reconstruction_scores(model, data, device=torch.device("cuda" if tor
             pred = pred.to(device).numpy()
     errors = np.linalg.norm(data - pred, axis=-1) # norm 2 between the real spectrum and its reconstruction
     return errors
+
+
+
+
+
+
+
+
+
+###################################### TRANSFORMER BASED METHODS ######################################
+
+
+
+
+
+
+### Anomaly Transformer
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch.utils.data import TensorDataset, DataLoader
+
+
+# === Anomaly Attention & Transformer ===
+
+class AnomalyAttention1D(nn.Module):
+    def __init__(self, d_model, n_heads, seq_len):
+        super().__init__()
+        self.d_model = d_model
+        self.n_heads = n_heads
+        self.seq_len = seq_len
+        self.head_dim = d_model // n_heads
+        self.W_q = nn.Linear(d_model, d_model)
+        self.W_k = nn.Linear(d_model, d_model)
+        self.W_v = nn.Linear(d_model, d_model)
+        self.W_sigma = nn.Linear(d_model, n_heads)
+
+    def forward(self, x):
+        B, _ = x.shape      # [B, d_model] where B is the batch size
+
+        ### Prior attention branch
+        W_sigma = nn.Linear(self.d_model, self.n_heads)
+        sigma = torch.abs(W_sigma(x)) + 1e-5       # [B, H]
+        positions = torch.arange(B, device=x.device).unsqueeze(0)       # [1, B]
+        prior = []
+        for h in range(self.n_heads):
+            dists = (positions.T - positions) ** 2      # [B, B]
+            gauss = torch.exp(-dists[None, :, :] / (2 * sigma[:, h].unsqueeze(1) ** 2))
+            gauss = gauss / (torch.sqrt(2 * math.pi * sigma[:, h].unsqueeze(1) ** 2))
+            gauss = gauss / gauss.sum(dim=-1, keepdim=True)
+            prior.append(gauss)
+        P = torch.stack(prior, dim=1).squeeze(0)       # [H, B, B]
+
+        ### Series attention branch
+        Q = self.W_q(x).view(B, self.n_heads, self.head_dim).transpose(0, 1)        # [H, B, d_model]
+        K = self.W_k(x).view(B, self.n_heads, self.head_dim).transpose(0, 1)        # [H, B, d_model]
+        V = self.W_v(x).view(B, self.n_heads, self.head_dim).transpose(0, 1)        # [H, B, d_model]
+
+        S = torch.softmax(Q @ K.transpose(1,2) / (self.head_dim ** 0.5), dim=-1)       # [H, B, B]
+        out = S @ V       # [H, B, d_model]
+
+        # Concatenate the heads along the last dimension
+        out = out.transpose(1, 2).reshape(B, self.d_model)
+
+        return out, S, P
+
+
+class AnomalyTransformer1D(nn.Module):
+    def __init__(self, seq_len, d_model=512, num_layers=3, n_heads=8):
+        super().__init__()
+        self.seq_len = seq_len
+        self.num_layers = num_layers
+        self.input_proj = nn.Linear(seq_len, d_model)
+        # Stacked Transformer encoder
+        self.anomaly_layers = nn.ModuleList([
+            AnomalyAttention1D(d_model=d_model, n_heads=n_heads, seq_len=seq_len)
+            for _ in range(num_layers)
+        ])
+        self.norm1_layers = nn.ModuleList([
+            nn.LayerNorm(d_model)
+            for _ in range(num_layers)
+        ])
+        self.ff_layers = nn.ModuleList([
+            nn.Sequential(
+            nn.Linear(d_model, d_model),
+            nn.ReLU(),
+            nn.Linear(d_model, d_model)
+            ) for _ in range(num_layers)
+        ])
+        self.norm2_layers = nn.ModuleList([
+            nn.LayerNorm(d_model)
+            for _ in range(num_layers)
+        ])
+
+        self.reconstruction = nn.Linear(d_model, seq_len)
+
+    def forward(self, x):
+        x = self.input_proj(x)  # [B, L] → [B, d_model]
+        
+        list_P, list_S = [], []
+        for ind in range(self.num_layers):
+            # Anomaly-Attention + Skip + Norm
+            attn_layer = self.anomaly_layers[ind]
+            attn_out, S, P = attn_layer(x)
+            norm1_layer = self.norm1_layers[ind]
+            z = norm1_layer(attn_out + x)
+            
+            # FeedForward + Skip + Norm
+            ff_layer = self.ff_layers[ind]
+            z2 = ff_layer(z)
+            norm2_layer = self.norm2_layers[ind]
+            x = norm2_layer(z2 + z)
+
+            list_P.append(P)
+            list_S.append(S)
+
+        P = torch.cat(list_P, dim=0)        # [H*num_layers, B, B]
+        S = torch.cat(list_S, dim=0)        # [H*num_layers, B, B]
+
+        x_hat = self.reconstruction(x)  # [B, L]
+        return x_hat, P, S
+
+
+
+def association_discrepancy(P, S, eps=1e-8):
+    P_safe = P + eps
+    S_safe = S + eps
+
+    # KL divergences par point et par head : [H, B, B] -> [H, B]
+    kl_1 = F.kl_div(P_safe.log(), S_safe, reduction='none').sum(dim=1)
+    kl_2 = F.kl_div(S_safe.log(), P_safe, reduction='none').sum(dim=1)
+
+    # Moyenne sur les heads et les layers → [B]
+    return (kl_1 + kl_2).mean(dim=0)
+
+
+def compute_loss(x, x_hat, P, S, lam=3.0):
+    recon_loss = F.mse_loss(x_hat, x, reduction='mean')
+    ass_dis = association_discrepancy(P, S).mean()
+    return recon_loss - lam * ass_dis, recon_loss, ass_dis
+
+
+# === Training phase ===
+
+def train_minimax_model(model, train_loader, epochs=10, lr= 1e-4, lam=3.0, device=torch.device('cpu'), verbose=True):
+    model.train()
+    model.to(device)
+    if lr is None: optimizer = torch.optim.Adam(model.parameters())
+    else : optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+
+    for epoch in range(epochs):
+        total_loss = 0
+        for batch_x in train_loader:
+            batch_x = batch_x[0].to(device)  # [B, L]
+            
+            # Min phase
+            x_hat, S, P = model(batch_x)
+            loss_min, _, _ = compute_loss(batch_x, x_hat, P, S.detach(), lam=-lam)
+            optimizer.zero_grad()
+            loss_min.backward()
+            optimizer.step()
+
+            # Max phase
+            x_hat, S, P = model(batch_x)
+            loss_max, _, _ = compute_loss(batch_x, x_hat, P.detach(), S, lam=lam)
+            optimizer.zero_grad()
+            loss_max.backward()
+            optimizer.step()
+
+            total_loss += loss_max.item()
+
+        if verbose: print(f"Epoch {epoch + 1}/{epochs} — Loss: {total_loss / len(train_loader):.4f}")
+
+
+# === Definition of the score function ===
+
+def compute_anomaly_scores(model, np_data, device=torch.device('cpu')):
+    model.eval()
+    with torch.no_grad():
+        x = torch.tensor(np_data, dtype=torch.float32).to(device)
+        x_hat, S, P = model(x)
+        recon_error = ((x - x_hat) ** 2).sum(dim=1).detach()
+        ass_dis = association_discrepancy(P, S).detach()
+        weights = torch.softmax(-ass_dis, dim=0)
+        anomaly_scores = weights * recon_error
+        return anomaly_scores.cpu().numpy()
+
+
+def compute_dynamic_threshold(scores, n_test):
+        mean = np.mean(scores)
+        std = np.std(scores)
+        coeff_threshold = np.sqrt(n_test) / np.log(n_test+2)
+        return mean + coeff_threshold * std
+    
+    
+
+def outlier_detection_Anomaly_transformer(X_train, batch_size=32, epochs=10, lr=1e-4, lam=3.0, d_model=512, num_layers=3, n_heads=8, verbose=False, return_scores=False):
+    if isinstance(X_train, pd.DataFrame): X_train = X_train.values
+    X_test = X_train
+    if isinstance(X_test, pd.DataFrame): X_test = X_test.values
+    p = X_train.shape[1]
+
+    # Create DataLoader
+    train_dataset = TensorDataset(torch.tensor(X_train, dtype=torch.float32))
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+
+    # Model initialization
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = AnomalyTransformer1D(seq_len=p, d_model=d_model, num_layers=num_layers, n_heads=n_heads).to(device)
+
+    # Train the model
+    train_minimax_model(model, train_loader, epochs=epochs, lr=lr, lam=lam, device=device, verbose=verbose)
+    
+    # Compute anomaly scores
+    test_scores = compute_anomaly_scores(model, X_test, device=device)
+
+    # Compute reconstruction scores
+    reconstruction_scores = compute_reconstruction_scores(model, X_test, device)
+
+    # Dynamic thresholding
+    threshold = compute_dynamic_threshold(test_scores, len(X_test))
+
+    anomalies = test_scores > threshold
+    outliers_indices = np.where(anomalies)[0]
+
+    if return_scores:
+        return outliers_indices, reconstruction_scores
+    
+    return outliers_indices
+
+
+
+
+
+### STOC
+
+# -----------------------------
+# Positional Encoding Module
+# -----------------------------
+class PositionalEncoding(nn.Module):
+    def __init__(self, d_model, length):
+        super().__init__()
+        pe = torch.zeros(length, d_model)
+        position = torch.arange(0, length, dtype=torch.float32).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-np.log(10000.0) / d_model))
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        self.pe = pe.unsqueeze(0)
+
+    def forward(self, x):
+        return x + self.pe[:, :x.size(1)].to(x.device)
+
+# -----------------------------
+# STOC Model adapted to spectral data
+# -----------------------------
+class STOC(nn.Module):
+    def __init__(self, input_dim, d_model=64, nhead=4, num_layers=3):
+        super().__init__()
+        self.input_proj = nn.Linear(input_dim, d_model)
+        self.pos_encoder = PositionalEncoding(d_model, length=input_dim)
+
+        # Stacked Transformer encoder
+        self.transformer_layers = nn.ModuleList([
+            nn.TransformerEncoderLayer(d_model=d_model, nhead=nhead, batch_first=True)
+            for _ in range(num_layers)
+        ])
+
+        # Decoder: 1D CNN followed by projection to input dim
+        self.conv1d = nn.Conv1d(d_model * num_layers, d_model, kernel_size=3, padding=1)
+        self.output_layer = nn.Linear(d_model, input_dim)
+
+    def forward(self, x):
+        # x shape: (batch_size, 1, p)
+        x = self.input_proj(x)  # (batch, 1, d_model)
+        x = self.pos_encoder(x)
+
+        h_list = []
+        for layer in self.transformer_layers:
+            x = layer(x)
+            h_list.append(x)
+
+        h_stack = torch.cat(h_list, dim=2)  # (batch, 1, d_model * num_layers)
+        h_conv = self.conv1d(h_stack.permute(0, 2, 1)).permute(0, 2, 1)  # (batch, 1, d_model)
+        out = self.output_layer(h_conv).squeeze(1)  # (batch, p)
+        return out
+
+# -----------------------------
+# Training function
+# -----------------------------
+def train_model(model, train_loader, epochs=10, lr=1e-4, device=torch.device("cpu"), verbose=True):
+    model.train()
+    optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
+    criterion = nn.MSELoss()
+
+    for epoch in range(epochs):
+        epoch_loss = 0
+        for x_batch in train_loader:
+            x_batch = x_batch[0].to(device)
+            pred = model(x_batch)
+            loss = criterion(pred, x_batch.squeeze(1))
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            epoch_loss += loss.item()
+        if verbose: print(f"Epoch {epoch+1}, Loss: {epoch_loss / len(train_loader):.6f}")
+
+
+def compute_dynamic_threshold(scores, n_test):
+        mean = np.mean(scores)
+        std = np.std(scores)
+        coeff_threshold = np.sqrt(n_test) / np.log(n_test+2)
+        return mean + coeff_threshold * std
+
+# -----------------------------
+# Main execution block
+# -----------------------------
+def outlier_detection_STOC(X_train, batch_size=32, epochs=100, lr=1e-4, verbose=False, return_scores=False):
+
+    if isinstance(X_train, pd.DataFrame): X_train = X_train.values
+    X_test = X_train
+    if isinstance(X_test, pd.DataFrame): X_test = X_test.values
+    p = X_train.shape[1]
+
+    # Create DataLoader
+    train_dataset = TensorDataset(torch.tensor(X_train, dtype=torch.float32).unsqueeze(1))
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+
+    # Model initialization
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = STOC(input_dim=p).to(device)
+
+    # Train the model
+    train_model(model, train_loader, epochs=epochs, lr=lr, device=device, verbose=verbose)
+
+    # Compute reconstruction scores
+    X_tensor_test = torch.tensor(X_test, dtype=torch.float32).unsqueeze(1).to(device)
+    test_scores = compute_reconstruction_scores(model, X_tensor_test, device=device)
+
+    # Dynamic thresholding
+    threshold = compute_dynamic_threshold(test_scores, len(X_test))
+
+    anomalies = test_scores > threshold
+    outliers_indices = np.where(anomalies)[0]
+
+    if return_scores:
+        return outliers_indices, test_scores
+
+    return outliers_indices
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### DATN
+
+class SeriesDecomposition(nn.Module):
+    """
+    Series decomposition block using moving average to split a time series into trend and seasonal components.
+    """
+    def __init__(self, kernel_size: int):
+        super().__init__()
+        self.kernel_size = kernel_size
+        self.padding = kernel_size // 2
+        self.avg_pool = nn.AvgPool1d(kernel_size=self.kernel_size, stride=1, padding=self.padding)
+
+    def forward(self, x):
+        # x: [B, d_model]
+        trend = self.avg_pool(x)
+        seasonal = x - trend
+        return seasonal, trend
+
+
+class AutoAttention(nn.Module):
+    """
+    Auto-attention mechanism using FFT to extract dominant periodic components.
+    """
+    def __init__(self, d_model, n_heads, window_size=192, c=4, device=torch.device('cpu')):
+        super().__init__()
+        self.d_model = d_model
+        self.num_heads = n_heads
+        self.device = device
+        self.window_size = window_size
+
+        self.to_q = nn.Linear(d_model, d_model)
+        self.to_k = nn.Linear(d_model, d_model)
+        self.to_v = nn.Linear(d_model, d_model)
+        
+        self.top_k_factor = int(c * np.log(window_size))
+        self.attn = nn.MultiheadAttention(embed_dim=d_model*3, num_heads=n_heads, batch_first=True)
+        self.linear = nn.Linear(d_model*3, d_model)
+
+    def forward(self, x):
+        B, _ = x.shape     
+        x = x.to(self.device)       # [B, d_model]
+
+        # Linear projections
+        Q = self.to_q(x)       # [B, d_model]
+        K = self.to_k(x)       # [B, d_model]
+        V = self.to_v(x)       # [B, d_model]
+
+        # Apply FFT on each
+        FQ = fft.fft(Q, n=self.window_size, dim=1)       # [B, d_model]
+        FK = fft.fft(K, n=self.window_size, dim=1)       # [B, d_model]
+        FV = fft.fft(V, n=self.window_size, dim=1)       # [B, d_model]
+
+        # Concatenate in feature dimension
+        F_cat = torch.cat([FQ, FK, FV], dim=-1)  # [B, 3*d_model]
+        amplitude = torch.abs(F_cat)
+
+        # Select top-K frequency locations globally
+        _, indices = torch.topk(amplitude, self.top_k_factor, dim=1)
+
+        # Mask everything except top-K positions
+        F_masked = torch.zeros_like(F_cat)
+        for b in range(B):
+            vect = F_cat[b]
+            selected = torch.zeros_like(vect)
+            selected[indices[b]] = vect[indices[b]]
+            F_masked[b] = selected
+        
+        # Inverse FFT to time domain (retain dominant periods)
+        periodic_component = fft.ifft(F_masked, n=self.window_size, dim=1).real      # [B, 3*d_model]
+
+        # Apply standard multi-head self-attention
+        attended, _ = self.attn(periodic_component, periodic_component, periodic_component)       # [B, 3*d_model]
+
+        return self.linear(attended)       # [B, d_model]
+
+
+class EncoderLayer(nn.Module):
+    """
+    A single encoder layer with decomposition and dual-path attention.
+    """
+    def __init__(self, d_model, n_heads, kernel_size, device, c=4, window_size=192):
+        super().__init__()
+        self.device = device
+        self.decomp = SeriesDecomposition(kernel_size).to(device)
+        self.auto_attn = AutoAttention(d_model, n_heads, device=device, c=c, window_size=window_size).to(device)
+        self.mhsa = nn.MultiheadAttention(embed_dim=d_model, num_heads=n_heads, batch_first=True).to(device)
+        self.ffn = nn.Sequential(
+            nn.Linear(d_model, d_model),
+            nn.ReLU(),
+            nn.Linear(d_model, d_model)
+        ).to(device)
+        self.norm = nn.LayerNorm(d_model).to(device)
+
+    def forward(self, x):
+        x = x.to(self.device)
+        # Decompose into seasonal and trend
+        seasonal, trend = self.decomp(x)        # [B, d_model] X 2
+        seasonal = seasonal.to(self.device)
+        trend = trend.to(self.device)
+
+        # Auto-attention on both components
+        s_seasonal = self.auto_attn(seasonal)
+        s_trend = self.auto_attn(trend)
+
+        # Multi-head self-attention and feedforward
+        attn_s, _ = self.mhsa(s_seasonal, s_seasonal, s_seasonal)
+        attn_t, _ = self.mhsa(s_trend, s_trend, s_trend)
+
+        out_s = self.ffn(attn_s)
+        out_t = self.ffn(attn_t)
+
+        # Add the results
+        return self.norm(out_s + out_t)
+
+
+class DATN(nn.Module):
+    """
+    Complete DATN model with stacked encoder layers and linear decoder.
+    """
+    def __init__(self, input_dim, d_model, n_heads, num_layers, kernel_size, device, c=4, window_size=192):
+        super().__init__()
+        self.input_dim = input_dim
+        self.device = device
+        self.input_proj = nn.Linear(input_dim, d_model).to(device)
+        self.encoder_layers = nn.ModuleList([
+            EncoderLayer(d_model, n_heads, kernel_size, device, c=c, window_size=window_size) for _ in range(num_layers)
+        ]).to(device)
+        self.output_proj = nn.Linear(d_model, input_dim).to(device)
+
+    def forward(self, x):
+        x = x.to(self.device)
+        # x shape: [B, input_dim] => apply projection
+        x = self.input_proj(x)      # [B, input_dim] → [B, d_model]
+        
+        # Each encoder layer depends on the previous one
+        for layer in self.encoder_layers:
+            x = layer(x)
+        
+        # Decode
+        x_hat = self.output_proj(x)        # → [B, input_dim]
+
+        return x_hat
+
+
+def compute_anomaly_reconstruction(original, reconstructed, device):
+    """
+    Compute anomaly scores as L2 norm between original and reconstructed signals.
+    """
+    return torch.norm(original.to(device) - reconstructed.to(device), dim=-1)  # shape: [B, T]
+
+
+
+
+
+def train_model(model, train_loader, epochs=10, lr=1e-4, device=torch.device("cpu"), verbose=True):
+    model.train()
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    criterion = nn.MSELoss()
+    # ---- Training Loop ----
+    for epoch in range(epochs):
+        model.train()
+        total_loss = 0
+        for batch in train_loader:
+            batch = batch[0].to(device)  # shape: [B, T]
+            output = model(batch)
+            loss = criterion(output, batch)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            total_loss += loss.item()
+        if verbose: print(f"Epoch {epoch+1}/{epochs} - Loss: {total_loss / len(train_loader):.6f}")
+
+
+def compute_anomaly_scores(model, np_data, device=torch.device('cpu')):
+    model.eval()
+    with torch.no_grad():
+        x = torch.tensor(np_data, dtype=torch.float32).to(device)
+        x_hat, S, P = model(x)
+        recon_error = ((x - x_hat) ** 2).sum(dim=1).detach()
+        ass_dis = association_discrepancy(P, S).detach()
+        weights = torch.softmax(-ass_dis, dim=0)
+        anomaly_scores = weights * recon_error
+        return anomaly_scores.cpu().numpy()
+
+def compute_dynamic_threshold(scores, n_test):
+        mean = np.mean(scores)
+        std = np.std(scores)
+        coeff_threshold = np.sqrt(n_test) / np.log(n_test+2)
+        return mean + coeff_threshold * std
+
+
+def outlier_detection_DATN(X_train, batch_size=32, epochs=10, lr=1e-4, d_model=64, n_heads=4, num_layers=4, kernel_size=5, c=4, window_size=192, device=torch.device("cuda" if torch.cuda.is_available() else "cpu"), verbose=False, return_scores=False):
+    if isinstance(X_train, pd.DataFrame): X_train = X_train.values
+    n, p = X_train.shape
+
+    # ---- Create DataLoader ----
+    train_dataset = TensorDataset(torch.tensor(X_train, dtype=torch.float32))
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+
+    # ---- Initialize Model ----
+    model = DATN(input_dim=p, d_model=d_model, n_heads=n_heads, num_layers=num_layers, kernel_size=kernel_size, c=c, window_size=window_size, device=device).to(device)
+
+    # ---- Training Loop ----
+    train_model(model, train_loader, epochs=epochs, lr=lr, device=device, verbose=verbose)
+
+    # ---- Compute Reconstruction scores ---
+    reconstruction_scores = compute_reconstruction_scores(model, X_train, device)
+
+    # ---- Dynamic Thresholding ----
+    threshold = compute_dynamic_threshold(reconstruction_scores, n)
+    anomalies = reconstruction_scores > threshold
+    outliers_indices = np.where(anomalies)[0]
+    
+    if return_scores:
+        return outliers_indices, reconstruction_scores
+    
+    return outliers_indices
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### RINAT
+
+
+# === Anomaly Attention & Transformer ===
+
+class ReversibleInstanceNorm(nn.Module):
+    """Applies reversible instance normalization (RevIN) to the input."""
+    def __init__(self, num_features, eps=1e-5):
+        super().__init__()
+        self.eps = eps
+        self.gamma = nn.Parameter(torch.ones(num_features))
+        self.beta = None  # as per the paper, not used
+
+    def forward(self, x, reverse=False, stats=None):
+        if not reverse:
+            mean = x.mean(dim=-1, keepdim=True)
+            std = x.std(dim=-1, keepdim=True) + self.eps
+            x_norm = (x - mean) / std
+            return self.gamma.view(1, -1) * x_norm, (mean, std)
+        else:
+            mean, std = stats
+            return x / self.gamma.view(1, -1) * std + mean
+
+
+
+class RINAT_layer(nn.Module):
+    def __init__(self, d_model, n_heads, seq_len):
+        super().__init__()
+        self.d_model = d_model
+        self.n_heads = n_heads
+        self.seq_len = seq_len
+        self.head_dim = d_model // n_heads
+        self.W_q = nn.Linear(d_model, d_model)
+        self.W_k = nn.Linear(d_model, d_model)
+        self.W_v = nn.Linear(d_model, d_model)
+        self.W_sigma = nn.Linear(d_model, n_heads)
+        self.norm1 = nn.LayerNorm(d_model)
+        self.ff = nn.Sequential(
+            nn.Linear(d_model, d_model),
+            nn.ReLU(),
+            nn.Linear(d_model, d_model)
+        )
+        self.norm2 = nn.LayerNorm(d_model)
+
+    def forward(self, x_norm, x_raw):
+        B, _ = x_norm.shape      # [B, d_model] where B is the batch size
+
+        ### Prior attention branch
+        W_sigma = nn.Linear(self.d_model, self.n_heads)
+        sigma = torch.abs(W_sigma(x_raw)) + 1e-5       # [B, H]
+        positions = torch.arange(B, device=x_norm.device).unsqueeze(0)       # [1, B]
+        prior = []
+        for h in range(self.n_heads):
+            dists = (positions.T - positions) ** 2      # [B, B]
+            gauss = torch.exp(-dists[None, :, :] / (2 * sigma[:, h].unsqueeze(1) ** 2))
+            gauss = gauss / (torch.sqrt(2 * math.pi * sigma[:, h].unsqueeze(1) ** 2))
+            gauss = gauss / gauss.sum(dim=-1, keepdim=True)
+            prior.append(gauss)
+        P = torch.stack(prior, dim=1).squeeze(0)       # [H, B, B]
+
+        ### Series attention branch
+        Q = self.W_q(x_norm).view(B, self.n_heads, self.head_dim).transpose(0, 1)        # [H, B, d_model]
+        K = self.W_k(x_norm).view(B, self.n_heads, self.head_dim).transpose(0, 1)        # [H, B, d_model]
+        V = self.W_v(x_norm).view(B, self.n_heads, self.head_dim).transpose(0, 1)        # [H, B, d_model]
+
+        S = torch.softmax(Q @ K.transpose(1,2) / (self.head_dim ** 0.5), dim=-1)       # [H, B, B]
+        out = S @ V       # [H, B, d_model]
+
+        ### Remaining transformations in the layer
+        # Concatenate the heads along the last dimension
+        out = out.transpose(1, 2).reshape(B, self.d_model)
+
+        # Skip connection + Norm
+        z = self.norm1(out + x_norm)
+        
+        # FeedForward + Skip + Norm
+        z2 = self.ff(z)
+        x_final = self.norm2(z2 + z)
+
+        return x_final, S, P
+
+
+class RINAT(nn.Module):
+    def __init__(self, seq_len, d_model=512, num_layers=3, n_heads=8):
+        super().__init__()
+        self.seq_len = seq_len
+        self.num_layers = num_layers
+        self.input_proj = nn.Linear(seq_len, d_model)
+        self.revin = ReversibleInstanceNorm(d_model)
+        # Stacked Transformer encoder
+        self.rinat_layers = nn.ModuleList([
+            RINAT_layer(d_model=d_model, n_heads=n_heads, seq_len=seq_len)
+            for _ in range(num_layers)
+        ])
+        self.concat_layers = nn.Linear(d_model * num_layers, d_model)
+        self.reconstruction = nn.Linear(d_model, seq_len)
+
+    def forward(self, x):
+        x = self.input_proj(x)  # [B, L] → [B, d_model]
+
+        # Apply reversible instance normalization
+        x_norm, stats = self.revin(x)
+
+        rinat_outputs = [layer(x_norm, x) for layer in self.rinat_layers]
+
+        list_x, list_P, list_S = zip(*rinat_outputs)      # [num_layers, B, d_model] X 3
+        
+        # Concatenate the outputs of all layers
+        x_concat = torch.cat(list_x, dim=1)        # [B, num_layers*d_model]
+        P = torch.cat(list_P, dim=0)        # [H*num_layers, B, B]
+        S = torch.cat(list_S, dim=0)        # [H*num_layers, B, B]
+
+        # Concatenate the outputs of all layers
+        x_concat = self.concat_layers(x_concat)         # [B, d_model]
+
+        # Apply inverse normalization
+        x_concat_norm = self.revin(x_concat, reverse=True, stats=stats)
+
+        # Reconstruction of the spectra
+        x_hat = self.reconstruction(x_concat_norm)      # [B, seq_len]
+
+        return x_hat, P, S
+
+
+
+def association_discrepancy(P, S, eps=1e-8):
+    P_safe = P + eps
+    S_safe = S + eps
+
+    # KL divergences par point et par head : [H, B, B] -> [H, B]
+    kl_1 = F.kl_div(P_safe.log(), S_safe, reduction='none').sum(dim=1)
+    kl_2 = F.kl_div(S_safe.log(), P_safe, reduction='none').sum(dim=1)
+
+    # Moyenne sur les heads et les layers → [B]
+    return (kl_1 + kl_2).mean(dim=0)
+
+
+def compute_loss(x, x_hat, P, S, lam=3.0):
+    recon_loss = F.mse_loss(x_hat, x, reduction='mean')
+    ass_dis = association_discrepancy(P, S).mean()
+    return recon_loss - lam * ass_dis, recon_loss, ass_dis
+
+
+# === Training phase ===
+
+def train_minimax_model(model, train_loader, epochs=10, lr= 1e-4, lam=3.0, device=torch.device('cpu'), verbose=True):
+    model.train()
+    model.to(device)
+    if lr is None: optimizer = torch.optim.Adam(model.parameters())
+    else : optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+
+    for epoch in range(epochs):
+        total_loss = 0
+        for batch_x in train_loader:
+            batch_x = batch_x[0].to(device)  # [B, L]
+            
+            # Min phase
+            x_hat, S, P = model(batch_x)
+            loss_min, _, _ = compute_loss(batch_x, x_hat, P, S.detach(), lam=-lam)
+            optimizer.zero_grad()
+            loss_min.backward()
+            optimizer.step()
+
+            # Max phase
+            x_hat, S, P = model(batch_x)
+            loss_max, _, _ = compute_loss(batch_x, x_hat, P.detach(), S, lam=lam)
+            optimizer.zero_grad()
+            loss_max.backward()
+            optimizer.step()
+
+            total_loss += loss_max.item()
+
+        if verbose: print(f"Epoch {epoch + 1}/{epochs} — Loss: {total_loss / len(train_loader):.4f}")
+
+
+# === Definition of the score function ===
+
+def compute_anomaly_scores(model, np_data, device=torch.device('cpu')):
+    model.eval()
+    with torch.no_grad():
+        x = torch.tensor(np_data, dtype=torch.float32).to(device)
+        x_hat, S, P = model(x)
+        recon_error = ((x - x_hat) ** 2).sum(dim=1).detach()
+        ass_dis = association_discrepancy(P, S).detach()
+        weights = torch.softmax(-ass_dis, dim=0)
+        anomaly_scores = weights * recon_error
+        return anomaly_scores.cpu().numpy()
+
+
+def compute_dynamic_threshold(scores, n_test):
+        mean = np.mean(scores)
+        std = np.std(scores)
+        coeff_threshold = np.sqrt(n_test) / np.log(n_test+2)
+        return mean + coeff_threshold * std
+    
+    
+
+def outlier_detection_RINAT(X_train, batch_size=32, epochs=10, lr=1e-4, lam=3.0, d_model=512, num_layers=3, n_heads=8, verbose=False, return_scores=False):
+    if isinstance(X_train, pd.DataFrame): X_train = X_train.values
+    X_test = X_train
+    if isinstance(X_test, pd.DataFrame): X_test = X_test.values
+    p = X_train.shape[1]
+
+    # Create DataLoader
+    train_dataset = TensorDataset(torch.tensor(X_train, dtype=torch.float32))
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+
+    # Model initialization
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = RINAT(seq_len=p, d_model=d_model, num_layers=num_layers, n_heads=n_heads).to(device)
+
+    # Train the model
+    train_minimax_model(model, train_loader, epochs=epochs, lr=lr, lam=lam, device=device, verbose=verbose)
+    
+    # Compute anomaly scores
+    test_scores = compute_anomaly_scores(model, X_test, device=device)
+
+    # Compute reconstruction scores
+    reconstruction_scores = compute_reconstruction_scores(model, X_test, device)
+
+    # Dynamic thresholding
+    threshold = compute_dynamic_threshold(test_scores, len(X_test))
+
+    anomalies = test_scores > threshold
+    outliers_indices = np.where(anomalies)[0]
+
+    if return_scores:
+        return outliers_indices, reconstruction_scores
+    
+    return outliers_indices
