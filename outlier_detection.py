@@ -1079,6 +1079,35 @@ class PositionalEncoding(nn.Module):
 # -----------------------------
 # STOC Model adapted to spectral data
 # -----------------------------
+import numpy as np
+import pandas as pd
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch.utils.data import DataLoader, TensorDataset
+import optuna
+from optuna.trial import TrialState
+from optuna.integration import PyTorchLightningPruningCallback
+
+# -----------------------------
+# Positional Encoding
+# -----------------------------
+class PositionalEncoding(nn.Module):
+    def __init__(self, d_model, length):
+        super().__init__()
+        pe = torch.zeros(length, d_model)
+        position = torch.arange(0, length, dtype=torch.float32).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-np.log(10000.0) / d_model))
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        self.pe = pe.unsqueeze(0)
+
+    def forward(self, x):
+        return x + self.pe[:, :x.size(1)].to(x.device)
+
+# -----------------------------
+# STOC Model
+# -----------------------------
 class STOC(nn.Module):
     def __init__(self, input_dim, d_model=64, nhead=4, num_layers=3):
         super().__init__()
@@ -1090,13 +1119,11 @@ class STOC(nn.Module):
             for _ in range(num_layers)
         ])
 
-        # Decoder: 1D CNN followed by projection to input dim
         self.conv1d = nn.Conv1d(d_model * num_layers, d_model, kernel_size=3, padding=1)
         self.output_layer = nn.Linear(d_model, input_dim)
 
     def forward(self, x):
-        # x shape: (batch_size, 1, p)
-        x = self.input_proj(x)  # (batch, 1, d_model)
+        x = self.input_proj(x)  # (batch, d_model)
         x = self.pos_encoder(x)
 
         h_list = []
@@ -1104,21 +1131,24 @@ class STOC(nn.Module):
             x = layer(x)
             h_list.append(x)
 
-        h_stack = torch.cat(h_list, dim=2)  # (batch, 1, d_model * num_layers)
-        h_conv = self.conv1d(h_stack.permute(0, 2, 1)).permute(0, 2, 1)  # (batch, 1, d_model)
-        out = self.output_layer(h_conv).squeeze(1)  # (batch, p)
+        h_stack = torch.cat(h_list, dim=2)
+        h_conv = self.conv1d(h_stack.permute(0, 2, 1)).permute(0, 2, 1)
+        out = self.output_layer(h_conv).squeeze(1)
         return out
 
 # -----------------------------
 # Training function
 # -----------------------------
-def train_model(model, train_loader, epochs=10, lr=1e-4, device=torch.device("cpu"), verbose=True):
-    model.train()
+def train_model(model, train_loader, val_loader, trial, max_epochs, lr, device):
+    model.to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
     criterion = nn.MSELoss()
 
-    for epoch in range(epochs):
-        epoch_loss = 0
+    best_val_loss = np.inf
+    patience, trigger_times = 5, 0
+
+    for epoch in range(max_epochs):
+        model.train()
         for x_batch in train_loader:
             x_batch = x_batch[0].to(device)
             pred = model(x_batch)
@@ -1126,52 +1156,104 @@ def train_model(model, train_loader, epochs=10, lr=1e-4, device=torch.device("cp
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            epoch_loss += loss.item()
-        if verbose: print(f"Epoch {epoch+1}, Loss: {epoch_loss / len(train_loader):.6f}")
 
+        # Validation
+        model.eval()
+        val_losses = []
+        with torch.no_grad():
+            for x_batch in val_loader:
+                x_batch = x_batch[0].to(device)
+                pred = model(x_batch)
+                val_loss = criterion(pred, x_batch.squeeze(1))
+                val_losses.append(val_loss.item())
 
-def compute_dynamic_threshold(scores, n_test):
-        mean = np.mean(scores)
-        std = np.std(scores)
-        coeff_threshold = np.sqrt(n_test) / np.log(n_test+2)
-        return mean + coeff_threshold * std
+        avg_val_loss = np.mean(val_losses)
+        trial.report(avg_val_loss, epoch)
+
+        # Optuna pruning
+        if trial.should_prune():
+            raise optuna.TrialPruned()
+
+        # Early stopping
+        if avg_val_loss < best_val_loss:
+            best_val_loss = avg_val_loss
+            trigger_times = 0
+        else:
+            trigger_times += 1
+            if trigger_times >= patience:
+                break
+
+    return best_val_loss
 
 # -----------------------------
-# Main execution block
+# Reconstruction scoring
 # -----------------------------
-def outlier_detection_STOC(X_train, batch_size=32, epochs=100, lr=1e-4, verbose=False, return_scores=False):
+def compute_reconstruction_scores(model, X_tensor, device):
+    model.eval()
+    scores = []
+    criterion = nn.MSELoss(reduction="none")
+    with torch.no_grad():
+        for x in X_tensor:
+            x = x.unsqueeze(0).to(device)
+            pred = model(x)
+            loss = criterion(pred, x.squeeze(1)).mean().item()
+            scores.append(loss)
+    return np.array(scores)
 
-    if isinstance(X_train, pd.DataFrame): X_train = X_train.values
-    X_test = X_train
-    if isinstance(X_test, pd.DataFrame): X_test = X_test.values
-    p = X_train.shape[1]
+# -----------------------------
+# Optuna objective function
+# -----------------------------
+def objective(trial):
+    d_model = trial.suggest_categorical("d_model", [32, 64, 128])
+    nhead = trial.suggest_categorical("nhead", [2, 4, 8])
+    num_layers = trial.suggest_int("num_layers", 1, 4)
+    lr = trial.suggest_loguniform("lr", 1e-5, 1e-3)
+    batch_size = trial.suggest_categorical("batch_size", [16, 32, 64])
+    epochs = trial.suggest_int("epochs", 30, 100)
 
-    # Create DataLoader
-    train_dataset = TensorDataset(torch.tensor(X_train, dtype=torch.float32).unsqueeze(1))
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    # Data split
+    idx = np.random.permutation(len(X_train))
+    split = int(0.8 * len(X_train))
+    X_tr, X_val = X_train[idx[:split]], X_train[idx[split:]]
 
-    # Model initialization
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = STOC(input_dim=p).to(device)
+    input_dim = X_train.shape[1]
+    model = STOC(input_dim=input_dim, d_model=d_model, nhead=nhead, num_layers=num_layers)
 
-    # Train the model
-    train_model(model, train_loader, epochs=epochs, lr=lr, device=device, verbose=verbose)
+    train_dataset = TensorDataset(torch.tensor(X_tr, dtype=torch.float32).unsqueeze(1))
+    val_dataset = TensorDataset(torch.tensor(X_val, dtype=torch.float32).unsqueeze(1))
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size)
 
-    # Compute reconstruction scores
-    X_tensor_test = torch.tensor(X_test, dtype=torch.float32).unsqueeze(1).to(device)
-    test_scores = compute_reconstruction_scores(model, X_tensor_test, device=device)
+    # Entraînement + retour de la validation loss finale
+    final_loss = train_model(model, train_loader, val_loader, trial, epochs, lr, device)
+    return final_loss
 
-    # Dynamic thresholding
-    threshold = compute_dynamic_threshold(test_scores, len(X_test))
+# -----------------------------
+# Données spectrales (à fournir ici)
+# -----------------------------
+# Exemple : X_train = np.load("your_spectral_data.npy")
+# Doit être un np.ndarray de forme (n_spectra, n_wavelengths)
+X_train = np.random.rand(500, 256).astype(np.float32)  # À remplacer
 
-    anomalies = test_scores > threshold
-    outliers_indices = np.where(anomalies)[0]
+# -----------------------------
+# Lancer l’optimisation Optuna
+# -----------------------------
+if __name__ == "__main__":
+    study = optuna.create_study(direction="minimize")
+    study.optimize(objective, n_trials=50, timeout=600)
 
-    if return_scores:
-        return outliers_indices, test_scores
+    print("✅ Best trial:")
+    print("  Loss:", study.best_trial.value)
+    print("  Params:", study.best_trial.params)
 
-    return outliers_indices
-
+    # 🔍 Visualisation (facultatif)
+    try:
+        import optuna.visualization as vis
+        vis.plot_optimization_history(study).show()
+        vis.plot_param_importances(study).show()
+    except ImportError:
+        pass
 
 
 

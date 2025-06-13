@@ -53,7 +53,7 @@
 	- Est-ce qu'on peut se passer des preprocessings ?
 - ## 6- Volet 2: Détection et gestion des outliers
 	- Quel est l'intérêt?
-	- Etendre la quedyion, à la gestion de clusters
+	- Etendre la question, à la gestion de clusters
 	- Processus à plusieurs étapes:
 		- Détection des outliers: PCA, Data depth theory, Space transformation and spectral analysis, Transformers
 		- Classification du type d'outliers: outliers groupés ou outliers isolés (HDBSCAN)
