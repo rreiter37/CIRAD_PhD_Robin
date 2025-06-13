@@ -1085,7 +1085,6 @@ class STOC(nn.Module):
         self.input_proj = nn.Linear(input_dim, d_model)
         self.pos_encoder = PositionalEncoding(d_model, length=input_dim)
 
-        # Stacked Transformer encoder
         self.transformer_layers = nn.ModuleList([
             nn.TransformerEncoderLayer(d_model=d_model, nhead=nhead, batch_first=True)
             for _ in range(num_layers)
