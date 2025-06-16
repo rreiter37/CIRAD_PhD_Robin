@@ -20,10 +20,6 @@ from scipy.stats import chi2
 from scipy.sparse.csgraph import laplacian
 from scipy.linalg import eigh
 
-from tensorflow.keras.models import Sequential, Model # type: ignore
-from tensorflow.keras.layers import Input, Bidirectional, LSTM, RepeatVector, TimeDistributed, Dense # type: ignore
-from tensorflow.keras.optimizers import Adam # type: ignore
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -435,7 +431,7 @@ def outlier_detection_DDT_robust(X, coeffs = [1.0, 10.0, 100.0], scale = False):
     # Define a threshold based on the mean and standard deviation of computed distances
     mean_dist = np.nanmean(distances)
     std_dist = np.nanstd(distances)
-    threshold = mean_dist + 3*std_dist
+    threshold = mean_dist + 2*std_dist
     
     # Detect outliers based on this threshold
     outliers_ind = np.where(distances > threshold)[0]
@@ -665,9 +661,23 @@ def pipeline_find_normal_spectra(X, method = 'kNN', k = 10, percentile = 95):
 
 ### Functions to detect the outliers based on the LSTM AutoEncoder method
 
-def outlier_detection_LSTM(X, latent_dim=64, epochs=10, batch_size=32, validation_split=0.2, lr=1e-4, verbose=False, get_normal=True, normal_method='kNN', k=10, percentile=95, return_scores=False):
+class LSTMAutoEncoder(nn.Module):
+    def __init__(self, input_dim, latent_dim):
+        super(LSTMAutoEncoder, self).__init__()
+        self.encoder = nn.LSTM(input_size=1, hidden_size=latent_dim, num_layers=1, batch_first=True)
+        self.decoder = nn.Sequential(
+            nn.Linear(latent_dim, input_dim)
+        )
+
+    def forward(self, x):
+        _, (hidden, _) = self.encoder(x)
+        decoded = self.decoder(hidden[-1])
+        return decoded
+
+
+def outlier_detection_LSTM(X, latent_dim=64, epochs=10, batch_size=32, lr=1e-4, verbose=False, get_normal=True, normal_method='kNN', k=10, percentile=95, return_scores=False):
     """
-    Detects outliers in the dataset using a LSTM AutoEncoder architecture.
+    Detects outliers in the dataset using a LSTM AutoEncoder architecture with PyTorch.
     
     Parameters:
         X (numpy.ndarray): The spectral data set from which outliers must be detected.
@@ -697,36 +707,48 @@ def outlier_detection_LSTM(X, latent_dim=64, epochs=10, batch_size=32, validatio
 
     # --- Build LSTM Autoencoder ---
     n_wavelengths = X_train.shape[1]  # number of wavelengths
-    input_dim = (n_wavelengths,1)  # shape (wavelengths,1)
-    model = Sequential([
-        LSTM(latent_dim, activation='relu', input_shape=input_dim, return_sequences=True), 
-        LSTM(latent_dim, activation='relu', return_sequences=False),
-        Dense(n_wavelengths) # shape
-    ])
+    input_dim = n_wavelengths  # shape (wavelengths,1)
+    
+    model = LSTMAutoEncoder(input_dim, latent_dim)
+    
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
 
-    model.compile(optimizer=Adam(learning_rate=lr), loss='mse')
+    criterion = nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+
+    # --- Prepare DataLoader ---
+    train_dataset = TensorDataset(torch.tensor(X_train, dtype=torch.float32).to(device))
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
     # --- Train the autoencoder ---
-    model.fit(X_train, X_train,
-                        epochs=epochs,
-                        batch_size=batch_size,
-                        shuffle=True,
-                        validation_split=validation_split,
-                        verbose=verbose)
+    model.train()
+    for epoch in range(epochs):
+        for batch in train_loader:
+            inputs = batch[0].to(device)
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, inputs.squeeze(-1))
+            loss.backward()
 
     # --- Compute reconstruction error on all spectra ---
-    X_pred = model.predict(X_full, verbose=verbose)
-    reconstruction_scores = np.mean((X_full.reshape(X_all_scaled.shape[0], X_all_scaled.shape[1]) - X_pred)**2, axis=-1)
+    model.eval()
+    X_full_tensor = torch.tensor(X_full, dtype=torch.float32).to(device)
+    with torch.no_grad():
+        X_pred = model(X_full_tensor).cpu()
+
+    reconstruction_errors = torch.mean((X_pred - X_full_tensor.squeeze(2))**2, dim=1).cpu().numpy()
+
 
     # Dynamic thresholding
-    threshold = compute_dynamic_threshold(reconstruction_scores, X.shape[0])
+    threshold = compute_dynamic_threshold(reconstruction_errors, X.shape[0])
 
-    anomalies = reconstruction_scores > threshold
+    anomalies = reconstruction_errors > threshold
     outliers_indices = np.where(anomalies)[0]
 
     if return_scores:
     # Return the indices of outliers and their reconstruction scores
-        return outliers_indices, reconstruction_scores
+        return outliers_indices, reconstruction_errors
 
     return outliers_indices
 
@@ -737,17 +759,26 @@ def outlier_detection_LSTM(X, latent_dim=64, epochs=10, batch_size=32, validatio
 
 
 
-
-
-
-
-
-
 ### Function to detect the outliers with the bi-LSTM AutoEncoder method
+
+
+class BiLSTMAutoEncoder(nn.Module):
+    def __init__(self, input_dim, latent_dim):
+        super(BiLSTMAutoEncoder, self).__init__()
+        self.encoder = nn.LSTM(input_size=1, hidden_size=latent_dim, num_layers=1, batch_first=True, bidirectional=True)
+        self.decoder = nn.Sequential(
+            nn.Linear(2 * latent_dim, input_dim)
+        )
+
+    def forward(self, x):
+        _, (hidden, _) = self.encoder(x)
+        hidden_concat = torch.cat((hidden[0], hidden[1]), dim=-1)
+        decoded = self.decoder(hidden_concat)
+        return decoded
 
 def outlier_detection_BiLSTM(X, latent_dim=64, epochs=10, batch_size=32, lr=1e-4, verbose=False, validation_split=0.2, get_normal=True, normal_method='kNN', k=10, percentile=95, return_scores=False):
     """
-    Detects outliers in the dataset using a Bi-LSTM AutoEncoder architecture.
+    Detects outliers in the dataset using a Bi-LSTM AutoEncoder architecture with PyTorch.
     
     Parameters:
         X (numpy.ndarray): The spectral data set from which outliers must be detected.
@@ -760,14 +791,14 @@ def outlier_detection_BiLSTM(X, latent_dim=64, epochs=10, batch_size=32, lr=1e-4
     """
     # --- Find the normal spectra to train the model ---
     if get_normal:
-        X_normal = pipeline_find_normal_spectra(X, method='kNN', k=10, percentile=95)
+        X_normal = pipeline_find_normal_spectra(X, method=normal_method, k=k, percentile=percentile)
     else:
         X_normal = X
 
     # --- Preprocess data ---
     scaler = MinMaxScaler()
     X_all_scaled = scaler.fit_transform(X)
-    X_normal_scaled = scaler.fit_transform(X_normal)
+    X_normal_scaled = scaler.transform(X_normal)
 
     # Reshape to fit LSTM (samples, time_steps)
     X_train = X_normal_scaled.reshape((X_normal_scaled.shape[0], X_normal_scaled.shape[1], 1))
@@ -775,37 +806,46 @@ def outlier_detection_BiLSTM(X, latent_dim=64, epochs=10, batch_size=32, lr=1e-4
 
     # ---- Bi-LSTM Autoencoder ----
     n_wavelengths = X_train.shape[1]  # Number of wavelengths
-    input_dim = (n_wavelengths, 1)  # Number of features (wavelengths)
-    # Architecture of the model
-    input_layer = Input(shape=input_dim)
-    encoded = Bidirectional(LSTM(latent_dim, return_sequences=True))(input_layer)
-    decoded = Bidirectional(LSTM(latent_dim, return_sequences=False))(encoded)
-    output_layer = Dense(n_wavelengths)(decoded)
+    input_dim = n_wavelengths  # Number of features (wavelengths)
+    
+    model = BiLSTMAutoEncoder(input_dim, latent_dim)
+    
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
 
-    # Define the model
-    model = Model(inputs=input_layer, outputs=output_layer)
-    model.compile(optimizer=Adam(learning_rate=lr), loss='mse')
+    criterion = nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
-    # Training phase
-    history = model.fit(X_train, X_train,
-                        epochs=epochs,
-                        batch_size=batch_size,
-                        validation_split=validation_split,
-                        shuffle=True,
-                        verbose=verbose)
+    # --- Prepare DataLoader ---
+    train_dataset = TensorDataset(torch.tensor(X_train, dtype=torch.float32).to(device))
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
-    # Reconstruction of all spectra
-    X_pred = model.predict(X_all_reshaped, verbose=verbose)
-    reconstruction_scores = np.linalg.norm(X_all_reshaped.reshape(X_all_scaled.shape[0], X_all_scaled.shape[1]) - X_pred, axis=-1) # norm 2 between the real spectrum and its reconstruction
+    # --- Train the autoencoder ---
+    model.train()
+    for epoch in range(epochs):
+        for batch in train_loader:
+            inputs = batch[0].to(device)
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, inputs.squeeze(-1))
+            loss.backward()
+
+    # --- Compute reconstruction error on all spectra ---
+    model.eval()
+    X_full_tensor = torch.tensor(X_all_reshaped, dtype=torch.float32).to(device)
+    with torch.no_grad():
+        X_pred = model(X_full_tensor).cpu()
+
+    reconstruction_errors = torch.mean((X_pred - X_full_tensor.squeeze(2))**2, dim=1).cpu().numpy()
 
     # Dynamic thresholding
-    threshold = compute_dynamic_threshold(reconstruction_scores, X.shape[0])
+    threshold = compute_dynamic_threshold(reconstruction_errors, X.shape[0])
 
-    anomalies = reconstruction_scores > threshold
+    anomalies = reconstruction_errors > threshold
     outliers_indices = np.where(anomalies)[0]
 
     if return_scores:
-        return outliers_indices, reconstruction_scores
+        return outliers_indices, reconstruction_errors
 
     return outliers_indices
 
@@ -1016,7 +1056,7 @@ def compute_dynamic_threshold(scores, n_test):
         mean = np.mean(scores)
         std = np.std(scores)
         coeff_threshold = np.sqrt(n_test) / np.log(n_test+2)
-        return mean + coeff_threshold * std
+        return mean + 2 * std
     
     
 
@@ -1060,34 +1100,13 @@ def outlier_detection_Anomaly_transformer(X_train, batch_size=32, epochs=10, lr=
 
 ### STOC
 
-# -----------------------------
-# Positional Encoding Module
-# -----------------------------
-class PositionalEncoding(nn.Module):
-    def __init__(self, d_model, length):
-        super().__init__()
-        pe = torch.zeros(length, d_model)
-        position = torch.arange(0, length, dtype=torch.float32).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-np.log(10000.0) / d_model))
-        pe[:, 0::2] = torch.sin(position * div_term)
-        pe[:, 1::2] = torch.cos(position * div_term)
-        self.pe = pe.unsqueeze(0)
-
-    def forward(self, x):
-        return x + self.pe[:, :x.size(1)].to(x.device)
-
-# -----------------------------
-# STOC Model adapted to spectral data
-# -----------------------------
 import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from torch.utils.data import DataLoader, TensorDataset
 import optuna
-from optuna.trial import TrialState
-from optuna.integration import PyTorchLightningPruningCallback
+from optuna.exceptions import TrialPruned
 
 # -----------------------------
 # Positional Encoding
@@ -1123,7 +1142,7 @@ class STOC(nn.Module):
         self.output_layer = nn.Linear(d_model, input_dim)
 
     def forward(self, x):
-        x = self.input_proj(x)  # (batch, d_model)
+        x = self.input_proj(x)
         x = self.pos_encoder(x)
 
         h_list = []
@@ -1137,18 +1156,19 @@ class STOC(nn.Module):
         return out
 
 # -----------------------------
-# Training function
+# Training
 # -----------------------------
-def train_model(model, train_loader, val_loader, trial, max_epochs, lr, device):
+def train_model_STOC(model, train_loader, val_loader, trial=None, epochs=50, lr=1e-4, device=torch.device("cpu"), patience=10):
     model.to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
     criterion = nn.MSELoss()
 
-    best_val_loss = np.inf
-    patience, trigger_times = 5, 0
+    best_loss = float('inf')
+    counter = 0
 
-    for epoch in range(max_epochs):
+    for epoch in range(epochs):
         model.train()
+        train_loss = 0.0
         for x_batch in train_loader:
             x_batch = x_batch[0].to(device)
             pred = model(x_batch)
@@ -1156,39 +1176,42 @@ def train_model(model, train_loader, val_loader, trial, max_epochs, lr, device):
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+            train_loss += loss.item()
+        train_loss /= len(train_loader)
 
         # Validation
         model.eval()
-        val_losses = []
+        val_loss = 0.0
         with torch.no_grad():
-            for x_batch in val_loader:
-                x_batch = x_batch[0].to(device)
-                pred = model(x_batch)
-                val_loss = criterion(pred, x_batch.squeeze(1))
-                val_losses.append(val_loss.item())
+            for x_val in val_loader:
+                x_val = x_val[0].to(device)
+                val_pred = model(x_val)
+                loss = criterion(val_pred, x_val.squeeze(1))
+                val_loss += loss.item()
+        val_loss /= len(val_loader)
 
-        avg_val_loss = np.mean(val_losses)
-        trial.report(avg_val_loss, epoch)
-
-        # Optuna pruning
-        if trial.should_prune():
-            raise optuna.TrialPruned()
+        # Pruning
+        if trial is not None:
+            trial.report(val_loss, epoch)
+            if trial.should_prune():
+                raise TrialPruned()
 
         # Early stopping
-        if avg_val_loss < best_val_loss:
-            best_val_loss = avg_val_loss
-            trigger_times = 0
+        if val_loss < best_loss:
+            best_loss = val_loss
+            counter = 0
         else:
-            trigger_times += 1
-            if trigger_times >= patience:
+            counter += 1
+            if counter >= patience:
                 break
 
-    return best_val_loss
+    return model
+
 
 # -----------------------------
-# Reconstruction scoring
+# Score reconstruction
 # -----------------------------
-def compute_reconstruction_scores(model, X_tensor, device):
+def compute_reconstruction_scores_STOC(model, X_tensor, device):
     model.eval()
     scores = []
     criterion = nn.MSELoss(reduction="none")
@@ -1201,59 +1224,89 @@ def compute_reconstruction_scores(model, X_tensor, device):
     return np.array(scores)
 
 # -----------------------------
-# Optuna objective function
+# Seuil dynamique
 # -----------------------------
-def objective(trial):
-    d_model = trial.suggest_categorical("d_model", [32, 64, 128])
-    nhead = trial.suggest_categorical("nhead", [2, 4, 8])
-    num_layers = trial.suggest_int("num_layers", 1, 4)
-    lr = trial.suggest_loguniform("lr", 1e-5, 1e-3)
-    batch_size = trial.suggest_categorical("batch_size", [16, 32, 64])
-    epochs = trial.suggest_int("epochs", 30, 100)
+def compute_dynamic_threshold(scores, n_test):
+    mean = np.mean(scores)
+    std = np.std(scores)
+    coeff_threshold = np.sqrt(n_test) / np.log(n_test + 2)
+    return mean + coeff_threshold * std
 
-    # Data split
-    idx = np.random.permutation(len(X_train))
-    split = int(0.8 * len(X_train))
-    X_tr, X_val = X_train[idx[:split]], X_train[idx[split:]]
+# -----------------------------
+# Fonction finale
+# -----------------------------
+def outlier_detection_STOC(X_train, optuna_trials=30, timeout=600, return_scores=False):
+    if isinstance(X_train, pd.DataFrame): X_train = X_train.values
+    X_train = X_train.astype(np.float32)
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     input_dim = X_train.shape[1]
-    model = STOC(input_dim=input_dim, d_model=d_model, nhead=nhead, num_layers=num_layers)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    train_dataset = TensorDataset(torch.tensor(X_tr, dtype=torch.float32).unsqueeze(1))
-    val_dataset = TensorDataset(torch.tensor(X_val, dtype=torch.float32).unsqueeze(1))
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size)
+    def objective(trial):
+        d_model = trial.suggest_categorical("d_model", [32, 64, 128])
+        nhead = trial.suggest_categorical("nhead", [2, 4, 8])
+        num_layers = trial.suggest_int("num_layers", 1, 4)
+        lr = trial.suggest_loguniform("lr", 1e-5, 1e-3)
+        batch_size = trial.suggest_categorical("batch_size", [16, 32, 64])
+        epochs = trial.suggest_int("epochs", 30, 100)
 
-    # Entraînement + retour de la validation loss finale
-    final_loss = train_model(model, train_loader, val_loader, trial, epochs, lr, device)
-    return final_loss
+        # Train / Val split
+        idx = np.random.permutation(len(X_train))
+        split = int(0.8 * len(X_train))
+        X_tr, X_val = X_train[idx[:split]], X_train[idx[split:]]
 
-# -----------------------------
-# Données spectrales (à fournir ici)
-# -----------------------------
-# Exemple : X_train = np.load("your_spectral_data.npy")
-# Doit être un np.ndarray de forme (n_spectra, n_wavelengths)
-X_train = np.random.rand(500, 256).astype(np.float32)  # À remplacer
+        train_loader = DataLoader(TensorDataset(torch.tensor(X_tr).unsqueeze(1)), batch_size=batch_size, shuffle=True)
+        val_loader = DataLoader(TensorDataset(torch.tensor(X_val).unsqueeze(1)), batch_size=batch_size)
 
-# -----------------------------
-# Lancer l’optimisation Optuna
-# -----------------------------
-if __name__ == "__main__":
+        model = STOC(input_dim, d_model=d_model, nhead=nhead, num_layers=num_layers)
+        model = train_model_STOC(
+                    model,
+                    train_loader,
+                    val_loader=val_loader,
+                    trial=trial,
+                    epochs=epochs,
+                    lr=lr,
+                    device=device
+                )
+
+
+        # Scores sur validation
+        X_val_tensor = torch.tensor(X_val).unsqueeze(1).to(device)
+        scores = compute_reconstruction_scores_STOC(model, X_val_tensor, device)
+        return float(np.mean(scores))
+
     study = optuna.create_study(direction="minimize")
-    study.optimize(objective, n_trials=50, timeout=600)
+    study.optimize(objective, n_trials=optuna_trials, timeout=timeout)
 
-    print("✅ Best trial:")
-    print("  Loss:", study.best_trial.value)
-    print("  Params:", study.best_trial.params)
+    # Récupérer les meilleurs hyperparamètres
+    best_params = study.best_trial.params
 
-    # 🔍 Visualisation (facultatif)
-    try:
-        import optuna.visualization as vis
-        vis.plot_optimization_history(study).show()
-        vis.plot_param_importances(study).show()
-    except ImportError:
-        pass
+    # Réentraîner avec les meilleurs paramètres sur TOUT X_train
+    model = STOC(
+        input_dim=input_dim,
+        d_model=best_params["d_model"],
+        nhead=best_params["nhead"],
+        num_layers=best_params["num_layers"]
+    ).to(device)
+
+    full_loader = DataLoader(TensorDataset(torch.tensor(X_train).unsqueeze(1)), batch_size=best_params["batch_size"], shuffle=True)
+    dummy_val_loader = DataLoader(TensorDataset(torch.tensor(X_train).unsqueeze(1)), batch_size=best_params["batch_size"])
+    model = train_model_STOC(model, full_loader, dummy_val_loader, trial=study.best_trial,
+                        epochs=best_params["epochs"], lr=best_params["lr"], device=device)
+
+    # Reconstruction scores finaux
+    X_tensor = torch.tensor(X_train).unsqueeze(1).to(device)
+    scores = compute_reconstruction_scores_STOC(model, X_tensor, device)
+
+    threshold = compute_dynamic_threshold(scores, len(X_train))
+    anomalies = scores > threshold
+    indices = np.where(anomalies)[0]
+
+    if return_scores:
+        return indices, scores, study
+    return indices
+
+
 
 
 

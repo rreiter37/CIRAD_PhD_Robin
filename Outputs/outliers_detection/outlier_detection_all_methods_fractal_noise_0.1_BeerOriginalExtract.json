@@ -1,0 +1,471 @@
+{
+    "STOC": {
+        "id": [
+            23
+        ],
+        "baseline": [
+            15,
+            24,
+            29
+        ],
+        "derivate": [
+            15,
+            24,
+            29
+        ],
+        "detrend": [
+            15,
+            24,
+            29
+        ],
+        "MSC": [
+            21,
+            30
+        ],
+        "normalize": [
+            15,
+            24,
+            29
+        ],
+        "RNV": [
+            25,
+            29
+        ],
+        "savgol": [
+            15,
+            24,
+            29
+        ],
+        "simplescale": [
+            30,
+            31
+        ],
+        "SNV": [
+            25,
+            29,
+            31
+        ],
+        "haar": [
+            15,
+            24,
+            29
+        ],
+        "gaussian": [
+            15,
+            24,
+            29
+        ],
+        "PCA": [
+            15
+        ]
+    },
+    "Space_transformation": {
+        "id": [],
+        "baseline": [],
+        "derivate": [
+            0
+        ],
+        "detrend": [],
+        "MSC": [
+            1,
+            2,
+            3
+        ],
+        "normalize": [],
+        "RNV": [],
+        "savgol": [],
+        "simplescale": [],
+        "SNV": [],
+        "haar": [],
+        "gaussian": [],
+        "PCA": []
+    },
+    "RINAT": {
+        "id": [],
+        "baseline": [
+            5,
+            11,
+            21,
+            27
+        ],
+        "derivate": [
+            22
+        ],
+        "detrend": [
+            24
+        ],
+        "MSC": [
+            30
+        ],
+        "normalize": [],
+        "RNV": [
+            15
+        ],
+        "savgol": [],
+        "simplescale": [
+            2,
+            3,
+            14
+        ],
+        "SNV": [
+            4,
+            10,
+            15
+        ],
+        "haar": [
+            19
+        ],
+        "gaussian": [],
+        "PCA": [
+            1,
+            20
+        ]
+    },
+    "PCA": {
+        "id": [
+            15,
+            24,
+            29
+        ],
+        "baseline": [
+            15,
+            24,
+            29
+        ],
+        "derivate": [
+            15,
+            24,
+            29
+        ],
+        "detrend": [
+            15,
+            24,
+            29
+        ],
+        "MSC": [
+            4,
+            27
+        ],
+        "normalize": [
+            15,
+            24,
+            29
+        ],
+        "RNV": [
+            25,
+            29
+        ],
+        "savgol": [
+            15,
+            24,
+            29
+        ],
+        "simplescale": [
+            25,
+            29
+        ],
+        "SNV": [
+            25,
+            29
+        ],
+        "haar": [
+            15,
+            24,
+            29
+        ],
+        "gaussian": [
+            15,
+            24,
+            29
+        ],
+        "PCA": []
+    },
+    "LSTM": {
+        "id": [
+            24,
+            25,
+            29
+        ],
+        "baseline": [
+            24,
+            25,
+            29
+        ],
+        "derivate": [
+            24,
+            28
+        ],
+        "detrend": [
+            15,
+            24,
+            29
+        ],
+        "MSC": [
+            24,
+            25,
+            29
+        ],
+        "normalize": [
+            15,
+            24,
+            29
+        ],
+        "RNV": [
+            24,
+            25,
+            29
+        ],
+        "savgol": [
+            24,
+            25,
+            29
+        ],
+        "simplescale": [
+            24,
+            25,
+            29
+        ],
+        "SNV": [
+            24,
+            25,
+            29
+        ],
+        "haar": [
+            15,
+            24,
+            29
+        ],
+        "gaussian": [
+            15,
+            24,
+            29
+        ],
+        "PCA": [
+            2,
+            15
+        ]
+    },
+    "DDT_robust": {
+        "id": [],
+        "baseline": [],
+        "derivate": [],
+        "detrend": [],
+        "MSC": [],
+        "normalize": [
+            29
+        ],
+        "RNV": [],
+        "savgol": [],
+        "simplescale": [],
+        "SNV": [],
+        "haar": [],
+        "gaussian": [],
+        "PCA": []
+    },
+    "DDT": {
+        "id": [],
+        "baseline": [],
+        "derivate": [],
+        "detrend": [],
+        "MSC": [],
+        "normalize": [
+            15,
+            24,
+            29
+        ],
+        "RNV": [],
+        "savgol": [
+            15,
+            24,
+            29
+        ],
+        "simplescale": [],
+        "SNV": [],
+        "haar": [],
+        "gaussian": [
+            15,
+            24,
+            29
+        ],
+        "PCA": []
+    },
+    "DATN": {
+        "id": [
+            24,
+            25,
+            29
+        ],
+        "baseline": [
+            18,
+            24
+        ],
+        "derivate": [
+            24,
+            31
+        ],
+        "detrend": [
+            24,
+            31
+        ],
+        "MSC": [
+            2,
+            4,
+            12,
+            27
+        ],
+        "normalize": [
+            15,
+            29
+        ],
+        "RNV": [
+            25,
+            29
+        ],
+        "savgol": [
+            24,
+            25,
+            29
+        ],
+        "simplescale": [
+            25,
+            29
+        ],
+        "SNV": [
+            25,
+            29,
+            31
+        ],
+        "haar": [
+            1,
+            24
+        ],
+        "gaussian": [
+            15,
+            29
+        ],
+        "PCA": [
+            6,
+            24,
+            31
+        ]
+    },
+    "BiLSTM": {
+        "id": [
+            24,
+            25,
+            29
+        ],
+        "baseline": [
+            24,
+            25,
+            29
+        ],
+        "derivate": [
+            24,
+            28
+        ],
+        "detrend": [
+            15,
+            24,
+            29
+        ],
+        "MSC": [
+            24,
+            25,
+            29
+        ],
+        "normalize": [
+            15,
+            24,
+            29
+        ],
+        "RNV": [
+            24,
+            25,
+            29
+        ],
+        "savgol": [
+            24,
+            25,
+            29
+        ],
+        "simplescale": [
+            24,
+            25,
+            29
+        ],
+        "SNV": [
+            25,
+            29
+        ],
+        "haar": [
+            15,
+            24,
+            29
+        ],
+        "gaussian": [
+            15,
+            24,
+            29
+        ],
+        "PCA": [
+            2,
+            15
+        ]
+    },
+    "Anomaly_transformer": {
+        "id": [
+            0,
+            18
+        ],
+        "baseline": [
+            13,
+            15
+        ],
+        "derivate": [
+            14
+        ],
+        "detrend": [
+            12,
+            16,
+            28
+        ],
+        "MSC": [
+            30
+        ],
+        "normalize": [
+            13,
+            31
+        ],
+        "RNV": [
+            3,
+            6,
+            14,
+            16
+        ],
+        "savgol": [
+            13
+        ],
+        "simplescale": [
+            8,
+            18
+        ],
+        "SNV": [
+            6,
+            15
+        ],
+        "haar": [
+            9,
+            14,
+            15
+        ],
+        "gaussian": [
+            27
+        ],
+        "PCA": [
+            5,
+            6,
+            7
+        ]
+    }
+}
