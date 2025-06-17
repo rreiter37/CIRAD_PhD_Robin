@@ -1,0 +1,932 @@
+{
+    "STOC": {
+        "id": {
+            "Accuracy": 0.9163763066202091,
+            "Recall": 0.21428571428571427,
+            "Specificity": 0.9922779922779923,
+            "Precision": 0.75,
+            "F1 score": 0.3333333333333333
+        },
+        "baseline": {
+            "Accuracy": 0.9303135888501742,
+            "Recall": 0.32142857142857145,
+            "Specificity": 0.9961389961389961,
+            "Precision": 0.9,
+            "F1 score": 0.47368421052631576
+        },
+        "derivate": {
+            "Accuracy": 0.9163763066202091,
+            "Recall": 0.14285714285714285,
+            "Specificity": 1.0,
+            "Precision": 1.0,
+            "F1 score": 0.25
+        },
+        "detrend": {
+            "Accuracy": 0.926829268292683,
+            "Recall": 0.2857142857142857,
+            "Specificity": 0.9961389961389961,
+            "Precision": 0.8888888888888888,
+            "F1 score": 0.43243243243243246
+        },
+        "MSC": {
+            "Accuracy": 0.9303135888501742,
+            "Recall": 0.2857142857142857,
+            "Specificity": 1.0,
+            "Precision": 1.0,
+            "F1 score": 0.4444444444444444
+        },
+        "normalize": {
+            "Accuracy": 0.9407665505226481,
+            "Recall": 0.39285714285714285,
+            "Specificity": 1.0,
+            "Precision": 1.0,
+            "F1 score": 0.5641025641025641
+        },
+        "RNV": {
+            "Accuracy": 0.8815331010452961,
+            "Recall": 0.0,
+            "Specificity": 0.9768339768339769,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "savgol": {
+            "Accuracy": 0.9163763066202091,
+            "Recall": 0.17857142857142858,
+            "Specificity": 0.9961389961389961,
+            "Precision": 0.8333333333333334,
+            "F1 score": 0.29411764705882354
+        },
+        "simplescale": {
+            "Accuracy": 0.8815331010452961,
+            "Recall": 0.0,
+            "Specificity": 0.9768339768339769,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "SNV": {
+            "Accuracy": 0.8850174216027874,
+            "Recall": 0.0,
+            "Specificity": 0.9806949806949807,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "haar": {
+            "Accuracy": 0.9651567944250871,
+            "Recall": 0.6428571428571429,
+            "Specificity": 1.0,
+            "Precision": 1.0,
+            "F1 score": 0.782608695652174
+        },
+        "gaussian": {
+            "Accuracy": 0.9337979094076655,
+            "Recall": 0.32142857142857145,
+            "Specificity": 1.0,
+            "Precision": 1.0,
+            "F1 score": 0.4864864864864865
+        },
+        "PCA": {
+            "Accuracy": 0.8989547038327527,
+            "Recall": 0.07142857142857142,
+            "Specificity": 0.9884169884169884,
+            "Precision": 0.4,
+            "F1 score": 0.12121212121212122
+        }
+    },
+    "Space_transformation": {
+        "id": {
+            "Accuracy": 0.9024390243902439,
+            "Recall": 0.0,
+            "Specificity": 1.0,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "baseline": {
+            "Accuracy": 0.9024390243902439,
+            "Recall": 0.0,
+            "Specificity": 1.0,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "derivate": {
+            "Accuracy": 0.9024390243902439,
+            "Recall": 0.0,
+            "Specificity": 1.0,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "detrend": {
+            "Accuracy": 0.9024390243902439,
+            "Recall": 0.0,
+            "Specificity": 1.0,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "MSC": {
+            "Accuracy": 0.9024390243902439,
+            "Recall": 0.0,
+            "Specificity": 1.0,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "normalize": {
+            "Accuracy": 0.9024390243902439,
+            "Recall": 0.0,
+            "Specificity": 1.0,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "RNV": {
+            "Accuracy": 0.9024390243902439,
+            "Recall": 0.0,
+            "Specificity": 1.0,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "savgol": {
+            "Accuracy": 0.9024390243902439,
+            "Recall": 0.0,
+            "Specificity": 1.0,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "simplescale": {
+            "Accuracy": 0.9024390243902439,
+            "Recall": 0.0,
+            "Specificity": 1.0,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "SNV": {
+            "Accuracy": 0.9024390243902439,
+            "Recall": 0.0,
+            "Specificity": 1.0,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "haar": {
+            "Accuracy": 0.9024390243902439,
+            "Recall": 0.0,
+            "Specificity": 1.0,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "gaussian": {
+            "Accuracy": 0.9024390243902439,
+            "Recall": 0.0,
+            "Specificity": 1.0,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "PCA": {
+            "Accuracy": 0.9024390243902439,
+            "Recall": 0.0,
+            "Specificity": 1.0,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        }
+    },
+    "RINAT": {
+        "id": {
+            "Accuracy": 0.8815331010452961,
+            "Recall": 0.03571428571428571,
+            "Specificity": 0.972972972972973,
+            "Precision": 0.125,
+            "F1 score": 0.05555555555555555
+        },
+        "baseline": {
+            "Accuracy": 0.926829268292683,
+            "Recall": 0.32142857142857145,
+            "Specificity": 0.9922779922779923,
+            "Precision": 0.8181818181818182,
+            "F1 score": 0.46153846153846156
+        },
+        "derivate": {
+            "Accuracy": 0.9337979094076655,
+            "Recall": 0.32142857142857145,
+            "Specificity": 1.0,
+            "Precision": 1.0,
+            "F1 score": 0.4864864864864865
+        },
+        "detrend": {
+            "Accuracy": 0.8815331010452961,
+            "Recall": 0.07142857142857142,
+            "Specificity": 0.9691119691119691,
+            "Precision": 0.2,
+            "F1 score": 0.10526315789473684
+        },
+        "MSC": {
+            "Accuracy": 0.9303135888501742,
+            "Recall": 0.2857142857142857,
+            "Specificity": 1.0,
+            "Precision": 1.0,
+            "F1 score": 0.4444444444444444
+        },
+        "normalize": {
+            "Accuracy": 0.9094076655052264,
+            "Recall": 0.07142857142857142,
+            "Specificity": 1.0,
+            "Precision": 1.0,
+            "F1 score": 0.13333333333333333
+        },
+        "RNV": {
+            "Accuracy": 0.8989547038327527,
+            "Recall": 0.0,
+            "Specificity": 0.9961389961389961,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "savgol": {
+            "Accuracy": 0.8885017421602788,
+            "Recall": 0.0,
+            "Specificity": 0.9845559845559846,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "simplescale": {
+            "Accuracy": 0.89198606271777,
+            "Recall": 0.0,
+            "Specificity": 0.9884169884169884,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "SNV": {
+            "Accuracy": 0.8989547038327527,
+            "Recall": 0.0,
+            "Specificity": 0.9961389961389961,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "haar": {
+            "Accuracy": 0.9059233449477352,
+            "Recall": 0.03571428571428571,
+            "Specificity": 1.0,
+            "Precision": 1.0,
+            "F1 score": 0.06896551724137931
+        },
+        "gaussian": {
+            "Accuracy": 0.9163763066202091,
+            "Recall": 0.14285714285714285,
+            "Specificity": 1.0,
+            "Precision": 1.0,
+            "F1 score": 0.25
+        },
+        "PCA": {
+            "Accuracy": 0.9094076655052264,
+            "Recall": 0.14285714285714285,
+            "Specificity": 0.9922779922779923,
+            "Precision": 0.6666666666666666,
+            "F1 score": 0.23529411764705882
+        }
+    },
+    "PCA": {
+        "id": {
+            "Accuracy": 0.8885017421602788,
+            "Recall": 0.03571428571428571,
+            "Specificity": 0.9806949806949807,
+            "Precision": 0.16666666666666666,
+            "F1 score": 0.058823529411764705
+        },
+        "baseline": {
+            "Accuracy": 0.8885017421602788,
+            "Recall": 0.03571428571428571,
+            "Specificity": 0.9806949806949807,
+            "Precision": 0.16666666666666666,
+            "F1 score": 0.058823529411764705
+        },
+        "derivate": {
+            "Accuracy": 0.8606271777003485,
+            "Recall": 0.07142857142857142,
+            "Specificity": 0.9459459459459459,
+            "Precision": 0.125,
+            "F1 score": 0.09090909090909091
+        },
+        "detrend": {
+            "Accuracy": 0.9024390243902439,
+            "Recall": 0.10714285714285714,
+            "Specificity": 0.9884169884169884,
+            "Precision": 0.5,
+            "F1 score": 0.17647058823529413
+        },
+        "MSC": {
+            "Accuracy": 0.8850174216027874,
+            "Recall": 0.03571428571428571,
+            "Specificity": 0.9768339768339769,
+            "Precision": 0.14285714285714285,
+            "F1 score": 0.05714285714285714
+        },
+        "normalize": {
+            "Accuracy": 0.89198606271777,
+            "Recall": 0.07142857142857142,
+            "Specificity": 0.9806949806949807,
+            "Precision": 0.2857142857142857,
+            "F1 score": 0.11428571428571428
+        },
+        "RNV": {
+            "Accuracy": 0.8780487804878049,
+            "Recall": 0.03571428571428571,
+            "Specificity": 0.9691119691119691,
+            "Precision": 0.1111111111111111,
+            "F1 score": 0.05405405405405406
+        },
+        "savgol": {
+            "Accuracy": 0.8885017421602788,
+            "Recall": 0.03571428571428571,
+            "Specificity": 0.9806949806949807,
+            "Precision": 0.16666666666666666,
+            "F1 score": 0.058823529411764705
+        },
+        "simplescale": {
+            "Accuracy": 0.8815331010452961,
+            "Recall": 0.03571428571428571,
+            "Specificity": 0.972972972972973,
+            "Precision": 0.125,
+            "F1 score": 0.05555555555555555
+        },
+        "SNV": {
+            "Accuracy": 0.8780487804878049,
+            "Recall": 0.03571428571428571,
+            "Specificity": 0.9691119691119691,
+            "Precision": 0.1111111111111111,
+            "F1 score": 0.05405405405405406
+        },
+        "haar": {
+            "Accuracy": 0.975609756097561,
+            "Recall": 0.75,
+            "Specificity": 1.0,
+            "Precision": 1.0,
+            "F1 score": 0.8571428571428571
+        },
+        "gaussian": {
+            "Accuracy": 0.975609756097561,
+            "Recall": 0.75,
+            "Specificity": 1.0,
+            "Precision": 1.0,
+            "F1 score": 0.8571428571428571
+        },
+        "PCA": {
+            "Accuracy": 0.8885017421602788,
+            "Recall": 0.03571428571428571,
+            "Specificity": 0.9806949806949807,
+            "Precision": 0.16666666666666666,
+            "F1 score": 0.058823529411764705
+        }
+    },
+    "LSTM": {
+        "id": {
+            "Accuracy": 0.9024390243902439,
+            "Recall": 0.0,
+            "Specificity": 1.0,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "baseline": {
+            "Accuracy": 0.9024390243902439,
+            "Recall": 0.0,
+            "Specificity": 1.0,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "derivate": {
+            "Accuracy": 0.8989547038327527,
+            "Recall": 0.03571428571428571,
+            "Specificity": 0.9922779922779923,
+            "Precision": 0.3333333333333333,
+            "F1 score": 0.06451612903225806
+        },
+        "detrend": {
+            "Accuracy": 0.9128919860627178,
+            "Recall": 0.10714285714285714,
+            "Specificity": 1.0,
+            "Precision": 1.0,
+            "F1 score": 0.1935483870967742
+        },
+        "MSC": {
+            "Accuracy": 0.8989547038327527,
+            "Recall": 0.0,
+            "Specificity": 0.9961389961389961,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "normalize": {
+            "Accuracy": 0.9024390243902439,
+            "Recall": 0.07142857142857142,
+            "Specificity": 0.9922779922779923,
+            "Precision": 0.5,
+            "F1 score": 0.125
+        },
+        "RNV": {
+            "Accuracy": 0.8989547038327527,
+            "Recall": 0.0,
+            "Specificity": 0.9961389961389961,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "savgol": {
+            "Accuracy": 0.9024390243902439,
+            "Recall": 0.0,
+            "Specificity": 1.0,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "simplescale": {
+            "Accuracy": 0.8989547038327527,
+            "Recall": 0.0,
+            "Specificity": 0.9961389961389961,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "SNV": {
+            "Accuracy": 0.8989547038327527,
+            "Recall": 0.0,
+            "Specificity": 0.9961389961389961,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "haar": {
+            "Accuracy": 0.9477351916376306,
+            "Recall": 0.4642857142857143,
+            "Specificity": 1.0,
+            "Precision": 1.0,
+            "F1 score": 0.6341463414634146
+        },
+        "gaussian": {
+            "Accuracy": 0.9477351916376306,
+            "Recall": 0.4642857142857143,
+            "Specificity": 1.0,
+            "Precision": 1.0,
+            "F1 score": 0.6341463414634146
+        },
+        "PCA": {
+            "Accuracy": 0.9442508710801394,
+            "Recall": 0.42857142857142855,
+            "Specificity": 1.0,
+            "Precision": 1.0,
+            "F1 score": 0.6
+        }
+    },
+    "DDT_robust": {
+        "id": {
+            "Accuracy": 0.9059233449477352,
+            "Recall": 0.03571428571428571,
+            "Specificity": 1.0,
+            "Precision": 1.0,
+            "F1 score": 0.06896551724137931
+        },
+        "baseline": {
+            "Accuracy": 0.8780487804878049,
+            "Recall": 0.03571428571428571,
+            "Specificity": 0.9691119691119691,
+            "Precision": 0.1111111111111111,
+            "F1 score": 0.05405405405405406
+        },
+        "derivate": {
+            "Accuracy": 0.9059233449477352,
+            "Recall": 0.10714285714285714,
+            "Specificity": 0.9922779922779923,
+            "Precision": 0.6,
+            "F1 score": 0.18181818181818182
+        },
+        "detrend": {
+            "Accuracy": 0.8954703832752613,
+            "Recall": 0.03571428571428571,
+            "Specificity": 0.9884169884169884,
+            "Precision": 0.25,
+            "F1 score": 0.0625
+        },
+        "MSC": {
+            "Accuracy": 0.8850174216027874,
+            "Recall": 0.03571428571428571,
+            "Specificity": 0.9768339768339769,
+            "Precision": 0.14285714285714285,
+            "F1 score": 0.05714285714285714
+        },
+        "normalize": {
+            "Accuracy": 0.9198606271777003,
+            "Recall": 0.17857142857142858,
+            "Specificity": 1.0,
+            "Precision": 1.0,
+            "F1 score": 0.30303030303030304
+        },
+        "RNV": {
+            "Accuracy": 0.8780487804878049,
+            "Recall": 0.03571428571428571,
+            "Specificity": 0.9691119691119691,
+            "Precision": 0.1111111111111111,
+            "F1 score": 0.05405405405405406
+        },
+        "savgol": {
+            "Accuracy": 0.8710801393728222,
+            "Recall": 0.07142857142857142,
+            "Specificity": 0.9575289575289575,
+            "Precision": 0.15384615384615385,
+            "F1 score": 0.0975609756097561
+        },
+        "simplescale": {
+            "Accuracy": 0.8710801393728222,
+            "Recall": 0.0,
+            "Specificity": 0.9652509652509652,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "SNV": {
+            "Accuracy": 0.8885017421602788,
+            "Recall": 0.0,
+            "Specificity": 0.9845559845559846,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "haar": {
+            "Accuracy": 0.9407665505226481,
+            "Recall": 0.42857142857142855,
+            "Specificity": 0.9961389961389961,
+            "Precision": 0.9230769230769231,
+            "F1 score": 0.5853658536585366
+        },
+        "gaussian": {
+            "Accuracy": 0.9372822299651568,
+            "Recall": 0.35714285714285715,
+            "Specificity": 1.0,
+            "Precision": 1.0,
+            "F1 score": 0.5263157894736842
+        },
+        "PCA": {
+            "Accuracy": 0.9024390243902439,
+            "Recall": 0.0,
+            "Specificity": 1.0,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        }
+    },
+    "DDT": {
+        "id": {
+            "Accuracy": 0.9024390243902439,
+            "Recall": 0.0,
+            "Specificity": 1.0,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "baseline": {
+            "Accuracy": 0.9024390243902439,
+            "Recall": 0.0,
+            "Specificity": 1.0,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "derivate": {
+            "Accuracy": 0.9024390243902439,
+            "Recall": 0.03571428571428571,
+            "Specificity": 0.9961389961389961,
+            "Precision": 0.5,
+            "F1 score": 0.06666666666666667
+        },
+        "detrend": {
+            "Accuracy": 0.9059233449477352,
+            "Recall": 0.03571428571428571,
+            "Specificity": 1.0,
+            "Precision": 1.0,
+            "F1 score": 0.06896551724137931
+        },
+        "MSC": {
+            "Accuracy": 0.9024390243902439,
+            "Recall": 0.0,
+            "Specificity": 1.0,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "normalize": {
+            "Accuracy": 0.9059233449477352,
+            "Recall": 0.03571428571428571,
+            "Specificity": 1.0,
+            "Precision": 1.0,
+            "F1 score": 0.06896551724137931
+        },
+        "RNV": {
+            "Accuracy": 0.9024390243902439,
+            "Recall": 0.0,
+            "Specificity": 1.0,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "savgol": {
+            "Accuracy": 0.9024390243902439,
+            "Recall": 0.0,
+            "Specificity": 1.0,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "simplescale": {
+            "Accuracy": 0.9024390243902439,
+            "Recall": 0.0,
+            "Specificity": 1.0,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "SNV": {
+            "Accuracy": 0.9024390243902439,
+            "Recall": 0.0,
+            "Specificity": 1.0,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "haar": {
+            "Accuracy": 1.0,
+            "Recall": 1.0,
+            "Specificity": 1.0,
+            "Precision": 1.0,
+            "F1 score": 1.0
+        },
+        "gaussian": {
+            "Accuracy": 1.0,
+            "Recall": 1.0,
+            "Specificity": 1.0,
+            "Precision": 1.0,
+            "F1 score": 1.0
+        },
+        "PCA": {
+            "Accuracy": 0.9024390243902439,
+            "Recall": 0.0,
+            "Specificity": 1.0,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        }
+    },
+    "DATN": {
+        "id": {
+            "Accuracy": 0.9024390243902439,
+            "Recall": 0.0,
+            "Specificity": 1.0,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "baseline": {
+            "Accuracy": 0.9059233449477352,
+            "Recall": 0.03571428571428571,
+            "Specificity": 1.0,
+            "Precision": 1.0,
+            "F1 score": 0.06896551724137931
+        },
+        "derivate": {
+            "Accuracy": 0.9024390243902439,
+            "Recall": 0.10714285714285714,
+            "Specificity": 0.9884169884169884,
+            "Precision": 0.5,
+            "F1 score": 0.17647058823529413
+        },
+        "detrend": {
+            "Accuracy": 0.9094076655052264,
+            "Recall": 0.10714285714285714,
+            "Specificity": 0.9961389961389961,
+            "Precision": 0.75,
+            "F1 score": 0.1875
+        },
+        "MSC": {
+            "Accuracy": 0.8954703832752613,
+            "Recall": 0.03571428571428571,
+            "Specificity": 0.9884169884169884,
+            "Precision": 0.25,
+            "F1 score": 0.0625
+        },
+        "normalize": {
+            "Accuracy": 0.9128919860627178,
+            "Recall": 0.14285714285714285,
+            "Specificity": 0.9961389961389961,
+            "Precision": 0.8,
+            "F1 score": 0.24242424242424243
+        },
+        "RNV": {
+            "Accuracy": 0.9024390243902439,
+            "Recall": 0.0,
+            "Specificity": 1.0,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "savgol": {
+            "Accuracy": 0.9024390243902439,
+            "Recall": 0.0,
+            "Specificity": 1.0,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "simplescale": {
+            "Accuracy": 0.9024390243902439,
+            "Recall": 0.0,
+            "Specificity": 1.0,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "SNV": {
+            "Accuracy": 0.9024390243902439,
+            "Recall": 0.0,
+            "Specificity": 1.0,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "haar": {
+            "Accuracy": 0.9442508710801394,
+            "Recall": 0.42857142857142855,
+            "Specificity": 1.0,
+            "Precision": 1.0,
+            "F1 score": 0.6
+        },
+        "gaussian": {
+            "Accuracy": 0.9477351916376306,
+            "Recall": 0.4642857142857143,
+            "Specificity": 1.0,
+            "Precision": 1.0,
+            "F1 score": 0.6341463414634146
+        },
+        "PCA": {
+            "Accuracy": 0.8989547038327527,
+            "Recall": 0.0,
+            "Specificity": 0.9961389961389961,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        }
+    },
+    "BiLSTM": {
+        "id": {
+            "Accuracy": 0.9024390243902439,
+            "Recall": 0.0,
+            "Specificity": 1.0,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "baseline": {
+            "Accuracy": 0.9024390243902439,
+            "Recall": 0.0,
+            "Specificity": 1.0,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "derivate": {
+            "Accuracy": 0.8989547038327527,
+            "Recall": 0.03571428571428571,
+            "Specificity": 0.9922779922779923,
+            "Precision": 0.3333333333333333,
+            "F1 score": 0.06451612903225806
+        },
+        "detrend": {
+            "Accuracy": 0.9128919860627178,
+            "Recall": 0.10714285714285714,
+            "Specificity": 1.0,
+            "Precision": 1.0,
+            "F1 score": 0.1935483870967742
+        },
+        "MSC": {
+            "Accuracy": 0.8989547038327527,
+            "Recall": 0.0,
+            "Specificity": 0.9961389961389961,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "normalize": {
+            "Accuracy": 0.9024390243902439,
+            "Recall": 0.07142857142857142,
+            "Specificity": 0.9922779922779923,
+            "Precision": 0.5,
+            "F1 score": 0.125
+        },
+        "RNV": {
+            "Accuracy": 0.8989547038327527,
+            "Recall": 0.0,
+            "Specificity": 0.9961389961389961,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "savgol": {
+            "Accuracy": 0.9024390243902439,
+            "Recall": 0.0,
+            "Specificity": 1.0,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "simplescale": {
+            "Accuracy": 0.8989547038327527,
+            "Recall": 0.0,
+            "Specificity": 0.9961389961389961,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "SNV": {
+            "Accuracy": 0.8989547038327527,
+            "Recall": 0.0,
+            "Specificity": 0.9961389961389961,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "haar": {
+            "Accuracy": 0.9477351916376306,
+            "Recall": 0.4642857142857143,
+            "Specificity": 1.0,
+            "Precision": 1.0,
+            "F1 score": 0.6341463414634146
+        },
+        "gaussian": {
+            "Accuracy": 0.9477351916376306,
+            "Recall": 0.4642857142857143,
+            "Specificity": 1.0,
+            "Precision": 1.0,
+            "F1 score": 0.6341463414634146
+        },
+        "PCA": {
+            "Accuracy": 0.9442508710801394,
+            "Recall": 0.42857142857142855,
+            "Specificity": 1.0,
+            "Precision": 1.0,
+            "F1 score": 0.6
+        }
+    },
+    "Anomaly_transformer": {
+        "id": {
+            "Accuracy": 0.8815331010452961,
+            "Recall": 0.0,
+            "Specificity": 0.9768339768339769,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "baseline": {
+            "Accuracy": 0.8989547038327527,
+            "Recall": 0.07142857142857142,
+            "Specificity": 0.9884169884169884,
+            "Precision": 0.4,
+            "F1 score": 0.12121212121212122
+        },
+        "derivate": {
+            "Accuracy": 0.8954703832752613,
+            "Recall": 0.03571428571428571,
+            "Specificity": 0.9884169884169884,
+            "Precision": 0.25,
+            "F1 score": 0.0625
+        },
+        "detrend": {
+            "Accuracy": 0.8850174216027874,
+            "Recall": 0.03571428571428571,
+            "Specificity": 0.9768339768339769,
+            "Precision": 0.14285714285714285,
+            "F1 score": 0.05714285714285714
+        },
+        "MSC": {
+            "Accuracy": 0.89198606271777,
+            "Recall": 0.10714285714285714,
+            "Specificity": 0.9768339768339769,
+            "Precision": 0.3333333333333333,
+            "F1 score": 0.16216216216216217
+        },
+        "normalize": {
+            "Accuracy": 0.8850174216027874,
+            "Recall": 0.03571428571428571,
+            "Specificity": 0.9768339768339769,
+            "Precision": 0.14285714285714285,
+            "F1 score": 0.05714285714285714
+        },
+        "RNV": {
+            "Accuracy": 0.8815331010452961,
+            "Recall": 0.07142857142857142,
+            "Specificity": 0.9691119691119691,
+            "Precision": 0.2,
+            "F1 score": 0.10526315789473684
+        },
+        "savgol": {
+            "Accuracy": 0.8815331010452961,
+            "Recall": 0.0,
+            "Specificity": 0.9768339768339769,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "simplescale": {
+            "Accuracy": 0.8780487804878049,
+            "Recall": 0.0,
+            "Specificity": 0.972972972972973,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        },
+        "SNV": {
+            "Accuracy": 0.8954703832752613,
+            "Recall": 0.07142857142857142,
+            "Specificity": 0.9845559845559846,
+            "Precision": 0.3333333333333333,
+            "F1 score": 0.11764705882352941
+        },
+        "haar": {
+            "Accuracy": 0.8989547038327527,
+            "Recall": 0.07142857142857142,
+            "Specificity": 0.9884169884169884,
+            "Precision": 0.4,
+            "F1 score": 0.12121212121212122
+        },
+        "gaussian": {
+            "Accuracy": 0.9024390243902439,
+            "Recall": 0.07142857142857142,
+            "Specificity": 0.9922779922779923,
+            "Precision": 0.5,
+            "F1 score": 0.125
+        },
+        "PCA": {
+            "Accuracy": 0.89198606271777,
+            "Recall": 0.0,
+            "Specificity": 0.9884169884169884,
+            "Precision": 0.0,
+            "F1 score": 0.0
+        }
+    }
+}

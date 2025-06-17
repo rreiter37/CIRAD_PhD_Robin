@@ -4,6 +4,7 @@ import math
 import json
 import os
 import numpy as np
+import random
 import matplotlib.pyplot as plt
 import pandas as pd
 from collections import Counter
@@ -16,6 +17,7 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.neighbors import NearestNeighbors
 from sklearn.covariance import EmpiricalCovariance
+from sklearn.model_selection import train_test_split
 from scipy.stats import chi2
 from scipy.sparse.csgraph import laplacian
 from scipy.linalg import eigh
@@ -874,8 +876,22 @@ def compute_reconstruction_scores(model, data, device=torch.device("cuda" if tor
 
 ###################################### TRANSFORMER BASED METHODS ######################################
 
+def set_seed(seed=42):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
 
+
+def compute_dynamic_threshold(scores, n_test):
+    mean = np.mean(scores)
+    std = np.std(scores)
+    coeff_threshold = np.sqrt(n_test) / np.log(n_test+2)
+    return mean + 2 * std
 
 
 
@@ -1050,13 +1066,6 @@ def compute_anomaly_scores(model, np_data, device=torch.device('cpu')):
         weights = torch.softmax(-ass_dis, dim=0)
         anomaly_scores = weights * recon_error
         return anomaly_scores.cpu().numpy()
-
-
-def compute_dynamic_threshold(scores, n_test):
-        mean = np.mean(scores)
-        std = np.std(scores)
-        coeff_threshold = np.sqrt(n_test) / np.log(n_test+2)
-        return mean + 2 * std
     
     
 
@@ -1209,46 +1218,46 @@ def train_model_STOC(model, train_loader, val_loader, trial=None, epochs=50, lr=
 
 
 # -----------------------------
-# Score reconstruction
+# Reconstruction scores computation
 # -----------------------------
-def compute_reconstruction_scores_STOC(model, X_tensor, device):
+def compute_reconstruction_scores_STOC(model, X_tensor, device=torch.device("cpu")):
     model.eval()
-    scores = []
     criterion = nn.MSELoss(reduction="none")
+
     with torch.no_grad():
-        for x in X_tensor:
-            x = x.unsqueeze(0).to(device)
-            pred = model(x)
-            loss = criterion(pred, x.squeeze(1)).mean().item()
-            scores.append(loss)
-    return np.array(scores)
+        X_tensor = X_tensor.to(device)
+
+        # Pass all data through the model at once (or in batches, if needed)
+        preds = model(X_tensor)
+        losses = criterion(preds, X_tensor.squeeze(1))  # Shape: (batch_size, input_dim)
+        scores = losses.mean(dim=1).cpu().numpy()       # Mean over input_dim per sample
+
+    return scores
+
 
 # -----------------------------
-# Seuil dynamique
+# Final function for outlier detection using STOC and using Optuna for hyperparameter optimization
 # -----------------------------
-def compute_dynamic_threshold(scores, n_test):
-    mean = np.mean(scores)
-    std = np.std(scores)
-    coeff_threshold = np.sqrt(n_test) / np.log(n_test + 2)
-    return mean + coeff_threshold * std
+def outlier_detection_STOC(X_train, optuna_trials=30, timeout=600, return_scores=False, verbose_optuna=False, rd_seed=42):
 
-# -----------------------------
-# Fonction finale
-# -----------------------------
-def outlier_detection_STOC(X_train, optuna_trials=30, timeout=600, return_scores=False):
-    if isinstance(X_train, pd.DataFrame): X_train = X_train.values
+    set_seed(rd_seed)  # Reproductibility
+
+    if isinstance(X_train, pd.DataFrame): 
+        X_train = X_train.values
     X_train = X_train.astype(np.float32)
 
     input_dim = X_train.shape[1]
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def objective(trial):
+        set_seed(rd_seed)  # Re-seed inside trial for reproducibility
+
         d_model = trial.suggest_categorical("d_model", [32, 64, 128])
         nhead = trial.suggest_categorical("nhead", [2, 4, 8])
         num_layers = trial.suggest_int("num_layers", 1, 4)
-        lr = trial.suggest_loguniform("lr", 1e-5, 1e-3)
+        lr = trial.suggest_float("lr", 1e-5, 1e-3, log=True)
         batch_size = trial.suggest_categorical("batch_size", [16, 32, 64])
-        epochs = trial.suggest_int("epochs", 30, 100)
+        epochs = 100 # early stoppping performed
 
         # Train / Val split
         idx = np.random.permutation(len(X_train))
@@ -1260,28 +1269,32 @@ def outlier_detection_STOC(X_train, optuna_trials=30, timeout=600, return_scores
 
         model = STOC(input_dim, d_model=d_model, nhead=nhead, num_layers=num_layers)
         model = train_model_STOC(
-                    model,
-                    train_loader,
-                    val_loader=val_loader,
-                    trial=trial,
-                    epochs=epochs,
-                    lr=lr,
-                    device=device
-                )
+            model,
+            train_loader,
+            val_loader=val_loader,
+            trial=trial,
+            epochs=epochs,
+            lr=lr,
+            device=device
+        )
 
-
-        # Scores sur validation
+        # Validation scores
         X_val_tensor = torch.tensor(X_val).unsqueeze(1).to(device)
         scores = compute_reconstruction_scores_STOC(model, X_val_tensor, device)
         return float(np.mean(scores))
 
-    study = optuna.create_study(direction="minimize")
+    if not verbose_optuna:
+        optuna.logging.set_verbosity(optuna.logging.WARNING)
+
+    sampler = optuna.samplers.TPESampler(seed=rd_seed) # reproductibility for the choice of tested hyperparameters
+    pruner = optuna.pruners.MedianPruner()
+    study = optuna.create_study(direction="minimize", sampler=sampler, pruner=pruner)
     study.optimize(objective, n_trials=optuna_trials, timeout=timeout)
 
-    # Récupérer les meilleurs hyperparamètres
+    # Best model training on full data
     best_params = study.best_trial.params
+    print("Best set of parameters : ", best_params, end="\n")
 
-    # Réentraîner avec les meilleurs paramètres sur TOUT X_train
     model = STOC(
         input_dim=input_dim,
         d_model=best_params["d_model"],
@@ -1291,10 +1304,11 @@ def outlier_detection_STOC(X_train, optuna_trials=30, timeout=600, return_scores
 
     full_loader = DataLoader(TensorDataset(torch.tensor(X_train).unsqueeze(1)), batch_size=best_params["batch_size"], shuffle=True)
     dummy_val_loader = DataLoader(TensorDataset(torch.tensor(X_train).unsqueeze(1)), batch_size=best_params["batch_size"])
-    model = train_model_STOC(model, full_loader, dummy_val_loader, trial=study.best_trial,
-                        epochs=best_params["epochs"], lr=best_params["lr"], device=device)
 
-    # Reconstruction scores finaux
+    model = train_model_STOC(model, full_loader, dummy_val_loader, trial=study.best_trial,
+                             epochs=100, lr=best_params["lr"], device=device)
+
+    # Final reconstruction scores
     X_tensor = torch.tensor(X_train).unsqueeze(1).to(device)
     scores = compute_reconstruction_scores_STOC(model, X_tensor, device)
 
@@ -1305,6 +1319,7 @@ def outlier_detection_STOC(X_train, optuna_trials=30, timeout=600, return_scores
     if return_scores:
         return indices, scores, study
     return indices
+
 
 
 
@@ -1470,79 +1485,151 @@ class DATN(nn.Module):
         return x_hat
 
 
-def compute_anomaly_reconstruction(original, reconstructed, device):
-    """
-    Compute anomaly scores as L2 norm between original and reconstructed signals.
-    """
-    return torch.norm(original.to(device) - reconstructed.to(device), dim=-1)  # shape: [B, T]
+def compute_reconstruction_scores_DATN(model, np_data, device=torch.device('cpu')):
+    model.eval()
+    with torch.no_grad():
+        x = torch.tensor(np_data, dtype=torch.float32).to(device)
+        x_hat = model(x)
+        return torch.norm(x - x_hat, dim=-1).cpu().numpy()
 
 
-
-
-
-def train_model(model, train_loader, epochs=10, lr=1e-4, device=torch.device("cpu"), verbose=True):
-    model.train()
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+def train_model_DATN(model, train_loader, val_loader, trial=None, epochs=50, lr=1e-4, device=torch.device("cpu"), patience=10):
+    model.to(device)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
     criterion = nn.MSELoss()
-    # ---- Training Loop ----
+
+    best_loss = float('inf')
+    wait = 0
+
     for epoch in range(epochs):
         model.train()
-        total_loss = 0
         for batch in train_loader:
-            batch = batch[0].to(device)  # shape: [B, T]
+            batch = batch[0].to(device)
             output = model(batch)
             loss = criterion(output, batch)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            total_loss += loss.item()
-        if verbose: print(f"Epoch {epoch+1}/{epochs} - Loss: {total_loss / len(train_loader):.6f}")
+
+        # Validation
+        model.eval()
+        val_loss = 0.0
+        with torch.no_grad():
+            for val_batch in val_loader:
+                val_batch = val_batch[0].to(device)
+                val_output = model(val_batch)
+                val_loss += criterion(val_output, val_batch).item()
+        val_loss /= len(val_loader)
+
+        # Pruning & early stopping
+        trial.report(val_loss, epoch)
+        if trial.should_prune():
+            raise optuna.exceptions.TrialPruned()
+
+        if val_loss < best_loss:
+            best_loss = val_loss
+            wait = 0
+        else:
+            wait += 1
+            if wait >= patience:
+                break
+
+    return model
+    
 
 
-def compute_anomaly_scores(model, np_data, device=torch.device('cpu')):
-    model.eval()
-    with torch.no_grad():
-        x = torch.tensor(np_data, dtype=torch.float32).to(device)
-        x_hat, S, P = model(x)
-        recon_error = ((x - x_hat) ** 2).sum(dim=1).detach()
-        ass_dis = association_discrepancy(P, S).detach()
-        weights = torch.softmax(-ass_dis, dim=0)
-        anomaly_scores = weights * recon_error
-        return anomaly_scores.cpu().numpy()
+def outlier_detection_DATN(X_train, optuna_trials=30, timeout=600, return_scores=False, verbose_optuna=False, rd_seed=42):
+    
+    set_seed(rd_seed)
 
-def compute_dynamic_threshold(scores, n_test):
-        mean = np.mean(scores)
-        std = np.std(scores)
-        coeff_threshold = np.sqrt(n_test) / np.log(n_test+2)
-        return mean + coeff_threshold * std
-
-
-def outlier_detection_DATN(X_train, batch_size=32, epochs=10, lr=1e-4, d_model=64, n_heads=4, num_layers=4, kernel_size=5, c=4, window_size=192, device=torch.device("cuda" if torch.cuda.is_available() else "cpu"), verbose=False, return_scores=False):
-    if isinstance(X_train, pd.DataFrame): X_train = X_train.values
+    if isinstance(X_train, pd.DataFrame):
+        X_train = X_train.values
     n, p = X_train.shape
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # ---- Create DataLoader ----
-    train_dataset = TensorDataset(torch.tensor(X_train, dtype=torch.float32))
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    # Split data for validation (reproducible)
+    X_train_sub, X_val = train_test_split(X_train, test_size=0.2, random_state=rd_seed)
 
-    # ---- Initialize Model ----
-    model = DATN(input_dim=p, d_model=d_model, n_heads=n_heads, num_layers=num_layers, kernel_size=kernel_size, c=c, window_size=window_size, device=device).to(device)
+    train_dataset = TensorDataset(torch.tensor(X_train_sub, dtype=torch.float32))
+    val_dataset = TensorDataset(torch.tensor(X_val, dtype=torch.float32))
 
-    # ---- Training Loop ----
-    train_model(model, train_loader, epochs=epochs, lr=lr, device=device, verbose=verbose)
+    def objective(trial):
+        set_seed(rd_seed)
+        # Hyperparameter search space
+        d_model = trial.suggest_categorical("d_model", [32, 64, 128])
+        n_heads = trial.suggest_categorical("n_heads", [2, 4, 8])
+        num_layers = trial.suggest_int("num_layers", 1, 4)
+        kernel_size = trial.suggest_categorical("kernel_size", [3, 5, 7])
+        c = trial.suggest_int("c", 2, 6)
+        window_size = trial.suggest_categorical("window_size", [64, 128, 192])
+        lr = trial.suggest_float("lr", 1e-5, 1e-3, log=True)
+        batch_size = trial.suggest_categorical("batch_size", [16, 32, 64])
+        epochs = 100  # early stopping used
 
-    # ---- Compute Reconstruction scores ---
-    reconstruction_scores = compute_reconstruction_scores(model, X_train, device)
+        # DataLoaders
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+        val_loader = DataLoader(val_dataset, batch_size=batch_size)
 
-    # ---- Dynamic Thresholding ----
-    threshold = compute_dynamic_threshold(reconstruction_scores, n)
-    anomalies = reconstruction_scores > threshold
-    outliers_indices = np.where(anomalies)[0]
-    
-    if return_scores:
-        return outliers_indices, reconstruction_scores
-    
-    return outliers_indices
+        # Model
+        model = DATN(
+            input_dim=p,
+            d_model=d_model,
+            n_heads=n_heads,
+            num_layers=num_layers,
+            kernel_size=kernel_size,
+            c=c,
+            window_size=window_size,
+            device=device
+        ).to(device)
+
+        model = train_model_DATN(model, train_loader, val_loader, trial=trial, epochs=epochs, lr=lr, device=device, patience=10)
+        
+        # Validation scores
+        scores = compute_reconstruction_scores_DATN(model, X_val, device)
+        return float(np.mean(scores))
+
+    if not verbose_optuna:
+        optuna.logging.set_verbosity(optuna.logging.WARNING)
+
+    # Optuna Study
+    sampler = optuna.samplers.TPESampler(seed=rd_seed) # reproductibility for the choice of tested hyperparameters
+    pruner = optuna.pruners.MedianPruner()
+    study = optuna.create_study(direction="minimize", sampler=sampler, pruner=pruner)
+    study.optimize(objective, n_trials=optuna_trials, timeout=timeout)
+
+    # Final training on full data with best params
+    best_params = study.best_trial.params
+    print("Best set of parameters : ", best_params, end='\n')
+
+    model = DATN(
+        input_dim=p,
+        d_model=best_params["d_model"],
+        n_heads=best_params["n_heads"],
+        num_layers=best_params["num_layers"],
+        kernel_size=best_params["kernel_size"],
+        c=best_params["c"],
+        window_size=best_params["window_size"],
+        device=device
+    ).to(device)
+
+    full_dataset = TensorDataset(torch.tensor(X_train, dtype=torch.float32))
+    full_loader = DataLoader(full_dataset, batch_size=best_params["batch_size"], shuffle=True)
+    dummy_val_loader = DataLoader(TensorDataset(torch.tensor(X_train, dtype=torch.float32)), batch_size=best_params["batch_size"])
+
+    model = train_model_DATN(model, full_loader, dummy_val_loader, trial=study.best_trial, epochs=100, lr=best_params["lr"], device=device, patience=10)
+
+    # Inference
+    scores = compute_reconstruction_scores_DATN(model, X_train, device)
+    threshold = compute_dynamic_threshold(scores, len(X_train))
+    anomalies = scores > threshold
+    indices = np.where(anomalies)[0]
+
+    return (indices, scores) if return_scores else indices
+
+
+
+
+
 
 
 
@@ -1755,15 +1842,6 @@ def compute_anomaly_scores(model, np_data, device=torch.device('cpu')):
         weights = torch.softmax(-ass_dis, dim=0)
         anomaly_scores = weights * recon_error
         return anomaly_scores.cpu().numpy()
-
-
-def compute_dynamic_threshold(scores, n_test):
-        mean = np.mean(scores)
-        std = np.std(scores)
-        coeff_threshold = np.sqrt(n_test) / np.log(n_test+2)
-        return mean + coeff_threshold * std
-    
-    
 
 def outlier_detection_RINAT(X_train, batch_size=32, epochs=10, lr=1e-4, lam=3.0, d_model=512, num_layers=3, n_heads=8, verbose=False, return_scores=False):
     if isinstance(X_train, pd.DataFrame): X_train = X_train.values
