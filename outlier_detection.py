@@ -1022,39 +1022,7 @@ def compute_loss(x, x_hat, P, S, lam=3.0):
     return recon_loss - lam * ass_dis, recon_loss, ass_dis
 
 
-# === Training phase ===
-
-def train_minimax_model(model, train_loader, epochs=10, lr= 1e-4, lam=3.0, device=torch.device('cpu'), verbose=True):
-    model.train()
-    model.to(device)
-    if lr is None: optimizer = torch.optim.Adam(model.parameters())
-    else : optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-
-    for epoch in range(epochs):
-        total_loss = 0
-        for batch_x in train_loader:
-            batch_x = batch_x[0].to(device)  # [B, L]
-            
-            # Min phase
-            x_hat, S, P = model(batch_x)
-            loss_min, _, _ = compute_loss(batch_x, x_hat, P, S.detach(), lam=-lam)
-            optimizer.zero_grad()
-            loss_min.backward()
-            optimizer.step()
-
-            # Max phase
-            x_hat, S, P = model(batch_x)
-            loss_max, _, _ = compute_loss(batch_x, x_hat, P.detach(), S, lam=lam)
-            optimizer.zero_grad()
-            loss_max.backward()
-            optimizer.step()
-
-            total_loss += loss_max.item()
-
-        if verbose: print(f"Epoch {epoch + 1}/{epochs} — Loss: {total_loss / len(train_loader):.4f}")
-
-
-# === Definition of the score function ===
+# === Definition of the anomaly error function ===
 
 def compute_anomaly_scores(model, np_data, device=torch.device('cpu')):
     model.eval()
@@ -1067,41 +1035,150 @@ def compute_anomaly_scores(model, np_data, device=torch.device('cpu')):
         anomaly_scores = weights * recon_error
         return anomaly_scores.cpu().numpy()
     
+
+def compute_reconstruction_scores_AT(model, np_data, device=torch.device('cpu')):
+    model.eval()
+    with torch.no_grad():
+        x = torch.tensor(np_data, dtype=torch.float32).to(device)
+        x_hat, _, _ = model(x)
+        return torch.norm(x - x_hat, dim=-1).cpu().numpy()
     
 
-def outlier_detection_Anomaly_transformer(X_train, batch_size=32, epochs=10, lr=1e-4, lam=3.0, d_model=512, num_layers=3, n_heads=8, verbose=False, return_scores=False):
-    if isinstance(X_train, pd.DataFrame): X_train = X_train.values
-    X_test = X_train
-    if isinstance(X_test, pd.DataFrame): X_test = X_test.values
-    p = X_train.shape[1]
+# === Training phase ===
 
-    # Create DataLoader
-    train_dataset = TensorDataset(torch.tensor(X_train, dtype=torch.float32))
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+def train_model_AT(model, train_loader, val_loader, trial=None, epochs=50, lr=1e-4, device=torch.device("cpu"), patience=10, lam=3.0):
+    model.to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
-    # Model initialization
+    best_loss = float('inf')
+    wait = 0
+
+    for epoch in range(epochs):
+        model.train()
+        for batch in train_loader:
+            batch = batch[0].to(device)
+
+            # Min phase
+            x_hat, S, P = model(batch)
+            loss_min, _, _ = compute_loss(batch, x_hat, P, S.detach(), lam=-lam)
+            optimizer.zero_grad()
+            loss_min.backward()
+            optimizer.step()
+
+            # Max phase
+            x_hat, S, P = model(batch)
+            loss_max, _, _ = compute_loss(batch, x_hat, P.detach(), S, lam=lam)
+            optimizer.zero_grad()
+            loss_max.backward()
+            optimizer.step()
+
+        # Validation
+        model.eval()
+        val_scores = compute_anomaly_scores(model, val_loader.dataset.tensors[0].cpu().numpy(), device)
+        val_loss = float(np.mean(val_scores))
+
+        if trial:
+            trial.report(val_loss, epoch)
+            if trial.should_prune():
+                raise optuna.exceptions.TrialPruned()
+
+        if val_loss < best_loss:
+            best_loss = val_loss
+            wait = 0
+        else:
+            wait += 1
+            if wait >= patience:
+                break
+
+    return model
+
+
+
+
+def outlier_detection_Anomaly_transformer(X_train, epochs=100, optuna_trials=30, timeout=600, return_scores=False, verbose_optuna=False, rd_seed=42):
+    set_seed(rd_seed)
+
+    if isinstance(X_train, pd.DataFrame):
+        X_train = X_train.values
+    n, p = X_train.shape
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = AnomalyTransformer1D(seq_len=p, d_model=d_model, num_layers=num_layers, n_heads=n_heads).to(device)
 
-    # Train the model
-    train_minimax_model(model, train_loader, epochs=epochs, lr=lr, lam=lam, device=device, verbose=verbose)
-    
-    # Compute anomaly scores
-    test_scores = compute_anomaly_scores(model, X_test, device=device)
+    # Validation split
+    X_train_sub, X_val = train_test_split(X_train, test_size=0.2, random_state=rd_seed)
 
-    # Compute reconstruction scores
-    reconstruction_scores = compute_reconstruction_scores(model, X_test, device)
+    train_dataset = TensorDataset(torch.tensor(X_train_sub, dtype=torch.float32))
+    val_dataset = TensorDataset(torch.tensor(X_val, dtype=torch.float32))
 
-    # Dynamic thresholding
-    threshold = compute_dynamic_threshold(test_scores, len(X_test))
+    def objective(trial):
+        set_seed(rd_seed)
 
-    anomalies = test_scores > threshold
-    outliers_indices = np.where(anomalies)[0]
+        # Hyperparameters
+        d_model = trial.suggest_categorical("d_model", [64, 128, 256])
+        num_layers = trial.suggest_int("num_layers", 1, 4)
+        n_heads = trial.suggest_categorical("n_heads", [2, 4, 8])
+        lam = trial.suggest_float("lam", 1.0, 5.0)
+        lr = trial.suggest_float("lr", 1e-5, 1e-3, log=True)
+        batch_size = trial.suggest_categorical("batch_size", [16, 32, 64])
 
-    if return_scores:
-        return outliers_indices, reconstruction_scores
-    
-    return outliers_indices
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+        val_loader = DataLoader(val_dataset, batch_size=batch_size)
+
+        model = AnomalyTransformer1D(seq_len=p, d_model=d_model, num_layers=num_layers, n_heads=n_heads).to(device)
+
+        model = train_model_AT(model, train_loader, val_loader, trial, epochs, lr, device, patience=10, lam=lam)
+
+        val_scores = compute_anomaly_scores(model, X_val, device)
+        return float(np.mean(val_scores))
+
+    if not verbose_optuna:
+        optuna.logging.set_verbosity(optuna.logging.WARNING)
+
+    sampler = optuna.samplers.TPESampler(seed=rd_seed)
+    pruner = optuna.pruners.MedianPruner()
+    study = optuna.create_study(direction="minimize", sampler=sampler, pruner=pruner)
+    study.optimize(objective, n_trials=optuna_trials, timeout=timeout)
+
+    best_params = study.best_trial.params
+    print("Best set of parameters:", best_params)
+
+    # Full training with best parameters
+    model = AnomalyTransformer1D(
+        seq_len=p,
+        d_model=best_params["d_model"],
+        num_layers=best_params["num_layers"],
+        n_heads=best_params["n_heads"]
+    ).to(device)
+
+    full_dataset = TensorDataset(torch.tensor(X_train, dtype=torch.float32))
+    full_loader = DataLoader(full_dataset, batch_size=best_params["batch_size"], shuffle=True)
+    dummy_val_loader = DataLoader(full_dataset, batch_size=best_params["batch_size"])
+
+    model = train_model_AT(model, full_loader, dummy_val_loader, trial=study.best_trial, epochs=epochs,
+                           lr=best_params["lr"], device=device, patience=10, lam=best_params["lam"])
+
+    # Compute reconstruction errors
+    errors = compute_reconstruction_scores_AT(model, X_train, device)
+
+    # Inference
+    anomaly_errors = compute_anomaly_scores(model, X_train, device)
+    threshold = compute_dynamic_threshold(anomaly_errors, len(X_train))
+    anomalies = anomaly_errors > threshold
+    indices = np.where(anomalies)[0]
+
+    return (indices, errors) if return_scores else indices
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1238,7 +1315,7 @@ def compute_reconstruction_scores_STOC(model, X_tensor, device=torch.device("cpu
 # -----------------------------
 # Final function for outlier detection using STOC and using Optuna for hyperparameter optimization
 # -----------------------------
-def outlier_detection_STOC(X_train, optuna_trials=30, timeout=600, return_scores=False, verbose_optuna=False, rd_seed=42):
+def outlier_detection_STOC(X_train, epochs=100, optuna_trials=30, timeout=600, return_scores=False, verbose_optuna=False, rd_seed=42):
 
     set_seed(rd_seed)  # Reproductibility
 
@@ -1257,7 +1334,6 @@ def outlier_detection_STOC(X_train, optuna_trials=30, timeout=600, return_scores
         num_layers = trial.suggest_int("num_layers", 1, 4)
         lr = trial.suggest_float("lr", 1e-5, 1e-3, log=True)
         batch_size = trial.suggest_categorical("batch_size", [16, 32, 64])
-        epochs = 100 # early stoppping performed
 
         # Train / Val split
         idx = np.random.permutation(len(X_train))
@@ -1306,7 +1382,7 @@ def outlier_detection_STOC(X_train, optuna_trials=30, timeout=600, return_scores
     dummy_val_loader = DataLoader(TensorDataset(torch.tensor(X_train).unsqueeze(1)), batch_size=best_params["batch_size"])
 
     model = train_model_STOC(model, full_loader, dummy_val_loader, trial=study.best_trial,
-                             epochs=100, lr=best_params["lr"], device=device)
+                             epochs=epochs, lr=best_params["lr"], device=device)
 
     # Final reconstruction scores
     X_tensor = torch.tensor(X_train).unsqueeze(1).to(device)
@@ -1364,18 +1440,17 @@ class AutoAttention(nn.Module):
     """
     Auto-attention mechanism using FFT to extract dominant periodic components.
     """
-    def __init__(self, d_model, n_heads, window_size=192, c=4, device=torch.device('cpu')):
+    def __init__(self, d_model, n_heads, c=4, device=torch.device('cpu')):
         super().__init__()
         self.d_model = d_model
         self.num_heads = n_heads
         self.device = device
-        self.window_size = window_size
 
         self.to_q = nn.Linear(d_model, d_model)
         self.to_k = nn.Linear(d_model, d_model)
         self.to_v = nn.Linear(d_model, d_model)
         
-        self.top_k_factor = int(c * np.log(window_size))
+        self.top_k_factor = int(c * np.log(d_model))
         self.attn = nn.MultiheadAttention(embed_dim=d_model*3, num_heads=n_heads, batch_first=True)
         self.linear = nn.Linear(d_model*3, d_model)
 
@@ -1389,9 +1464,9 @@ class AutoAttention(nn.Module):
         V = self.to_v(x)       # [B, d_model]
 
         # Apply FFT on each
-        FQ = fft.fft(Q, n=self.window_size, dim=1)       # [B, d_model]
-        FK = fft.fft(K, n=self.window_size, dim=1)       # [B, d_model]
-        FV = fft.fft(V, n=self.window_size, dim=1)       # [B, d_model]
+        FQ = fft.fft(Q, n=self.d_model, dim=1)       # [B, d_model]
+        FK = fft.fft(K, n=self.d_model, dim=1)       # [B, d_model]
+        FV = fft.fft(V, n=self.d_model, dim=1)       # [B, d_model]
 
         # Concatenate in feature dimension
         F_cat = torch.cat([FQ, FK, FV], dim=-1)  # [B, 3*d_model]
@@ -1409,7 +1484,7 @@ class AutoAttention(nn.Module):
             F_masked[b] = selected
         
         # Inverse FFT to time domain (retain dominant periods)
-        periodic_component = fft.ifft(F_masked, n=self.window_size, dim=1).real      # [B, 3*d_model]
+        periodic_component = fft.ifft(F_masked, n=self.d_model*3, dim=1).real      # [B, 3*d_model]
 
         # Apply standard multi-head self-attention
         attended, _ = self.attn(periodic_component, periodic_component, periodic_component)       # [B, 3*d_model]
@@ -1421,11 +1496,11 @@ class EncoderLayer(nn.Module):
     """
     A single encoder layer with decomposition and dual-path attention.
     """
-    def __init__(self, d_model, n_heads, kernel_size, device, c=4, window_size=192):
+    def __init__(self, d_model, n_heads, kernel_size, device, c=4):
         super().__init__()
         self.device = device
         self.decomp = SeriesDecomposition(kernel_size).to(device)
-        self.auto_attn = AutoAttention(d_model, n_heads, device=device, c=c, window_size=window_size).to(device)
+        self.auto_attn = AutoAttention(d_model, n_heads, device=device, c=c).to(device)
         self.mhsa = nn.MultiheadAttention(embed_dim=d_model, num_heads=n_heads, batch_first=True).to(device)
         self.ffn = nn.Sequential(
             nn.Linear(d_model, d_model),
@@ -1460,13 +1535,13 @@ class DATN(nn.Module):
     """
     Complete DATN model with stacked encoder layers and linear decoder.
     """
-    def __init__(self, input_dim, d_model, n_heads, num_layers, kernel_size, device, c=4, window_size=192):
+    def __init__(self, input_dim, d_model, n_heads, num_layers, kernel_size, device, c=4):
         super().__init__()
         self.input_dim = input_dim
         self.device = device
         self.input_proj = nn.Linear(input_dim, d_model).to(device)
         self.encoder_layers = nn.ModuleList([
-            EncoderLayer(d_model, n_heads, kernel_size, device, c=c, window_size=window_size) for _ in range(num_layers)
+            EncoderLayer(d_model, n_heads, kernel_size, device, c=c) for _ in range(num_layers)
         ]).to(device)
         self.output_proj = nn.Linear(d_model, input_dim).to(device)
 
@@ -1538,7 +1613,7 @@ def train_model_DATN(model, train_loader, val_loader, trial=None, epochs=50, lr=
     
 
 
-def outlier_detection_DATN(X_train, optuna_trials=30, timeout=600, return_scores=False, verbose_optuna=False, rd_seed=42):
+def outlier_detection_DATN(X_train, epochs=100, optuna_trials=30, timeout=600, return_scores=False, verbose_optuna=False, rd_seed=42):
     
     set_seed(rd_seed)
 
@@ -1561,10 +1636,8 @@ def outlier_detection_DATN(X_train, optuna_trials=30, timeout=600, return_scores
         num_layers = trial.suggest_int("num_layers", 1, 4)
         kernel_size = trial.suggest_categorical("kernel_size", [3, 5, 7])
         c = trial.suggest_int("c", 2, 6)
-        window_size = trial.suggest_categorical("window_size", [64, 128, 192])
         lr = trial.suggest_float("lr", 1e-5, 1e-3, log=True)
         batch_size = trial.suggest_categorical("batch_size", [16, 32, 64])
-        epochs = 100  # early stopping used
 
         # DataLoaders
         train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
@@ -1578,7 +1651,6 @@ def outlier_detection_DATN(X_train, optuna_trials=30, timeout=600, return_scores
             num_layers=num_layers,
             kernel_size=kernel_size,
             c=c,
-            window_size=window_size,
             device=device
         ).to(device)
 
@@ -1608,7 +1680,6 @@ def outlier_detection_DATN(X_train, optuna_trials=30, timeout=600, return_scores
         num_layers=best_params["num_layers"],
         kernel_size=best_params["kernel_size"],
         c=best_params["c"],
-        window_size=best_params["window_size"],
         device=device
     ).to(device)
 
@@ -1616,7 +1687,7 @@ def outlier_detection_DATN(X_train, optuna_trials=30, timeout=600, return_scores
     full_loader = DataLoader(full_dataset, batch_size=best_params["batch_size"], shuffle=True)
     dummy_val_loader = DataLoader(TensorDataset(torch.tensor(X_train, dtype=torch.float32)), batch_size=best_params["batch_size"])
 
-    model = train_model_DATN(model, full_loader, dummy_val_loader, trial=study.best_trial, epochs=100, lr=best_params["lr"], device=device, patience=10)
+    model = train_model_DATN(model, full_loader, dummy_val_loader, trial=study.best_trial, epochs=epochs, lr=best_params["lr"], device=device, patience=10)
 
     # Inference
     scores = compute_reconstruction_scores_DATN(model, X_train, device)
@@ -1798,36 +1869,12 @@ def compute_loss(x, x_hat, P, S, lam=3.0):
     return recon_loss - lam * ass_dis, recon_loss, ass_dis
 
 
-# === Training phase ===
-
-def train_minimax_model(model, train_loader, epochs=10, lr= 1e-4, lam=3.0, device=torch.device('cpu'), verbose=True):
-    model.train()
-    model.to(device)
-    if lr is None: optimizer = torch.optim.Adam(model.parameters())
-    else : optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-
-    for epoch in range(epochs):
-        total_loss = 0
-        for batch_x in train_loader:
-            batch_x = batch_x[0].to(device)  # [B, L]
-            
-            # Min phase
-            x_hat, S, P = model(batch_x)
-            loss_min, _, _ = compute_loss(batch_x, x_hat, P, S.detach(), lam=-lam)
-            optimizer.zero_grad()
-            loss_min.backward()
-            optimizer.step()
-
-            # Max phase
-            x_hat, S, P = model(batch_x)
-            loss_max, _, _ = compute_loss(batch_x, x_hat, P.detach(), S, lam=lam)
-            optimizer.zero_grad()
-            loss_max.backward()
-            optimizer.step()
-
-            total_loss += loss_max.item()
-
-        if verbose: print(f"Epoch {epoch + 1}/{epochs} — Loss: {total_loss / len(train_loader):.4f}")
+def compute_reconstruction_scores_RINAT(model, np_data, device=torch.device("cpu")):
+    model.eval()
+    with torch.no_grad():
+        x = torch.tensor(np_data, dtype=torch.float32).to(device)
+        x_hat, _, _ = model(x)
+        return torch.norm(x - x_hat, dim=-1).cpu().numpy()
 
 
 # === Definition of the score function ===
@@ -1842,37 +1889,138 @@ def compute_anomaly_scores(model, np_data, device=torch.device('cpu')):
         weights = torch.softmax(-ass_dis, dim=0)
         anomaly_scores = weights * recon_error
         return anomaly_scores.cpu().numpy()
+    
 
-def outlier_detection_RINAT(X_train, batch_size=32, epochs=10, lr=1e-4, lam=3.0, d_model=512, num_layers=3, n_heads=8, verbose=False, return_scores=False):
-    if isinstance(X_train, pd.DataFrame): X_train = X_train.values
-    X_test = X_train
-    if isinstance(X_test, pd.DataFrame): X_test = X_test.values
-    p = X_train.shape[1]
+def compute_reconstruction_scores_RINAT(model, np_data, device=torch.device("cpu")):
+    model.eval()
+    with torch.no_grad():
+        x = torch.tensor(np_data, dtype=torch.float32).to(device)
+        x_hat, _, _ = model(x)
+        return torch.norm(x - x_hat, dim=-1).cpu().numpy()
 
-    # Create DataLoader
-    train_dataset = TensorDataset(torch.tensor(X_train, dtype=torch.float32))
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
-    # Model initialization
+# === Training phase ===
+
+def train_model_RINAT(model, train_loader, val_loader, trial=None, epochs=50, lr=1e-4, device=torch.device("cpu"), patience=10, lam=3.0):
+    model.to(device)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
+
+    best_loss = float('inf')
+    wait = 0
+
+    for epoch in range(epochs):
+        model.train()
+        for batch in train_loader:
+            batch = batch[0].to(device)
+
+            # Min phase
+            x_hat, S, P = model(batch)
+            loss_min, _, _ = compute_loss(batch, x_hat, P, S.detach(), lam=-lam)
+            optimizer.zero_grad()
+            loss_min.backward()
+            optimizer.step()
+
+            # Max phase
+            x_hat, S, P = model(batch)
+            loss_max, _, _ = compute_loss(batch, x_hat, P.detach(), S, lam=lam)
+            optimizer.zero_grad()
+            loss_max.backward()
+            optimizer.step()
+
+        # Validation
+        model.eval()
+        val_loss = 0.0
+        with torch.no_grad():
+            for val_batch in val_loader:
+                val_batch = val_batch[0].to(device)
+                x_hat, S, P = model(val_batch)
+                loss, _, _ = compute_loss(val_batch, x_hat, P, S, lam=lam)
+                val_loss += loss.item()
+        val_loss /= len(val_loader)
+
+        if trial:
+            trial.report(val_loss, epoch)
+            if trial.should_prune():
+                raise optuna.exceptions.TrialPruned()
+
+        if val_loss < best_loss:
+            best_loss = val_loss
+            wait = 0
+        else:
+            wait += 1
+            if wait >= patience:
+                break
+
+    return model
+
+
+def outlier_detection_RINAT(X_train, epochs=100, optuna_trials=30, timeout=600, return_scores=False, verbose_optuna=False, rd_seed=42):
+    set_seed(rd_seed)
+
+    if isinstance(X_train, pd.DataFrame):
+        X_train = X_train.values
+    n, p = X_train.shape
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = RINAT(seq_len=p, d_model=d_model, num_layers=num_layers, n_heads=n_heads).to(device)
 
-    # Train the model
-    train_minimax_model(model, train_loader, epochs=epochs, lr=lr, lam=lam, device=device, verbose=verbose)
+    # Split data for validation
+    X_train_sub, X_val = train_test_split(X_train, test_size=0.2, random_state=rd_seed)
+
+    train_dataset = TensorDataset(torch.tensor(X_train_sub, dtype=torch.float32))
+    val_dataset = TensorDataset(torch.tensor(X_val, dtype=torch.float32))
+
+    def objective(trial):
+        set_seed(rd_seed)
+
+        # Hyperparameter search space
+        d_model = trial.suggest_categorical("d_model", [64, 128, 256])
+        n_heads = trial.suggest_categorical("n_heads", [2, 4, 8])
+        num_layers = trial.suggest_int("num_layers", 1, 4)
+        lam = trial.suggest_float("lam", 0.5, 5.0)
+        lr = trial.suggest_float("lr", 1e-5, 1e-3, log=True)
+        batch_size = trial.suggest_categorical("batch_size", [16, 32, 64])
+
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+        val_loader = DataLoader(val_dataset, batch_size=batch_size)
+
+        model = RINAT(seq_len=p, d_model=d_model, num_layers=num_layers, n_heads=n_heads).to(device)
+        model = train_model_RINAT(model, train_loader, val_loader, trial=trial, epochs=epochs, lr=lr, device=device, patience=10, lam=lam)
+
+        val_scores = compute_reconstruction_scores_RINAT(model, X_val, device)
+        return float(np.mean(val_scores))
+
+    if not verbose_optuna:
+        optuna.logging.set_verbosity(optuna.logging.WARNING)
+
+    sampler = optuna.samplers.TPESampler(seed=rd_seed)
+    pruner = optuna.pruners.MedianPruner()
+    study = optuna.create_study(direction="minimize", sampler=sampler, pruner=pruner)
+    study.optimize(objective, n_trials=optuna_trials, timeout=timeout)
+
+    best_params = study.best_trial.params
+    print("Best set of parameters :", best_params)
+
+    # Final training
+    model = RINAT(
+        seq_len=p,
+        d_model=best_params["d_model"],
+        num_layers=best_params["num_layers"],
+        n_heads=best_params["n_heads"]
+    ).to(device)
+
+    full_dataset = TensorDataset(torch.tensor(X_train, dtype=torch.float32))
+    full_loader = DataLoader(full_dataset, batch_size=best_params["batch_size"], shuffle=True)
+    dummy_val_loader = DataLoader(full_dataset, batch_size=best_params["batch_size"])
+
+    model = train_model_RINAT(model, full_loader, dummy_val_loader, trial=study.best_trial, epochs=epochs, lr=best_params["lr"], device=device, patience=10, lam=best_params["lam"])
+
+    # Compute reconstruction errors
+    errors = compute_reconstruction_scores_RINAT(model, X_train, device)
+
+    # Inference
+    anomaly_errors = compute_anomaly_scores(model, X_train, device)
     
-    # Compute anomaly scores
-    test_scores = compute_anomaly_scores(model, X_test, device=device)
+    threshold = compute_dynamic_threshold(anomaly_errors, len(X_train))
+    anomalies = anomaly_errors > threshold
+    indices = np.where(anomalies)[0]
 
-    # Compute reconstruction scores
-    reconstruction_scores = compute_reconstruction_scores(model, X_test, device)
-
-    # Dynamic thresholding
-    threshold = compute_dynamic_threshold(test_scores, len(X_test))
-
-    anomalies = test_scores > threshold
-    outliers_indices = np.where(anomalies)[0]
-
-    if return_scores:
-        return outliers_indices, reconstruction_scores
-    
-    return outliers_indices
+    return (indices, errors) if return_scores else indices
