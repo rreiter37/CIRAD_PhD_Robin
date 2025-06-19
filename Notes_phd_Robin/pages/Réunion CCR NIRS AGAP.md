@@ -1,0 +1,28 @@
+### Réunion du 19/06 AGAP
+	- Teams CCA AGAP NIRS -> Documents, présentations,...
+	- Réunions deux fois par an, parfois avec membres extérieurs à AGAP
+	- Semaine du 9 octobre, projet INSPIR INRAE
+	- Chantier actuel: création d'une bdd en cours de spectres nirs, étudiants sur le coup pour la construction, la normalisation et la mise en accessibilité
+	- Faire une bdd nirs prend du temps, compliqué
+	- Les nouvelles approches de ML permettent de faire des modèles sur plusieurs sources de données nirs. L'idée est donc de rendre les ressources accessibles à tous pour faciliter ces projets là.
+	- Romaric, acquisition de multiples sources de NIRS; prédiction, diversité, sélection phénomique
+	- #### Besoin de compétences
+		- pas de chimiométricien à AGAP
+		- grande force matérielle spectro à AGAP
+		- mise en forme des données qui peut être commune au sein de l'UMR
+	- #### Informations des collectifs à partager
+		- NIRS2025
+		- Héliospir semaine pro
+	- #### Présentation Valérie
+		- Qualité mais et sorgho fourragés, réponses à des environnements contrastés dans le cadre du chgt climatq
+		- cible principale: rendement digestible (rendement agronomique + digestibilité)
+		- diversité génétique -> recherche des variétés les plus adaptées pour un certain critère
+		- contexte stress ou multienv
+		- 5000 éch par an
+		- On veut ajouter de la NIRS pour absorber cet ensemble d'éch
+		- stress hydrique -> maintien des rendements
+		- chgt climatique dans ce cadre
+		- stratégie labo AGAP: chaque poudre qui arrive en labo est mesurée en spectro NIRS au cas où
+		- réflexion PLS pour construire les équations derrière la spectro NIRS
+		- toujours modèle de PLS avec preprocessing derivate (first ou second)
+		- idée de développer un modèle combinant spectres NIRS et imagerie pour le mais et le sorgho

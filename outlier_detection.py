@@ -22,6 +22,9 @@ from scipy.stats import chi2
 from scipy.sparse.csgraph import laplacian
 from scipy.linalg import eigh
 
+import optuna
+from optuna.exceptions import TrialPruned
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -170,7 +173,7 @@ def compute_dynamic_threshold(scores, n_test):
         mean = np.mean(scores)
         std = np.std(scores)
         coeff_threshold = np.sqrt(n_test) / np.log(n_test+2)
-        return mean + coeff_threshold * std
+        return mean + 2 * std
 
 
 ###  Function to find the outliers with the PCA method
@@ -887,21 +890,11 @@ def set_seed(seed=42):
 
 
 
-def compute_dynamic_threshold(scores, n_test):
-    mean = np.mean(scores)
-    std = np.std(scores)
-    coeff_threshold = np.sqrt(n_test) / np.log(n_test+2)
-    return mean + 2 * std
+
 
 
 
 ### Anomaly Transformer
-
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.utils.data import TensorDataset, DataLoader
-
 
 # === Anomaly Attention & Transformer ===
 
@@ -1185,14 +1178,6 @@ def outlier_detection_Anomaly_transformer(X_train, epochs=100, optuna_trials=30,
 
 
 ### STOC
-
-import numpy as np
-import pandas as pd
-import torch
-import torch.nn as nn
-from torch.utils.data import DataLoader, TensorDataset
-import optuna
-from optuna.exceptions import TrialPruned
 
 # -----------------------------
 # Positional Encoding
