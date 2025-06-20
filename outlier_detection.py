@@ -18,7 +18,7 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.neighbors import NearestNeighbors
 from sklearn.covariance import EmpiricalCovariance
 from sklearn.model_selection import train_test_split
-from scipy.stats import chi2
+from scipy.stats import chi2, entropy
 from scipy.sparse.csgraph import laplacian
 from scipy.linalg import eigh
 
@@ -169,12 +169,28 @@ def plot_spectra_outliers(X, dict_outliers, names, data_source, title='Visualiza
 
 
 ### Function to compute the dynamic threshold for the outliers detection
-def compute_dynamic_threshold(scores, n_test):
-        mean = np.mean(scores)
-        std = np.std(scores)
-        coeff_threshold = np.sqrt(n_test) / np.log(n_test+2)
-        return mean + 2 * std
+def compute_dynamic_threshold(errors, n_test, method="entropy", bins="auto"):
+        mean = np.mean(errors) # estimate the mean of reconstruction errors
+        std = np.std(errors) # estimate the standard deviation
+        
+        if method == "classical":
+            return mean + 2 * std
+        
+        elif method == "size":
+            coeff_threshold = np.sqrt(n_test) / np.log(n_test+2)
+            return mean + coeff_threshold * std
+        
+        elif method == "entropy":
+            # Histogram of the errors (density)
+            hist, bin_edges = np.histogram(errors, bins=bins, density=True)
+            hist = hist[hist > 0] # remove cases with log(0)
 
+            # Shannon Entropy
+            E = entropy(hist, base=np.e)
+
+            # Adaptative function based on entropy
+            threshold = mean + np.log1p(E) * std
+            return threshold
 
 ###  Function to find the outliers with the PCA method
 

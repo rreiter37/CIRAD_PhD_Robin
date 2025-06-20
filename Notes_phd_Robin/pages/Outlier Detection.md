@@ -10,7 +10,7 @@
 		- Une autre approche est de calculer un seuil de décision en fonction de la taille du dataset: $$\mu(S_n) + \phi(n) . \sigma(S_n), \quad \phi(n) = \frac{\sqrt{n}}{\text{log}(n+2)}$$
 		  
 		  C'est une approche adaptative en fonction de la taille de la base de données, mais elle ne répond pas vraiment à toutes les attentes énoncées plus haut.
-		- Il existe plusieurs autres approches pour faire un seuil adaptatif pertinent. On peut notamment se baser sur l'entropie de la distribution des erreurs de reconstruction. D'après ChatGPT, plus l'entropie est grande, plus le seuil est haut. Intuitivement, j'aurais pensé l'inverse.
+		- Il existe plusieurs autres approches pour faire un seuil adaptatif pertinent. On peut notamment se baser sur l'entropie de la distribution des erreurs de reconstruction. Plus l'entropie est grande, plus la distribution des erreurs est diffuse et plus le seuil doit s'éloigner de la moyenne pour éviter de sur-détecter des outliers. L'entropie corrige indirectement l'hypothèse de normalité: on ne suppose plus que l'écart-type suffit à décrire la dispersion.
 - ### Adaptation du modèle aux outliers
 	- #### Différencier les types d'outliers (Chandola et al. 2009)
 		- Observation unique déviante
