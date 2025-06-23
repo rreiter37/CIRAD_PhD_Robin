@@ -11,6 +11,7 @@ from collections import Counter
 from itertools import combinations
 from collections import defaultdict
 from scipy.spatial.distance import mahalanobis
+from typing import Union
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
@@ -696,7 +697,7 @@ class LSTMAutoEncoder(nn.Module):
         return decoded
 
 
-def outlier_detection_LSTM(X, latent_dim=64, epochs=10, batch_size=32, lr=1e-4, verbose=False, get_normal=True, normal_method='kNN', k=10, percentile=95, return_scores=False):
+def outlier_detection_LSTM(X, latent_dim=64, epochs=10, batch_size=32, lr=1e-4, verbose=False, get_normal=True, normal_method='kNN', k=10, percentile=95, return_scores=False, save_model: Union[None, str] = None):
     """
     Detects outliers in the dataset using a LSTM AutoEncoder architecture with PyTorch.
     
@@ -760,6 +761,9 @@ def outlier_detection_LSTM(X, latent_dim=64, epochs=10, batch_size=32, lr=1e-4, 
 
     reconstruction_errors = torch.mean((X_pred - X_full_tensor.squeeze(2))**2, dim=1).cpu().numpy()
 
+    # store the final model if required
+    if save_model is not None:
+        torch.save(model.state_dict(), save_model)
 
     # Dynamic thresholding
     threshold = compute_dynamic_threshold(reconstruction_errors, X.shape[0])
@@ -797,7 +801,7 @@ class BiLSTMAutoEncoder(nn.Module):
         decoded = self.decoder(hidden_concat)
         return decoded
 
-def outlier_detection_BiLSTM(X, latent_dim=64, epochs=10, batch_size=32, lr=1e-4, verbose=False, validation_split=0.2, get_normal=True, normal_method='kNN', k=10, percentile=95, return_scores=False):
+def outlier_detection_BiLSTM(X, latent_dim=64, epochs=10, batch_size=32, lr=1e-4, verbose=False, validation_split=0.2, get_normal=True, normal_method='kNN', k=10, percentile=95, return_scores=False, save_model: Union[None, str] = None):
     """
     Detects outliers in the dataset using a Bi-LSTM AutoEncoder architecture with PyTorch.
     
@@ -858,6 +862,10 @@ def outlier_detection_BiLSTM(X, latent_dim=64, epochs=10, batch_size=32, lr=1e-4
         X_pred = model(X_full_tensor).cpu()
 
     reconstruction_errors = torch.mean((X_pred - X_full_tensor.squeeze(2))**2, dim=1).cpu().numpy()
+
+    # store the final model if required
+    if save_model is not None:
+        torch.save(model.state_dict(), save_model)
 
     # Dynamic thresholding
     threshold = compute_dynamic_threshold(reconstruction_errors, X.shape[0])
@@ -1104,7 +1112,7 @@ def train_model_AT(model, train_loader, val_loader, trial=None, epochs=50, lr=1e
 
 
 
-def outlier_detection_Anomaly_transformer(X_train, epochs=100, optuna_trials=30, timeout=600, return_scores=False, verbose_optuna=False, rd_seed=42):
+def outlier_detection_Anomaly_transformer(X_train, epochs=100, optuna_trials=30, timeout=600, return_scores=False, verbose_optuna=False, rd_seed=42, save_model: Union[None, str] = None):
     set_seed(rd_seed)
 
     if isinstance(X_train, pd.DataFrame):
@@ -1122,7 +1130,9 @@ def outlier_detection_Anomaly_transformer(X_train, epochs=100, optuna_trials=30,
         set_seed(rd_seed)
 
         # Hyperparameters
-        d_model = trial.suggest_categorical("d_model", [64, 128, 256])
+        kmax = int(np.log(p)/np.log(2)) - 1
+        dmax = 2**kmax
+        d_model = trial.suggest_categorical("d_model", [dmax//4, dmax//2, dmax, dmax*2])
         num_layers = trial.suggest_int("num_layers", 1, 4)
         n_heads = trial.suggest_categorical("n_heads", [2, 4, 8])
         lam = trial.suggest_float("lam", 1.0, 5.0)
@@ -1164,6 +1174,10 @@ def outlier_detection_Anomaly_transformer(X_train, epochs=100, optuna_trials=30,
 
     model = train_model_AT(model, full_loader, dummy_val_loader, trial=study.best_trial, epochs=epochs,
                            lr=best_params["lr"], device=device, patience=10, lam=best_params["lam"])
+    
+    # store the final model if required
+    if save_model is not None:
+        torch.save(model.state_dict(), save_model)
 
     # Compute reconstruction errors
     errors = compute_reconstruction_scores_AT(model, X_train, device)
@@ -1316,7 +1330,7 @@ def compute_reconstruction_scores_STOC(model, X_tensor, device=torch.device("cpu
 # -----------------------------
 # Final function for outlier detection using STOC and using Optuna for hyperparameter optimization
 # -----------------------------
-def outlier_detection_STOC(X_train, epochs=100, optuna_trials=30, timeout=600, return_scores=False, verbose_optuna=False, rd_seed=42):
+def outlier_detection_STOC(X_train, epochs=100, optuna_trials=30, timeout=600, return_scores=False, verbose_optuna=False, rd_seed=42, save_model: Union[None, str] = None):
 
     set_seed(rd_seed)  # Reproductibility
 
@@ -1324,13 +1338,16 @@ def outlier_detection_STOC(X_train, epochs=100, optuna_trials=30, timeout=600, r
         X_train = X_train.values
     X_train = X_train.astype(np.float32)
 
-    input_dim = X_train.shape[1]
+    n, p = X_train.shape
+
+    input_dim = p
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def objective(trial):
         set_seed(rd_seed)  # Re-seed inside trial for reproducibility
-
-        d_model = trial.suggest_categorical("d_model", [32, 64, 128])
+        kmax = int(np.log(p)/np.log(2)) - 1
+        dmax = 2**kmax
+        d_model = trial.suggest_categorical("d_model", [dmax//4, dmax//2, dmax, dmax*2])
         nhead = trial.suggest_categorical("nhead", [2, 4, 8])
         num_layers = trial.suggest_int("num_layers", 1, 4)
         lr = trial.suggest_float("lr", 1e-5, 1e-3, log=True)
@@ -1384,6 +1401,10 @@ def outlier_detection_STOC(X_train, epochs=100, optuna_trials=30, timeout=600, r
 
     model = train_model_STOC(model, full_loader, dummy_val_loader, trial=study.best_trial,
                              epochs=epochs, lr=best_params["lr"], device=device)
+
+    # store the final model if required
+    if save_model is not None:
+        torch.save(model.state_dict(), save_model)
 
     # Final reconstruction scores
     X_tensor = torch.tensor(X_train).unsqueeze(1).to(device)
@@ -1614,7 +1635,7 @@ def train_model_DATN(model, train_loader, val_loader, trial=None, epochs=50, lr=
     
 
 
-def outlier_detection_DATN(X_train, epochs=100, optuna_trials=30, timeout=600, return_scores=False, verbose_optuna=False, rd_seed=42):
+def outlier_detection_DATN(X_train, epochs=100, optuna_trials=30, timeout=600, return_scores=False, verbose_optuna=False, rd_seed=42, save_model: Union[None, str] = None):
     
     set_seed(rd_seed)
 
@@ -1632,7 +1653,9 @@ def outlier_detection_DATN(X_train, epochs=100, optuna_trials=30, timeout=600, r
     def objective(trial):
         set_seed(rd_seed)
         # Hyperparameter search space
-        d_model = trial.suggest_categorical("d_model", [32, 64, 128])
+        kmax = int(np.log(p)/np.log(2)) - 1
+        dmax = 2**kmax
+        d_model = trial.suggest_categorical("d_model", [dmax//4, dmax//2, dmax, dmax*2])
         n_heads = trial.suggest_categorical("n_heads", [2, 4, 8])
         num_layers = trial.suggest_int("num_layers", 1, 4)
         kernel_size = trial.suggest_categorical("kernel_size", [3, 5, 7])
@@ -1689,6 +1712,10 @@ def outlier_detection_DATN(X_train, epochs=100, optuna_trials=30, timeout=600, r
     dummy_val_loader = DataLoader(TensorDataset(torch.tensor(X_train, dtype=torch.float32)), batch_size=best_params["batch_size"])
 
     model = train_model_DATN(model, full_loader, dummy_val_loader, trial=study.best_trial, epochs=epochs, lr=best_params["lr"], device=device, patience=10)
+
+    # store the final model if required
+    if save_model is not None:
+        torch.save(model.state_dict(), save_model)
 
     # Inference
     scores = compute_reconstruction_scores_DATN(model, X_train, device)
@@ -1955,7 +1982,7 @@ def train_model_RINAT(model, train_loader, val_loader, trial=None, epochs=50, lr
     return model
 
 
-def outlier_detection_RINAT(X_train, epochs=100, optuna_trials=30, timeout=600, return_scores=False, verbose_optuna=False, rd_seed=42):
+def outlier_detection_RINAT(X_train, epochs=100, optuna_trials=30, timeout=600, return_scores=False, verbose_optuna=False, rd_seed=42, save_model: Union[None, str] = None):
     set_seed(rd_seed)
 
     if isinstance(X_train, pd.DataFrame):
@@ -1973,7 +2000,9 @@ def outlier_detection_RINAT(X_train, epochs=100, optuna_trials=30, timeout=600, 
         set_seed(rd_seed)
 
         # Hyperparameter search space
-        d_model = trial.suggest_categorical("d_model", [64, 128, 256])
+        kmax = int(np.log(p)/np.log(2)) - 1
+        dmax = 2**kmax
+        d_model = trial.suggest_categorical("d_model", [dmax//4, dmax//2, dmax, dmax*2])
         n_heads = trial.suggest_categorical("n_heads", [2, 4, 8])
         num_layers = trial.suggest_int("num_layers", 1, 4)
         lam = trial.suggest_float("lam", 0.5, 5.0)
@@ -2013,6 +2042,10 @@ def outlier_detection_RINAT(X_train, epochs=100, optuna_trials=30, timeout=600, 
     dummy_val_loader = DataLoader(full_dataset, batch_size=best_params["batch_size"])
 
     model = train_model_RINAT(model, full_loader, dummy_val_loader, trial=study.best_trial, epochs=epochs, lr=best_params["lr"], device=device, patience=10, lam=best_params["lam"])
+
+    # store the final model if required
+    if save_model is not None:
+        torch.save(model.state_dict(), save_model)
 
     # Compute reconstruction errors
     errors = compute_reconstruction_scores_RINAT(model, X_train, device)
