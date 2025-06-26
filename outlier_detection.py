@@ -763,6 +763,7 @@ def outlier_detection_LSTM(X, latent_dim=64, epochs=10, batch_size=32, lr=1e-4, 
 
     # store the final model if required
     if save_model is not None:
+        os.makedirs(os.path.dirname(save_model), exist_ok=True)
         torch.save(model.state_dict(), save_model)
 
     # Dynamic thresholding
@@ -865,6 +866,7 @@ def outlier_detection_BiLSTM(X, latent_dim=64, epochs=10, batch_size=32, lr=1e-4
 
     # store the final model if required
     if save_model is not None:
+        os.makedirs(os.path.dirname(save_model), exist_ok=True)
         torch.save(model.state_dict(), save_model)
 
     # Dynamic thresholding
@@ -1177,6 +1179,7 @@ def outlier_detection_Anomaly_transformer(X_train, epochs=100, optuna_trials=30,
     
     # store the final model if required
     if save_model is not None:
+        os.makedirs(os.path.dirname(save_model), exist_ok=True)
         torch.save(model.state_dict(), save_model)
 
     # Compute reconstruction errors
@@ -1404,6 +1407,7 @@ def outlier_detection_STOC(X_train, epochs=100, optuna_trials=30, timeout=600, r
 
     # store the final model if required
     if save_model is not None:
+        os.makedirs(os.path.dirname(save_model), exist_ok=True)
         torch.save(model.state_dict(), save_model)
 
     # Final reconstruction scores
@@ -1715,6 +1719,7 @@ def outlier_detection_DATN(X_train, epochs=100, optuna_trials=30, timeout=600, r
 
     # store the final model if required
     if save_model is not None:
+        os.makedirs(os.path.dirname(save_model), exist_ok=True)
         torch.save(model.state_dict(), save_model)
 
     # Inference
@@ -2045,6 +2050,7 @@ def outlier_detection_RINAT(X_train, epochs=100, optuna_trials=30, timeout=600, 
 
     # store the final model if required
     if save_model is not None:
+        os.makedirs(os.path.dirname(save_model), exist_ok=True)
         torch.save(model.state_dict(), save_model)
 
     # Compute reconstruction errors
