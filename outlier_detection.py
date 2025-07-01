@@ -105,6 +105,8 @@ def save_results_to_json(name_method, data_source, exec_time, scores, dataset_si
         json.dump(results, f, indent=4)
     print(f"Results saved to {file_path}")
 
+    return dict_jaccard
+
 
 ### Function to plot outliers that are given as a list of indices
 
@@ -129,6 +131,11 @@ def plot_spectra_outliers(X, dict_outliers, names, data_source, title='Visualiza
     elif isinstance(X, np.ndarray):
             X = [X]
 
+    # Save results if required in the folder Outputs/outliers_detection
+    if save_results:
+        dict_jaccard = save_results_to_json(name_method, data_source, exec_time, scores, dataset_size, epochs, name_loss, dict_outliers)
+    
+
     fig, axs = plt.subplots((len(X)+1)//2, 2, figsize=(15, 4*len(X)//2), dpi=100)
     axs = axs.flatten()
     for i, ax in enumerate(axs):
@@ -137,10 +144,12 @@ def plot_spectra_outliers(X, dict_outliers, names, data_source, title='Visualiza
         else:
             name = names[i]
             dataset = X[i]
+            jaccard = dict_jaccard[name]
+
             if isinstance(dataset, pd.DataFrame):
                  dataset = dataset.values
             outliers = dict_outliers[name]
-            ax.set_title(name)
+            ax.set_title(name + f'(Jaccard index = {jaccard:.3f})')
             ax.set_xlabel('Wavelength')
             ax.set_ylabel('Absorbance')
             ax.set_xticks(np.arange(0, dataset.shape[1], dataset.shape[1]//10))
@@ -156,10 +165,6 @@ def plot_spectra_outliers(X, dict_outliers, names, data_source, title='Visualiza
     plt.tight_layout()
     plt.subplots_adjust(top=0.9)
     plt.suptitle(title, fontweight='bold')
-
-    # Save results if required in the folder Outputs/outliers_detection
-    if save_results:
-        save_results_to_json(name_method, data_source, exec_time, scores, dataset_size, epochs, name_loss, dict_outliers)
     
     # Save figure if required in the folder Figures/outliers_detection
     if save_fig:
@@ -167,6 +172,8 @@ def plot_spectra_outliers(X, dict_outliers, names, data_source, title='Visualiza
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         fig.savefig(file_path, dpi=300)
     plt.show()
+
+
 
 
 ### Function to compute the dynamic threshold for the outliers detection
@@ -1132,9 +1139,9 @@ def outlier_detection_Anomaly_transformer(X_train, epochs=100, optuna_trials=30,
         set_seed(rd_seed)
 
         # Hyperparameters
-        kmax = int(np.log(p)/np.log(2)) - 1
+        kmax = int(np.log(p)/np.log(2))-1 
         dmax = 2**kmax
-        d_model = trial.suggest_categorical("d_model", [dmax//4, dmax//2, dmax, dmax*2])
+        d_model = trial.suggest_categorical("d_model", [dmax//4, dmax//2, dmax])
         num_layers = trial.suggest_int("num_layers", 1, 4)
         n_heads = trial.suggest_categorical("n_heads", [2, 4, 8])
         lam = trial.suggest_float("lam", 1.0, 5.0)
@@ -1161,6 +1168,7 @@ def outlier_detection_Anomaly_transformer(X_train, epochs=100, optuna_trials=30,
 
     best_params = study.best_trial.params
     print("Best set of parameters:", best_params)
+    print(f"{len(study.trials)} trials completed")
 
     # Full training with best parameters
     model = AnomalyTransformer1D(
@@ -1219,11 +1227,17 @@ class PositionalEncoding(nn.Module):
     def __init__(self, d_model, length):
         super().__init__()
         pe = torch.zeros(length, d_model)
-        position = torch.arange(0, length, dtype=torch.float32).unsqueeze(1)
+        position = torch.arange(0, length).unsqueeze(1).float()
         div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-np.log(10000.0) / d_model))
         pe[:, 0::2] = torch.sin(position * div_term)
-        pe[:, 1::2] = torch.cos(position * div_term)
-        self.pe = pe.unsqueeze(0)
+
+        if d_model % 2 == 1:
+            # Impair : 1::2 aura une colonne en moins
+            pe[:, 1::2] = torch.cos(position * div_term[:-1])
+        else:
+            pe[:, 1::2] = torch.cos(position * div_term)
+
+        self.pe = pe.unsqueeze(0)  # Shape: (1, length, d_model)
 
     def forward(self, x):
         return x + self.pe[:, :x.size(1)].to(x.device)
@@ -1348,9 +1362,9 @@ def outlier_detection_STOC(X_train, epochs=100, optuna_trials=30, timeout=600, r
 
     def objective(trial):
         set_seed(rd_seed)  # Re-seed inside trial for reproducibility
-        kmax = int(np.log(p)/np.log(2)) - 1
+        kmax = int(np.log(p)/np.log(2))-1 
         dmax = 2**kmax
-        d_model = trial.suggest_categorical("d_model", [dmax//4, dmax//2, dmax, dmax*2])
+        d_model = trial.suggest_categorical("d_model", [dmax//4, dmax//2, dmax])
         nhead = trial.suggest_categorical("nhead", [2, 4, 8])
         num_layers = trial.suggest_int("num_layers", 1, 4)
         lr = trial.suggest_float("lr", 1e-5, 1e-3, log=True)
@@ -1391,6 +1405,7 @@ def outlier_detection_STOC(X_train, epochs=100, optuna_trials=30, timeout=600, r
     # Best model training on full data
     best_params = study.best_trial.params
     print("Best set of parameters : ", best_params, end="\n")
+    print(f"{len(study.trials)} trials completed")
 
     model = STOC(
         input_dim=input_dim,
@@ -1657,9 +1672,9 @@ def outlier_detection_DATN(X_train, epochs=100, optuna_trials=30, timeout=600, r
     def objective(trial):
         set_seed(rd_seed)
         # Hyperparameter search space
-        kmax = int(np.log(p)/np.log(2)) - 1
+        kmax = int(np.log(p)/np.log(2))-1 
         dmax = 2**kmax
-        d_model = trial.suggest_categorical("d_model", [dmax//4, dmax//2, dmax, dmax*2])
+        d_model = trial.suggest_categorical("d_model", [dmax//4, dmax//2, dmax])
         n_heads = trial.suggest_categorical("n_heads", [2, 4, 8])
         num_layers = trial.suggest_int("num_layers", 1, 4)
         kernel_size = trial.suggest_categorical("kernel_size", [3, 5, 7])
@@ -1700,6 +1715,7 @@ def outlier_detection_DATN(X_train, epochs=100, optuna_trials=30, timeout=600, r
     # Final training on full data with best params
     best_params = study.best_trial.params
     print("Best set of parameters : ", best_params, end='\n')
+    print(f"{len(study.trials)} trials completed")
 
     model = DATN(
         input_dim=p,
@@ -2005,9 +2021,9 @@ def outlier_detection_RINAT(X_train, epochs=100, optuna_trials=30, timeout=600, 
         set_seed(rd_seed)
 
         # Hyperparameter search space
-        kmax = int(np.log(p)/np.log(2)) - 1
+        kmax = int(np.log(p)/np.log(2))-1 
         dmax = 2**kmax
-        d_model = trial.suggest_categorical("d_model", [dmax//4, dmax//2, dmax, dmax*2])
+        d_model = trial.suggest_categorical("d_model", [dmax//4, dmax//2, dmax])
         n_heads = trial.suggest_categorical("n_heads", [2, 4, 8])
         num_layers = trial.suggest_int("num_layers", 1, 4)
         lam = trial.suggest_float("lam", 0.5, 5.0)
@@ -2033,6 +2049,7 @@ def outlier_detection_RINAT(X_train, epochs=100, optuna_trials=30, timeout=600, 
 
     best_params = study.best_trial.params
     print("Best set of parameters :", best_params)
+    print(f"{len(study.trials)} trials completed")
 
     # Final training
     model = RINAT(
