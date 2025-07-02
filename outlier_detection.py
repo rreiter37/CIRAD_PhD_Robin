@@ -149,7 +149,7 @@ def plot_spectra_outliers(X, dict_outliers, names, data_source, title='Visualiza
             if isinstance(dataset, pd.DataFrame):
                  dataset = dataset.values
             outliers = dict_outliers[name]
-            ax.set_title(name + f'(Jaccard index = {jaccard:.3f})')
+            ax.set_title(name + f' (Jaccard = {jaccard:.3f})')
             ax.set_xlabel('Wavelength')
             ax.set_ylabel('Absorbance')
             ax.set_xticks(np.arange(0, dataset.shape[1], dataset.shape[1]//10))
@@ -168,7 +168,7 @@ def plot_spectra_outliers(X, dict_outliers, names, data_source, title='Visualiza
     
     # Save figure if required in the folder Figures/outliers_detection
     if save_fig:
-        file_path = "Figures/outliers_detection/%s/%s/see_outliers.png" % (name_method, data_source)
+        file_path = "Figures/outliers_detection/%s/%s/see_outliers_%s_%s.png" % (name_method, data_source, name_method, data_source)
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         fig.savefig(file_path, dpi=300)
     plt.show()
@@ -1276,7 +1276,10 @@ class STOC(nn.Module):
 # -----------------------------
 # Training
 # -----------------------------
-def train_model_STOC(model, train_loader, val_loader, trial=None, epochs=50, lr=1e-4, device=torch.device("cpu"), patience=10):
+def train_model_STOC(model, train_loader, val_loader, trial=None, epochs=50, lr=1e-4, device=torch.device("cpu"), patience=10, rd_seed=42):
+    torch.manual_seed(rd_seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
     model.to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
     criterion = nn.MSELoss()
@@ -1371,11 +1374,12 @@ def outlier_detection_STOC(X_train, epochs=100, optuna_trials=30, timeout=600, r
         batch_size = trial.suggest_categorical("batch_size", [16, 32, 64])
 
         # Train / Val split
-        idx = np.random.permutation(len(X_train))
+        rng = np.random.RandomState(rd_seed)
+        idx = rng.permutation(len(X_train))
         split = int(0.8 * len(X_train))
         X_tr, X_val = X_train[idx[:split]], X_train[idx[split:]]
-
-        train_loader = DataLoader(TensorDataset(torch.tensor(X_tr).unsqueeze(1)), batch_size=batch_size, shuffle=True)
+        g = torch.Generator().manual_seed(rd_seed)
+        train_loader = DataLoader(TensorDataset(torch.tensor(X_tr).unsqueeze(1)), batch_size=batch_size, shuffle=True, generator=g)
         val_loader = DataLoader(TensorDataset(torch.tensor(X_val).unsqueeze(1)), batch_size=batch_size)
 
         model = STOC(input_dim, d_model=d_model, nhead=nhead, num_layers=num_layers)
@@ -1386,7 +1390,8 @@ def outlier_detection_STOC(X_train, epochs=100, optuna_trials=30, timeout=600, r
             trial=trial,
             epochs=epochs,
             lr=lr,
-            device=device
+            device=device, 
+            rd_seed=rd_seed
         )
 
         # Validation scores
@@ -1418,7 +1423,7 @@ def outlier_detection_STOC(X_train, epochs=100, optuna_trials=30, timeout=600, r
     dummy_val_loader = DataLoader(TensorDataset(torch.tensor(X_train).unsqueeze(1)), batch_size=best_params["batch_size"])
 
     model = train_model_STOC(model, full_loader, dummy_val_loader, trial=study.best_trial,
-                             epochs=epochs, lr=best_params["lr"], device=device)
+                             epochs=epochs, lr=best_params["lr"], device=device, rd_seed=rd_seed)
 
     # store the final model if required
     if save_model is not None:
@@ -1434,13 +1439,114 @@ def outlier_detection_STOC(X_train, epochs=100, optuna_trials=30, timeout=600, r
     indices = np.where(anomalies)[0]
 
     if return_scores:
-        return indices, scores, study
+        return indices, scores
     return indices
 
 
 
 
 
+import optuna
+from joblib import Parallel, delayed
+from optuna.storages import JournalStorage, JournalFileStorage
+from optuna.trial import TrialState
+import tempfile
+
+def parallel_outlier_detection_STOC(X_train, epochs=100, optuna_trials=30, timeout=600, n_jobs=4,
+                                     return_scores=False, verbose_optuna=False, rd_seed=42,
+                                     save_model: Union[None, str] = None):
+    set_seed(rd_seed)
+
+    if isinstance(X_train, pd.DataFrame):
+        X_train = X_train.values
+    X_train = X_train.astype(np.float32)
+
+    n, p = X_train.shape
+    input_dim = p
+    device = torch.device("cpu")
+
+    if torch.cuda.is_available():
+        n_jobs = 16 # Use more jobs if the computer is better equipped
+
+    def objective(trial):
+        set_seed(rd_seed)  # Réinitialiser les seeds pour chaque trial
+        kmax = int(np.log(p)/np.log(2)) - 1
+        dmax = 2 ** kmax
+        d_model = trial.suggest_categorical("d_model", [dmax//4, dmax//2, dmax])
+        nhead = trial.suggest_categorical("nhead", [2, 4, 8])
+        num_layers = trial.suggest_int("num_layers", 1, 4)
+        lr = trial.suggest_float("lr", 1e-5, 1e-3, log=True)
+        batch_size = trial.suggest_categorical("batch_size", [16, 32, 64])
+
+        rng = np.random.RandomState(rd_seed)
+        idx = rng.permutation(len(X_train))
+        split = int(0.8 * len(X_train))
+        X_tr, X_val = X_train[idx[:split]], X_train[idx[split:]]
+
+        g = torch.Generator().manual_seed(rd_seed)
+        train_loader = DataLoader(TensorDataset(torch.tensor(X_tr).unsqueeze(1)),
+                                  batch_size=batch_size, shuffle=True, generator=g)
+        val_loader = DataLoader(TensorDataset(torch.tensor(X_val).unsqueeze(1)),
+                                batch_size=batch_size)
+
+        model = STOC(input_dim, d_model=d_model, nhead=nhead, num_layers=num_layers)
+        model = train_model_STOC(model, train_loader, val_loader, trial=trial, epochs=epochs,
+                                 lr=lr, device=device, rd_seed=rd_seed)
+
+        X_val_tensor = torch.tensor(X_val).unsqueeze(1).to(device)
+        scores = compute_reconstruction_scores_STOC(model, X_val_tensor, device)
+        return float(np.mean(scores))
+
+    if not verbose_optuna:
+        optuna.logging.set_verbosity(optuna.logging.WARNING)
+
+    with tempfile.NamedTemporaryFile() as tmp_storage:
+        storage = JournalStorage(JournalFileStorage(tmp_storage.name))
+        sampler = optuna.samplers.TPESampler(seed=rd_seed)
+        pruner = optuna.pruners.MedianPruner()
+        study = optuna.create_study(direction="minimize", sampler=sampler, pruner=pruner, storage=storage)
+
+        def run_trial(seed_offset):
+            set_seed(rd_seed + seed_offset)  # Seed offset pour garantir variété des runs
+            study.optimize(objective, n_trials=optuna_trials // n_jobs, timeout=timeout)
+
+        Parallel(n_jobs=n_jobs)(delayed(run_trial)(i) for i in range(n_jobs))
+
+        # Récupération des meilleurs paramètres
+        best_params = study.best_trial.params
+        print("Best set of parameters : ", best_params)
+        print(f"{len([t for t in study.trials if t.state == TrialState.COMPLETE])} trials completed")
+
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        # Réentraîner le meilleur modèle
+        model = STOC(input_dim=input_dim,
+                     d_model=best_params["d_model"],
+                     nhead=best_params["nhead"],
+                     num_layers=best_params["num_layers"]).to(device)
+
+        full_loader = DataLoader(TensorDataset(torch.tensor(X_train).unsqueeze(1)),
+                                 batch_size=best_params["batch_size"], shuffle=True)
+        dummy_val_loader = DataLoader(TensorDataset(torch.tensor(X_train).unsqueeze(1)),
+                                      batch_size=best_params["batch_size"])
+
+        model = train_model_STOC(model, full_loader, dummy_val_loader, trial=study.best_trial,
+                                 epochs=epochs, lr=best_params["lr"], device=device, rd_seed=rd_seed)
+
+        if save_model is not None:
+            os.makedirs(os.path.dirname(save_model), exist_ok=True)
+            torch.save(model.state_dict(), save_model)
+
+        X_tensor = torch.tensor(X_train).unsqueeze(1).to(device)
+        scores = compute_reconstruction_scores_STOC(model, X_tensor, device)
+
+        threshold = compute_dynamic_threshold(scores, len(X_train))
+        anomalies = scores > threshold
+        indices = np.where(anomalies)[0]
+
+        if return_scores:
+            return indices, scores
+        return indices
 
 
 
