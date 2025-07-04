@@ -129,55 +129,65 @@ def plot_spectra_outliers(X, dict_outliers, names, data_source, title='Visualiza
     if isinstance(X, pd.DataFrame):
         X = [X.values]
     elif isinstance(X, np.ndarray):
-            X = [X]
+        X = [X]
 
-    # Save results if required in the folder Outputs/outliers_detection
     if save_results:
-        dict_jaccard = save_results_to_json(name_method, data_source, exec_time, scores, dataset_size, epochs, name_loss, dict_outliers)
-    
+        dict_jaccard = save_results_to_json(
+            name_method, data_source, exec_time, scores,
+            dataset_size, epochs, name_loss, dict_outliers
+        )
 
-    fig, axs = plt.subplots((len(X)+1)//2, 2, figsize=(15, 4*len(X)//2), dpi=100)
-    axs = axs.flatten()
+    n_rows = (len(X) + 1) // 2
+    fig, axs = plt.subplots(n_rows, 2, figsize=(15, 4 * n_rows), dpi=100)
+    axs = np.ravel(axs)  # aplatir même si 1 ligne
+
     for i, ax in enumerate(axs):
         if i >= len(X):
             ax.axis('off')
-        else:
-            name = names[i]
-            dataset = X[i]
-            jaccard = dict_jaccard[name]
+            continue
 
-            if isinstance(dataset, pd.DataFrame):
-                 dataset = dataset.values
-            outliers = dict_outliers[name]
-            ax.set_title(name + f' (Jaccard = {jaccard:.3f})')
-            ax.set_xlabel('Wavelength')
-            ax.set_ylabel('Absorbance')
-            ax.set_xticks(np.arange(0, dataset.shape[1], dataset.shape[1]//10))
-            ax.plot(dataset.T, color='blue', alpha = 0.1)
-            ax.plot([], [], color='blue', label=name)
+        name      = names[i]
+        dataset   = X[i]
+        jaccard   = dict_jaccard[name]
+        outliers  = dict_outliers[name]
 
-            if len(outliers) > 0:
-                ax.plot(dataset[outliers,:].T, color='red', linewidth=0.5)
-                ax.plot([], [], color='red', label='outliers', linewidth=0.5)
-            
-            ax.legend(loc='upper left', fontsize='small')
+        if isinstance(dataset, pd.DataFrame):
+            dataset = dataset.values
+
+        wavelengths = np.linspace(350, 2500, dataset.shape[1])
+
+        for spec in dataset:
+            ax.plot(wavelengths, spec, color='blue', alpha=0.1)
+        if len(outliers) > 0:
+            for spec in dataset[outliers]:
+                ax.plot(wavelengths, spec, color='red', linewidth=0.5)
+
+        ax.set_xlim(350, 2500)
+        ax.set_xticks(np.arange(350, 2501, 200))
+        ax.set_xlabel('Wavelength (nm)')
+        ax.set_ylabel('Absorbance')
+        ax.set_title(f'{name} (Jaccard ={jaccard:.3f})')
+        ax.plot([], [], color='blue', label=name)          # légende « normal »
+        ax.plot([], [], color='red', label='outliers')     # légende « outliers »
+        ax.legend(loc='upper left', fontsize='small')
 
     plt.tight_layout()
     plt.subplots_adjust(top=0.9)
     plt.suptitle(title, fontweight='bold')
-    
-    # Save figure if required in the folder Figures/outliers_detection
+
     if save_fig:
-        file_path = "Figures/outliers_detection/%s/%s/see_outliers_%s_%s.png" % (name_method, data_source, name_method, data_source)
+        file_path = f"Figures/outliers_detection/{name_method}/{data_source}/" \
+                    f"see_outliers_{name_method}_{data_source}.png"
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         fig.savefig(file_path, dpi=300)
+
     plt.show()
 
 
 
 
 ### Function to compute the dynamic threshold for the outliers detection
-def compute_dynamic_threshold(errors, n_test, method="entropy", bins="auto"):
+def compute_dynamic_threshold(errors, n_test, method="entropy", bins="auto", coeff= 3.0):
         mean = np.mean(errors) # estimate the mean of reconstruction errors
         std = np.std(errors) # estimate the standard deviation
         
@@ -197,7 +207,7 @@ def compute_dynamic_threshold(errors, n_test, method="entropy", bins="auto"):
             E = entropy(hist, base=np.e)
 
             # Adaptative function based on entropy
-            threshold = mean + np.log1p(E) * std
+            threshold = mean + coeff * np.log1p(E) * std
             return threshold
 
 ###  Function to find the outliers with the PCA method
@@ -1372,6 +1382,7 @@ def outlier_detection_STOC(X_train, epochs=100, optuna_trials=30, timeout=600, r
         num_layers = trial.suggest_int("num_layers", 1, 4)
         lr = trial.suggest_float("lr", 1e-5, 1e-3, log=True)
         batch_size = trial.suggest_categorical("batch_size", [16, 32, 64])
+        epochs_optuna = epochs // 2  # Reduce epochs for hyperparameter tuning
 
         # Train / Val split
         rng = np.random.RandomState(rd_seed)
@@ -1452,7 +1463,7 @@ from optuna.storages import JournalStorage, JournalFileStorage
 from optuna.trial import TrialState
 import tempfile
 
-def parallel_outlier_detection_STOC(X_train, epochs=100, optuna_trials=30, timeout=600, n_jobs=4,
+def parallel_outlier_detection_STOC(X_train, epochs=100, optuna_trials=32, timeout=600, n_jobs=4,
                                      return_scores=False, verbose_optuna=False, rd_seed=42,
                                      save_model: Union[None, str] = None):
     set_seed(rd_seed)
@@ -1465,11 +1476,10 @@ def parallel_outlier_detection_STOC(X_train, epochs=100, optuna_trials=30, timeo
     input_dim = p
     device = torch.device("cpu")
 
-    if torch.cuda.is_available():
-        n_jobs = 16 # Use more jobs if the computer is better equipped
-
     def objective(trial):
-        set_seed(rd_seed)  # Réinitialiser les seeds pour chaque trial
+        trial_seed = rd_seed + trial.number  # ou utilise hash(trial)
+        set_seed(trial_seed)
+
         kmax = int(np.log(p)/np.log(2)) - 1
         dmax = 2 ** kmax
         d_model = trial.suggest_categorical("d_model", [dmax//4, dmax//2, dmax])
@@ -1502,15 +1512,17 @@ def parallel_outlier_detection_STOC(X_train, epochs=100, optuna_trials=30, timeo
 
     with tempfile.NamedTemporaryFile() as tmp_storage:
         storage = JournalStorage(JournalFileStorage(tmp_storage.name))
-        sampler = optuna.samplers.TPESampler(seed=rd_seed)
+        sampler = optuna.samplers.CmaEsSampler(seed=rd_seed, n_startup_trials=5)
         pruner = optuna.pruners.MedianPruner()
         study = optuna.create_study(direction="minimize", sampler=sampler, pruner=pruner, storage=storage)
 
-        def run_trial(seed_offset):
-            set_seed(rd_seed + seed_offset)  # Seed offset pour garantir variété des runs
-            study.optimize(objective, n_trials=optuna_trials // n_jobs, timeout=timeout)
-
-        Parallel(n_jobs=n_jobs)(delayed(run_trial)(i) for i in range(n_jobs))
+        study.optimize(
+        objective,
+        n_trials=optuna_trials,
+        n_jobs=n_jobs,       # Parallélisation native
+        timeout=timeout,
+        catch=(Exception,), # Important pour éviter les crashs par trial
+    )
 
         # Récupération des meilleurs paramètres
         best_params = study.best_trial.params
