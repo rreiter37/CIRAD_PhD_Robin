@@ -1,0 +1,9 @@
+# Ignorer tous les fichiers modèles PyTorch
+*.pth
+*.pth.tar
+*.pt
+*.tar.gz
+
+# Spécifiquement dans Outputs
+Outputs/outliers_detection/**/*.pth
+Outputs/outliers_detection/**/*.pth.tar
