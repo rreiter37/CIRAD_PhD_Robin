@@ -7,3 +7,9 @@
 # Spécifiquement dans Outputs
 Outputs/outliers_detection/**/*.pth
 Outputs/outliers_detection/**/*.pth.tar
+
+# Ignore les modèles
+*.pth
+*.pth.tar
+*.pt
+
