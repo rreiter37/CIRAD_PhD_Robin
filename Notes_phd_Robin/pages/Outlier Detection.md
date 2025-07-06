@@ -10,7 +10,13 @@
 		- Une autre approche est de calculer un seuil de décision en fonction de la taille du dataset: $$\mu(S_n) + \phi(n) . \sigma(S_n), \quad \phi(n) = \frac{\sqrt{n}}{\text{log}(n+2)}$$
 		  
 		  C'est une approche adaptative en fonction de la taille de la base de données, mais elle ne répond pas vraiment à toutes les attentes énoncées plus haut.
-		- Il existe plusieurs autres approches pour faire un seuil adaptatif pertinent. On peut notamment se baser sur l'entropie de la distribution des erreurs de reconstruction. Plus l'entropie est grande, plus la distribution des erreurs est diffuse et plus le seuil doit s'éloigner de la moyenne pour éviter de sur-détecter des outliers. L'entropie corrige indirectement l'hypothèse de normalité: on ne suppose plus que l'écart-type suffit à décrire la dispersion.
+		- Il existe plusieurs autres approches pour faire un seuil adaptatif pertinent. On peut notamment se baser sur l'entropie de la distribution des erreurs de reconstruction. L'entropie quantifie la dispersion d'une distribution. Plus sa valeur est grande, plus la distribution des erreurs est diffuse et plus le seuil doit s'éloigner de la moyenne pour éviter de sur-détecter des outliers. L'entropie corrige indirectement l'hypothèse de normalité: on ne suppose plus que l'écart-type suffit à décrire la dispersion.
+		  
+		  On peut proposer le seuil suivant: $$\mu(S_n) + \alpha(E). \sigma(S_n), \quad \text{où:} \quad E = -\underset{i}{\sum} p_i \text{log}(p_i), \quad \text{et:} \quad \alpha(E) = \text{log}(1+E)$$
+		  
+		  La fonction logarithmique permet de modérer l'impact d'une valeur d'entropie très grande, pour éviter que le seuil soit fixé trop bas et soit trop permissif dans le cas de distributions d'erreurs très dispersées.
+		  
+		  De plus, sa concavité permet un bon contrôle de la sensibilité: les variations des petites valeurs d'entropie sont plus impactantes, alors que les variations des grandes valeurs produisent des effets de seuil de plus en plus faibles (saturation). Ainsi, quand la distribution des erreurs est très concentrée (faible entropie), une variation même minime doit être significative. À l'inverse, quand elle est très dispersée, on évite de surestimer les différences entre erreurs.
 - ### Adaptation du modèle aux outliers
 	- #### Différencier les types d'outliers (Chandola et al. 2009)
 		- Observation unique déviante

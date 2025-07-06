@@ -1,7 +1,7 @@
 {
     "Method": "PCA",
     "Name Dataset": "YamProtein",
-    "Execution time (s)": 1.0008845329284668,
+    "Execution time (s)": 1.2828574180603027,
     "Reconstruction scores": {},
     "Dataset size": 784,
     "Epochs": 0,
