@@ -1,0 +1,18 @@
+{
+    "All preprocessings": {
+        "$R^2$": 0.5003663076477926,
+        "MAE": 188390069.11564988,
+        "MSE": 4.610900457011553e+16,
+        "Calibration time": 2343.70459318161,
+        "Dissimilarity time": 0,
+        "Number of preprocessing methods": 31
+    },
+    "KS test": {
+        "$R^2$": 0.6833639990729814,
+        "MAE": 139688427.21985924,
+        "MSE": 2.9220949342053516e+16,
+        "Calibration time": 1963.8355872631073,
+        "Dissimilarity time": 776.2138342857361,
+        "Number of preprocessing methods": 24
+    }
+}

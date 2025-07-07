@@ -137,6 +137,7 @@
 			  date:: 2019
 			  journal:: IEEE Transactions on Neural Networks and Learning Systems
 			  topics:: Outlier detection, Deep Learning, LSTM, RNN, time series
+			  collapsed:: true
 			- ### LSTM for anomaly detection
 			  link:: https://www.researchgate.net/publication/304782562_Long_Short_Term_Memory_Networks_for_Anomaly_Detection_in_Time_Series
 			  title:: Long Short Term Memory Networks for Anomaly Detection in Time Series
@@ -167,6 +168,7 @@
 			  date:: 2023
 			  journal:: IEEE 19th Conference on Automation and Engineering (CASE)
 			  topics:: Outlier detection, Deep Learning, LSTM, RNN, time series
+			  collapsed:: true
 		- #### HTM
 		  collapsed:: true
 			- ### Real-time anomaly detection with HTM
@@ -331,6 +333,7 @@
 		  date:: 2023
 		  journal:: Electronics, 12(2), 354
 		  topics:: Outlier detection, Deep Learning, Transformers, time series
+		  collapsed:: true
 			- **Résumé rapide:** Ce modèle décompose les séries temporelles en composantes saisonnières et de tendance, puis utilise un Transformer pour modéliser ces composantes séparément. Cette approche permet de mieux capturer les motifs périodiques et les tendances à long terme pour une détection d'anomalies plus précise.
 			- **Résumé complet:**
 			  L’article présente **DATN (Decompose Auto-Transformer Network)**, un modèle d’apprentissage non supervisé pour la détection d’anomalies dans les séries temporelles, spécifiquement destiné à la gestion de réseaux. Le principal enjeu est de modéliser la complexité des dépendances temporelles et la nature stochastique des données réseaux. DATN s’appuie sur une **décomposition de séries temporelles** en composants **tendance** et **saisonnier**, couplée à des modules de **transformer auto-attentifs** pour améliorer la détection.
@@ -390,6 +393,7 @@
 		  topics:: Outlier detection, Deep Learning, Transformers, time series
 			- **Résumé rapide:** Ce modèle améliore l'architecture Anomaly Transformer en intégrant une normalisation d'instance réversible, ce qui permet de mieux gérer les variations de distribution dans les séries temporelles univariées et d'améliorer la détection d'anomalies.
 			- **Résumé complet:**
+			  collapsed:: true
 				- **Objectif:** L'article propose **RINAT**, un modèle non supervisé pour la détection d'anomalies dans les séries temporelles, basé sur une version améliorée du **Anomaly Transformer**. Le modèle introduit deux innovations principales :
 					- **Reversible Instance Normalization (RevIN)** appliquée uniquement aux associations de séries.
 					- **Attention bi-branche** distinguant les associations **prior** (voisinage local) et **series** (global) pour mieux capturer les anomalies rares.
@@ -427,6 +431,16 @@
 									- *max* : series diverge du prior (pour renforcer les anomalies)
 							- Fonction de perte finale : $\text{Loss} = ||X - \hat{X}|| - \lambda * KL(\text{Prior}, \text{Series})$
 							- Score d’anomalie final : $AS(X) = \text{SoftMax}(-KL) × ||X - \hat{X}||$
+- ## Stacking models applied to NIRS
+	- ### Descriptive title
+	  link:: https://doi.org/10.1016/j.microc.2025.114056
+	  title:: Application of portable near-infrared spectrometer based on stacking in the continuous counter-current extraction process of *Carthamus tinctorius* L.
+	  author:: Zhang et al.
+	  date:: 2025
+	  journal:: Microchemical Journal, volume 214
+	  topics:: NIRS, Stacking models
+		- **Résumé rapide :** Utilisation de données NIRS, issues de spectromètres portables, sur la Carthame des teinturiers pour faire de la prédiction avec des modèles de stacking (PLSR, SVR, Lasso, RR, GPR // ELM) avec comme analyte la teneur en safflomine. Il y a d'abord une détection d'outliers et suppression (ACP -> intervalle de confiance à 95% + méthode boxplot). Plusieurs méthodes de pré-traitement sont comparées: SNV, mean center, autoscaling, First and second derivative, Savitzky-Golay, continuous wavelet transform, et les combinaisons de ces méthodes.
+		  Plusieurs méthodes de sélection de variables sont appliquées et comparées: correlation coefficient, elimination of uninformative variables, variable importance in projection, competitive adaptative reweighted sampling pour le modèle de PLSR; random forest, maximal information coefficient, grey relation analysis, snake optimizer pour les 4 autres modèles de la stack.
 - ## Template for articles
 	- ### Descriptive title
 	  link:: link to the see the article

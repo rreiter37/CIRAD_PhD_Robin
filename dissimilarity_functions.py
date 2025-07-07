@@ -76,7 +76,7 @@ def dissim_KS(X1, X2):
 
 # Function that enable the comparison betwwen diverse preprocessing methods based on their dissimilarities.
 
-def compare_preprocessings(preprocessings, Xcal, distance_fn=dissim_KS, normalize_dissim=False, threshold=("value",0.1)):
+def compare_preprocessings(preprocessings, Xcal, distance_fn=dissim_KS, normalize_dissim=False, threshold=("std", 2.0)):
     """
     Computes dissimetries between the datasets transformed by the selected preprocessing methods.
     
@@ -88,7 +88,7 @@ def compare_preprocessings(preprocessings, Xcal, distance_fn=dissim_KS, normaliz
         normalize_dissim (bool): If True, normalize the dissimilarity values by their maximum value.
         threshold (string, float): - string: whether "value" or "proportion",
         - float: if string is "value", the threshold is the maximum dissimilarity value to consider two preprocessing methods as similar.
-        IF string is "proportion", the threshold gives the proportion of preprocessing pairs to consider as similar.
+        If string is "std", the threshold corresponds to mean - value_float * std.
 
     Returns:
         dict, similar_pairs (dict, list of string couples): dict gathers a couple of preprocessing names as a key,
@@ -115,8 +115,12 @@ def compare_preprocessings(preprocessings, Xcal, distance_fn=dissim_KS, normaliz
         # Determine the similar preprocessing pairs based on the threshold
         if threshold[0] == "value":
             similar_pairs = [pair for pair, dist in dict.items() if dist < threshold[1]]
-        else:
-            similar_pairs = [pair for pair, dist in dict.items() if dist < np.percentile(list(dict.values()), threshold[1]*100)]
+        elif threshold[0] == "std":
+            list_dist = list(dict.values())
+            mean_dist = np.mean(list_dist)
+            std_dist = np.std(list_dist)
+            threshold_value = mean_dist - threshold[1] * std_dist
+            similar_pairs = [pair for pair, dist in dict.items() if dist < threshold_value]
 
     return dict, similar_pairs
 
