@@ -1,0 +1,26 @@
+{
+    "All preprocessings": {
+        "$R^2$": 0.9716039140443674,
+        "MAE": 0.2148150166999966,
+        "MSE": 0.16914194039800345,
+        "Calibration time": 32.767537117004395,
+        "Dissimilarity time": 0,
+        "Number of preprocessing methods": 31
+    },
+    "KS test": {
+        "$R^2$": 0.9696018974239271,
+        "MAE": 0.24497002174999757,
+        "MSE": 0.18106699853522049,
+        "Calibration time": 29.665437936782837,
+        "Dissimilarity time": 13.599050283432007,
+        "Number of preprocessing methods": 29
+    },
+    "Meta attributes": {
+        "$R^2$": 0.9716039140443674,
+        "MAE": 0.2148150166999966,
+        "MSE": 0.16914194039800345,
+        "Calibration time": 33.48352909088135,
+        "Dissimilarity time": 65.00364875793457,
+        "Number of preprocessing methods": 31
+    }
+}

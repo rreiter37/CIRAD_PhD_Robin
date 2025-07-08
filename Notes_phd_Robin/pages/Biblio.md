@@ -432,7 +432,7 @@
 							- Fonction de perte finale : $\text{Loss} = ||X - \hat{X}|| - \lambda * KL(\text{Prior}, \text{Series})$
 							- Score d’anomalie final : $AS(X) = \text{SoftMax}(-KL) × ||X - \hat{X}||$
 - ## Stacking models applied to NIRS
-	- ### Descriptive title
+	- ### Pipeline stacking pour NIRS portable
 	  link:: https://doi.org/10.1016/j.microc.2025.114056
 	  title:: Application of portable near-infrared spectrometer based on stacking in the continuous counter-current extraction process of *Carthamus tinctorius* L.
 	  author:: Zhang et al.
@@ -441,6 +441,14 @@
 	  topics:: NIRS, Stacking models
 		- **Résumé rapide :** Utilisation de données NIRS, issues de spectromètres portables, sur la Carthame des teinturiers pour faire de la prédiction avec des modèles de stacking (PLSR, SVR, Lasso, RR, GPR // ELM) avec comme analyte la teneur en safflomine. Il y a d'abord une détection d'outliers et suppression (ACP -> intervalle de confiance à 95% + méthode boxplot). Plusieurs méthodes de pré-traitement sont comparées: SNV, mean center, autoscaling, First and second derivative, Savitzky-Golay, continuous wavelet transform, et les combinaisons de ces méthodes.
 		  Plusieurs méthodes de sélection de variables sont appliquées et comparées: correlation coefficient, elimination of uninformative variables, variable importance in projection, competitive adaptative reweighted sampling pour le modèle de PLSR; random forest, maximal information coefficient, grey relation analysis, snake optimizer pour les 4 autres modèles de la stack.
+	- ### Descriptive title
+	  link:: https://doi.org/10.1016/j.talanta.2024.126242
+	  title:: Stacking and ridge regression-based spectral ensemble preprocessing method and its application in near-infrared spectral analysis
+	  author:: Huang et al.
+	  date:: 2024
+	  journal:: Talanta, volume 276
+	  topics:: NIRS, Stacking models, Ridge Regression
+		- **Résumé rapide:** Les auteurs proposent de faire du stacking uniquement avec des RR (Ridge Regressor). 8 modèles RR sont dans la couche 1; 1 RR en tant que méta-learner. Les preprocessings utilisés sont l'identité, vector normalization, Savitzky-Golay, SG first derivative, SG second derivative, multiplicative scatter correction, standard normal variate, standard normal variate - detrending.
 - ## Template for articles
 	- ### Descriptive title
 	  link:: link to the see the article
