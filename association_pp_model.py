@@ -9,8 +9,12 @@ import seaborn as sns
 
 import argparse
 
-from pinard import preprocessing as pp
+import nirs4all.transformations as pp
 from nirs4all.presets.ref_models import nicon
+
+from nicon_optuna import NiconOptunaRegressor
+from PLS_opti import AutoPLSRegression
+from Ridge_optuna import RidgeOptuna
 
 from sklearn.cross_decomposition import PLSRegression
 from sklearn.ensemble import StackingRegressor, GradientBoostingRegressor
@@ -37,40 +41,6 @@ simplefilter(action='ignore', category=FutureWarning)
 simplefilter(action='ignore', category=UserWarning)
 filterwarnings("ignore", category=FutureWarning)
 
-from sklearn.base import BaseEstimator, RegressorMixin
-from sklearn.cross_decomposition import PLSRegression
-from sklearn.model_selection import GridSearchCV
-from sklearn.metrics import make_scorer, mean_squared_error
-
-
-
-class AutoPLSRegression(BaseEstimator, RegressorMixin):
-    def __init__(self, max_components=20, cv=5, scale=True, scoring=None):
-        self.max_components = max_components
-        self.cv = cv
-        self.scale = scale
-        self.scoring = scoring  # peut être string ou callable
-
-    def fit(self, X, y):
-        max_comp = min(self.max_components, X.shape[1], X.shape[0])
-        param_grid = {'n_components': list(range(1, max_comp + 1))}
-        pls = PLSRegression(scale=self.scale)
-        scorer = self.scoring
-        if scorer is None:
-            scorer = make_scorer(mean_squared_error, greater_is_better=False)
-
-        self.grid_ = GridSearchCV(pls, param_grid, scoring=scorer, cv=self.cv)
-        self.grid_.fit(X, y)
-        self.best_n_components_ = self.grid_.best_params_['n_components']
-        print("Optimal number of components found for PLS : ", self.best_n_components_)
-        self.best_model_ = self.grid_.best_estimator_
-        return self
-
-    def predict(self, X):
-        return self.best_model_.predict(X)
-
-    def score(self, X, y):
-        return self.best_model_.score(X, y)
 
 # Function to load a CSV file with automatic separator detection
 
@@ -107,6 +77,7 @@ def load_csv_auto_sep(mode, data_source, type_data, verbose=True, delimiter=None
         return df
     
 
+rd_seed = 42  # Set a random seed for reproducibility
 
 # Regression: 'BeerOriginalExtract' or 'Digest_0.8' or 'YamProtein' //
 # Classification: 'CoffeeSpecies' or 'Malaria2024' or 'mDigest_custom3' or 'WhiskyConcentration' or 'YamMould'
@@ -132,7 +103,6 @@ Yval = load_csv_auto_sep(mode=mode, data_source=data_source, type_data='Yval', d
 print("Number of spectra for calibration: ", len(Ycal))
 print("Number of spectra for test: ", len(Yval))
 
-nicon((10, 12))  # Example usage of nicon function from nirs4all
 # Define preprocessing methods 
 preprocessings = [   ('id', pp.IdentityTransformer()),
                     ('baseline', pp.Baseline()),
@@ -151,14 +121,10 @@ preprocessings = [   ('id', pp.IdentityTransformer()),
 
 # Define models 
 models = [
-    ("Ridge", Ridge()),
-    ("Lasso", Lasso(max_iter=10000)),
+    ("Ridge_opt", RidgeOptuna(n_trials=10, random_state=rd_seed)),
     ("PLS", AutoPLSRegression(max_components=50, cv=5)),
-    ("ElasticNet", ElasticNet(max_iter=10000)),
-    ("SVR", SVR(kernel='rbf', C=1.0, epsilon=0.1)),
-    ("XGB", XGBRegressor(n_estimators=100, random_state=42, verbosity=0)),
-    ("LGBM", lgb.LGBMRegressor(n_estimators=100, random_state=42, verbose=-1)),
-    ("GBR", GradientBoostingRegressor(random_state=42)),
+    ("LGBM", lgb.LGBMRegressor(n_estimators=100, random_state=rd_seed, verbose=-1)),
+    ("NICON", NiconOptunaRegressor(n_trials=10, epochs=100, patience=10, random_state=rd_seed)),
 ]
 
 
@@ -175,7 +141,7 @@ for (pp_name, pp_method) in preprocessings:
             pipe.fit(Xcal, Ycal)
             metric = root_mean_squared_error(Yval, pipe.predict(Xval))
             n = len(results)
-            if n > 1 and abs(metric) > 1e4 * mean_metric:
+            if n > 1 and abs(metric) > 1e3 * mean_metric:
                 metric = np.nan  # Handle extreme values
         except Exception as e:
             metric = np.nan

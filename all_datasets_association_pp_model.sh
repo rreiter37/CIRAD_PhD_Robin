@@ -1,6 +1,6 @@
 #!/bin/bash
 
-for ds in YamMould CoffeeSpecies Malaria2024 WhiskyConcentration mDigest_custom3; do
+for ds in CoffeeSpecies YamMould Malaria2024 WhiskyConcentration mDigest_custom3; do
     echo "Running on $ds"
     python association_pp_model.py --mode Classification --data_source $ds
 done

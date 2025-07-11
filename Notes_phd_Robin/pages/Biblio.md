@@ -1,4 +1,5 @@
 ## Detection of outliers [[Outlier Detection]]
+collapsed:: true
 	- ### Outlier detection with data depth theory
 	  link:: https://www.tandfonline.com/doi/epdf/10.1080/1573062X.2017.1280515?needAccess=true
 	  title:: Outlier detection in UV/Vis spectrophotometric data
@@ -234,6 +235,7 @@
 			  topics:: Outlier detection, Deep Learning, AE, time series
 			  collapsed:: true
 	- ### Using the architecture of transformers
+	  collapsed:: true
 		- #### Founding article on the architecture of transformers
 		  link:: https://proceedings.neurips.cc/paper_files/paper/2017/file/3f5ee243547dee91fbd053c1c4a845aa-Paper.pdf
 		  title:: Attention Is All You Need
@@ -441,14 +443,30 @@
 	  topics:: NIRS, Stacking models
 		- **Résumé rapide :** Utilisation de données NIRS, issues de spectromètres portables, sur la Carthame des teinturiers pour faire de la prédiction avec des modèles de stacking (PLSR, SVR, Lasso, RR, GPR // ELM) avec comme analyte la teneur en safflomine. Il y a d'abord une détection d'outliers et suppression (ACP -> intervalle de confiance à 95% + méthode boxplot). Plusieurs méthodes de pré-traitement sont comparées: SNV, mean center, autoscaling, First and second derivative, Savitzky-Golay, continuous wavelet transform, et les combinaisons de ces méthodes.
 		  Plusieurs méthodes de sélection de variables sont appliquées et comparées: correlation coefficient, elimination of uninformative variables, variable importance in projection, competitive adaptative reweighted sampling pour le modèle de PLSR; random forest, maximal information coefficient, grey relation analysis, snake optimizer pour les 4 autres modèles de la stack.
-	- ### Descriptive title
-	  link:: https://doi.org/10.1016/j.talanta.2024.126242
-	  title:: Stacking and ridge regression-based spectral ensemble preprocessing method and its application in near-infrared spectral analysis
-	  author:: Huang et al.
+	- ### Stacking with Ridge Regressors on multiple ensembles
+		- link:: https://doi.org/10.1016/j.talanta.2024.126242
+		  title:: Stacking and ridge regression-based spectral ensemble preprocessing method and its application in near-infrared spectral analysis
+		  author:: Huang et al.
+		  date:: 2024
+		  journal:: Talanta, volume 276
+		  topics:: NIRS, Stacking models, Ridge Regression
+		- **Résumé rapide:** Les auteurs proposent de faire du stacking uniquement avec des RR (Ridge Regressor). 8 modèles RR sont dans la couche 1; 1 RR en tant que méta-learner. Les preprocessings utilisés sont l'identité, vector normalization, Savitzky-Golay, SG first derivative, SG second derivative, multiplicative scatter correction, standard normal variate, standard normal variate - detrending. Les performances sont meilleures pour ce modèle que pour les modèles individuels; sans pour autant vraiment augmenter le temps de calcul, puisqu'un modèle individuel passe aussi par une phase d'hyperparamétrisation complète, et que l'approche proposée ici est tout aussi efficace. Cette approche montre également de meilleurs résultats que plusieurs méthodes ensemblistes basées sur des pré-traitements multiples des données, souvent orientées PLS, à savoir SPORT, PORTO, MCCV stacked regression, et selective ensemble preprocessing PLS.
+	- ### Stacking model with AWPSO on FT-NIR data
+	  link:: https://doi.org/10.1016/j.infrared.2024.105169
+	  title:: Multi-model fusion stacking ensemble learning method for the prediction of berberine by FT-NIR spectroscopy
+	  author:: Li et al.
 	  date:: 2024
-	  journal:: Talanta, volume 276
-	  topics:: NIRS, Stacking models, Ridge Regression
-		- **Résumé rapide:** Les auteurs proposent de faire du stacking uniquement avec des RR (Ridge Regressor). 8 modèles RR sont dans la couche 1; 1 RR en tant que méta-learner. Les preprocessings utilisés sont l'identité, vector normalization, Savitzky-Golay, SG first derivative, SG second derivative, multiplicative scatter correction, standard normal variate, standard normal variate - detrending.
+	  journal:: Infrared Physics and Technology, volume 137
+	  topics:: FT-NIR, Stacking models, Particle Swarm Optimization
+		- **Résumé rapide:** Prédiction de la berbérine dans la plante chinoise Coptide (portée médicale et pharmaceutique). Utilisation d'un modèle de Stacking constitué de 3 modèles dans la première couche, sur des données FT-NIR. Plusieurs modèles de stacking ont été comparés en choisissant aléatoirement 3 modèles parmi les suivants: PLS, AdaBoost, GBDT, RF, XGBoost. Pour optimiser les paramètres de chaque modèle, la méthode *adaptative inertia weight particle swarm optimization (AWPSO)* est employée, après comparaison avec la méthode PSO classique. Les données sont splitées par méthode SPXY en 60/18 échantillons. Finalement, le meilleur modèle trouvé est constitué de RF, AdaBoost, XGBoost. Le méta-learner est la régression linéaire multiple. Le modèle de stacking a montré de meilleures performances que les modèles individuels optimisés.
+	- ### Descriptive title
+	  link:: https://doi.org/10.1016/j.still.2023.105684
+	  title:: Predicting key soil properties from Vis-NIR spectra by applying dual-wavelength indices transformations and stacking machine learning approaches
+	  author:: Tavakoli et al.
+	  date:: 2023
+	  journal:: Soil & Tillage Research, volume 229
+	  topics:: NIRS, Stacking models, LUCAS dataset
+		- **Résumé rapide :**
 - ## Template for articles
 	- ### Descriptive title
 	  link:: link to the see the article
