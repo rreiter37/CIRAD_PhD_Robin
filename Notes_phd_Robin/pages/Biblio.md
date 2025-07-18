@@ -466,7 +466,15 @@ collapsed:: true
 	  date:: 2023
 	  journal:: Soil & Tillage Research, volume 229
 	  topics:: NIRS, Stacking models, LUCAS dataset
-		- **Résumé rapide :**
+		- **Résumé rapide :** Sur la base de données des sols LUCAS, plusieurs modèles sont comparés: PLS, PCR, deux modèles de stacking (PCR-poly, 2R-RF. Optimisation via grid search.
+		  Le premier est basé sur une succession directe de transformations et de modèles linéaires: StandardScaler -> ACP (q>p variables résultantes) -> Régression Linéaire (vecteur de taille nx1 en sortie) -> Quantile Information Transformation -> Régression polynômiale. Optimisation via grid search.
+		  Le deuxième entraîne un modèle de PLSR et un modèle Ridge en première couche, et un Random Forest en méta-learner. Optimisation via random search (sous-échantillonage aléatoire des combinaisons d'hyperparamètres essayés).
+		  Les performances des modèles de stacking sont meilleures. Le meilleur modèle est PCR-poly.
+		  Deux types de pré-traitements (NDI, SRI) sont appliqués aux spectres de réflectance bruts, ou lissés par Savitzky-Golay combinés à une moyennation par paquets de 20 longueurs d'onde. 
+		  Pour deux bandes spectrales $R_i, R_j$: $$~~\text{NDI}_{ij} = \frac{R_j - R_i}{R_j + R_i}, ~~i<j$$
+		  Et: $$~~\text{SRI}_{ij} = \frac{R_j}{R_i}, ~~i<j$$
+		  
+		  Les résultats sont meilleurs avec ces transformations NDI et SRI.
 - ## Template for articles
 	- ### Descriptive title
 	  link:: link to the see the article

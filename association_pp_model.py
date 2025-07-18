@@ -1,83 +1,64 @@
 
 import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+os.environ['PYTHONHASHSEED'] = '42'
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
+os.environ["NUMEXPR_NUM_THREADS"] = "1"
 import csv
 from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
+import random
+import tensorflow as tf
+
+rd_seed = 42
+np.random.seed(rd_seed)
+random.seed(rd_seed)
+tf.random.set_seed(rd_seed)
 
 import argparse
 
 import nirs4all.transformations as pp
 from nirs4all.presets.ref_models import nicon
 
+from ensure_dataframe import EnsureDataFrame
+from utils_bdd import split_data
+
 from nicon_optuna import NiconOptunaRegressor
-from PLS_opti import AutoPLSRegression
-from Ridge_optuna import RidgeOptuna
+from nicon_optuna_classif import NiconOptunaClassifier
+from PLS_opti import AutoPLSRegression, ConstantTargetPLSError
+from PLS_opti_classif import AutoPLSClassifier
+from Ridge_opti import RidgeCVRegressor
+from Ridge_opti_classif import RidgeCVClassifier
+from LGBM_optuna import LGBMOptuna
+from LGBM_optuna_classif import LGBMOptunaClassifier
 
-from sklearn.cross_decomposition import PLSRegression
-from sklearn.ensemble import StackingRegressor, GradientBoostingRegressor
-from sklearn.pipeline import Pipeline, FeatureUnion, make_pipeline
-from sklearn.preprocessing import MinMaxScaler
-from sklearn.compose import TransformedTargetRegressor
+from sklearn.pipeline import Pipeline
 from sklearn.decomposition import PCA
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.model_selection import cross_validate, cross_val_predict
-from sklearn.linear_model import RidgeCV, LinearRegression, Ridge, ElasticNet, Lasso
-from sklearn.svm import SVR
-from sklearn.metrics import root_mean_squared_error, r2_score, mean_absolute_error
-from xgboost import XGBRegressor
-from dissimilarity_functions import *
-import json
+from sklearn.metrics import root_mean_squared_error, accuracy_score
 
-import lightgbm as lgb
+from itertools import permutations
+from joblib import Parallel, delayed, Memory
+memory = Memory(".cache", verbose=0)  # Cache for parallel processing
+from tqdm import tqdm
 
 # import warnings filter
 import warnings
+warnings.filterwarnings("ignore", category=UserWarning, module="sklearn.cross_decomposition._pls")
+
 from warnings import simplefilter, filterwarnings
 # ignore all future warnings
 simplefilter(action='ignore', category=FutureWarning)
 simplefilter(action='ignore', category=UserWarning)
 filterwarnings("ignore", category=FutureWarning)
 
-
-# Function to load a CSV file with automatic separator detection
-
-def load_csv_auto_sep(mode, data_source, type_data, verbose=True, delimiter=None):
-
-    ## Importation of the datasets with the adapted path
-    file_name = Path("Data/%s/%s"% (mode,data_source))
-    full_path = str(file_name.resolve()).replace("\\", "/")
-    path = full_path + "/%s.csv" % type_data
     
-    with open(path, 'r', newline='', encoding='utf-8-sig') as f:
-
-        if delimiter is not None:
-            sep = delimiter
-        
-        else:
-            # Read a small portion of the file to detect the separator
-            excerpt = f.read(1024)
-            f.seek(0)  # return to the beginning of the file
-
-            # Detection of the dialect
-            dialect = csv.Sniffer().sniff(excerpt)
-            sep = dialect.delimiter
-
-        if verbose: print("Detected separator for %s: %s" % (type_data, sep))
-        
-        # Load the file with pandas
-        df = pd.read_csv(f, delimiter=sep)
-
-        if type_data[0]=='Y' and len(df.columns) > 1:
-            # Drop the useless column if it exists
-            df = df.drop(columns=[df.columns[1]])
-        
-        return df
-    
-
-rd_seed = 42  # Set a random seed for reproducibility
 
 # Regression: 'BeerOriginalExtract' or 'Digest_0.8' or 'YamProtein' //
 # Classification: 'CoffeeSpecies' or 'Malaria2024' or 'mDigest_custom3' or 'WhiskyConcentration' or 'YamMould'
@@ -85,75 +66,142 @@ rd_seed = 42  # Set a random seed for reproducibility
 parser = argparse.ArgumentParser(description="Association modèle / preprocessing avec heatmap")
 
 parser.add_argument('--mode', type=str, choices=["Regression", "Classification"], required=True,
-                    help="Type de tâche : Regression ou Classification")
+                    help="Type of task: 'Regression' or 'Classification'")
 
 parser.add_argument('--data_source', type=str, required=True,
-                    help="Nom du dataset (ex: YamMould, CoffeeSpecies, etc.)")
+                    help="Name of the dataset to use (e.g., 'BeerOriginalExtract', 'CoffeeSpecies', etc.)")
+
+parser.add_argument('--top_n_preprocs', type=int, default=None,
+                    help="Display only the top N preprocessings based on their performance (optional). If None, all preprocessings are displayed.")
+
+parser.add_argument('--only_colors', action='store_true', default=False,
+                    help="Display only colors in the heatmap without values (optional)")
+
 
 args = parser.parse_args()
 
 mode = args.mode
 data_source = args.data_source
+only_colors = args.only_colors
 
-Xcal = load_csv_auto_sep(mode=mode, data_source=data_source, type_data='Xcal')
-Xval = load_csv_auto_sep(mode=mode, data_source=data_source, type_data='Xval')
-Ycal = load_csv_auto_sep(mode=mode, data_source=data_source, type_data='Ycal', delimiter=' ')
-Yval = load_csv_auto_sep(mode=mode, data_source=data_source, type_data='Yval', delimiter=' ')
+Xcal, Ycal, Xval, Yval = split_data(mode, data_source, verbose=True)
 
-print("Number of spectra for calibration: ", len(Ycal))
-print("Number of spectra for test: ", len(Yval))
+# Liste de base des prétraitements simples
+simple_preprocs = [
+    ('baseline', pp.Baseline()),
+    ('derivate', pp.Derivate()),
+    ('detrend', pp.Detrend()),
+    ('MSC', pp.MultiplicativeScatterCorrection()),
+    ('normalize', pp.Normalize()),
+    ('RNV', pp.RobustNormalVariate()),
+    ('savgol', pp.SavitzkyGolay()),
+    ('simplescale', pp.SimpleScale()),
+    ('SNV', pp.StandardNormalVariate()),
+    ('haar', pp.Wavelet('haar')),
+    ('gaussian', pp.Gaussian(order=2, sigma=1)),
+]
+preprocessings = list(simple_preprocs)
 
-# Define preprocessing methods 
-preprocessings = [   ('id', pp.IdentityTransformer()),
-                    ('baseline', pp.Baseline()),
-                    ('derivate', pp.Derivate()),
-                    ('detrend', pp.Detrend()),
-                    ('MSC', pp.MultiplicativeScatterCorrection()),
-                    ('normalize', pp.Normalize()),
-                    ('RNV', pp.RobustNormalVariate()),
-                    ('savgol', pp.SavitzkyGolay()),
-                    ('simplescale', pp.SimpleScale()),
-                    ('SNV', pp.StandardNormalVariate()),
-                    ('haar', pp.Wavelet('haar')),
-                    ('gaussian', pp.Gaussian(order = 2, sigma = 1)),
-                    ('PCA', PCA())
-                ]
+# Add 2-combinations of simple preprocessing methods
+for (name1, trans1), (name2, trans2) in permutations(simple_preprocs, 2):
+    combo_name = f'{name1}_{name2}'
+    combo_pipeline = Pipeline([
+        (name1, trans1),
+        (name2, trans2)
+    ])
+    preprocessings.append((combo_name, combo_pipeline))
+
+# Tu peux aussi ajouter 'PCA' si tu veux
+preprocessings.append(('id', pp.IdentityTransformer()))
+preprocessings.append(('PCA', PCA()))
+
+
 
 # Define models 
-models = [
-    ("Ridge_opt", RidgeOptuna(n_trials=10, random_state=rd_seed)),
-    ("PLS", AutoPLSRegression(max_components=50, cv=5)),
-    ("LGBM", lgb.LGBMRegressor(n_estimators=100, random_state=rd_seed, verbose=-1)),
-    ("NICON", NiconOptunaRegressor(n_trials=10, epochs=100, patience=10, random_state=rd_seed)),
-]
+if mode == 'Regression':
+    models = [
+        ("Ridge_opt", RidgeCVRegressor(alphas=np.logspace(-4, 2, 50), cv=5, random_state=rd_seed)),
+        ("PLS", AutoPLSRegression(max_components=Xcal.shape[1], cv=5)),
+        ("LGBM_opt", LGBMOptuna(cv=5, n_trials=50, random_state=rd_seed, verbose=0)),
+        ("NICON", NiconOptunaRegressor(n_trials=50, epochs=10000, patience=10, epochs_optuna=100, random_state=rd_seed)),
+    ]
+    models = [
+        ('PLS', AutoPLSRegression(max_components=Xcal.shape[1], cv=5, scale=False)),
+    ]
+else:  # Classification
+    num_classes = len(np.unique(Ycal))  # Number of classes in the target variable
+    models = [
+        ("Ridge_classif", RidgeCVClassifier(alphas=np.logspace(-4, 2, 50), cv=5, random_state=rd_seed)),
+        ("PLS_classif", AutoPLSClassifier(max_components=Xcal.shape[1], cv=5)),
+        ("LGBM_classif", LGBMOptunaClassifier(cv=5, n_trials=50, random_state=rd_seed, verbose=0)),
+        ("NICON_classif", NiconOptunaClassifier(num_classes=num_classes, n_trials=50, epochs=10000, patience=10, epochs_optuna=100, random_state=rd_seed)),
+    ]
 
 
-# Calibration and test part
-results = []
-mean_metric = 0
+
+import warnings
+
+def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xval, Yval, mean_metric):
+    X_train, X_test = np.asarray(Xcal), np.asarray(Xval)
+    Y_train, Y_test = np.asarray(Ycal).ravel(), np.asarray(Yval).ravel()
+
+    try:
+        if mdl_name.startswith("LGBM"):
+            pipe = Pipeline([
+                ("prep", pp_method),
+                ("ensure_df", EnsureDataFrame()),
+                ("model", mdl)
+            ], memory=memory)
+        else:
+            pipe = Pipeline([
+                ("prep", pp_method),
+                ("model", mdl)
+            ], memory=memory)  # Use caching for the pipeline
+
+        # Catch specific warnings for PLS
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            pipe.fit(X_train, Y_train)
+
+        y_pred = pipe.predict(X_test)
+
+        if mode == 'Regression':
+            metric = root_mean_squared_error(Y_test, y_pred)
+        else:
+            metric = accuracy_score(Y_test, y_pred.ravel())
+
+        if abs(metric) > 1e3 * mean_metric:
+            metric = np.nan
+
+    except Exception as e:
+        metric = np.nan
+        print(f"[ERROR] {pp_name} + {mdl_name}: {e}")
+
+    print(f"{pp_name} + {mdl_name} = {metric:.2f}")
+    return (pp_name, mdl_name, metric)
+
+
+# Construction des combinaisons (pp, modèle)
+combinations = []
 for (pp_name, pp_method) in preprocessings:
     for (mdl_name, mdl) in models:
-        pipe = Pipeline([
-            ("prep", pp_method),
-            ("model", mdl)
-        ])
-        try:
-            pipe.fit(Xcal, Ycal)
-            metric = root_mean_squared_error(Yval, pipe.predict(Xval))
-            n = len(results)
-            if n > 1 and abs(metric) > 1e3 * mean_metric:
-                metric = np.nan  # Handle extreme values
-        except Exception as e:
-            metric = np.nan
-            print(f"[ERROR] {pp_name} + {mdl_name}: {e}")
+        combinations.append((pp_name, pp_method, mdl_name, mdl))
 
-        results.append((pp_name, mdl_name, metric))
-        mean_metric = 1/(n+1) * (mean_metric * n + metric) if metric != np.nan else mean_metric
-        print(f"{pp_name} + {mdl_name} → {metric:.2f}")
+# Approximation initiale du score moyen (sert à filtrer les outliers extrêmes)
+mean_metric = 1.0 if mode == 'Regression' else 0.5
+
+# Exécution parallèle
+results = Parallel(n_jobs=-1)(
+    delayed(evaluate_combination)(
+        pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xval, Yval, mean_metric
+    )
+    for (pp_name, pp_method, mdl_name, mdl) in tqdm(combinations, desc="Evaluations")
+)
+
 
 # store the results in a DataFrame
 df_scores = pd.DataFrame(results, columns=["Preprocessing", "Model", "Score"])
-pivoted = df_scores.pivot(index="Model", columns="Preprocessing", values="Score") # pivot the DataFrame to have preprocessing methods as columns and models as rows
+pivoted = df_scores.pivot(index="Model", columns="Preprocessing", values="Score")  # preprocessing as columns
 
 # save the results to a CSV file
 output_dir = os.path.join("Results", "assoc_pp_model", data_source)
@@ -161,46 +209,79 @@ os.makedirs(output_dir, exist_ok=True)
 output_path = os.path.join(output_dir, f"results_{data_source}.csv")
 pivoted.to_csv(output_path)
 
-# Format the ouput for better visualization
-def format_value(x):
+# ──────────────────────────────────────────────────────
+# Format functions for heatmap annotation and bolding best
+
+def format_value(x, classification=False):
     if pd.isnull(x):
         return ""
-    return f"{x:.2f}"
+    return f"{(x * 100 if classification else x):.2f}"
 
-# Bold best score per column (i.e. per preprocessing)
-def bold_best(df):
+def bold_best(df, classification=False):
     formatted = df.copy()
     for col in df.columns:
         col_values = df[col]
         if col_values.isnull().all():
             continue
-        best_idx = col_values.idxmin()
+        best_idx = col_values.idxmax() if classification else col_values.idxmin()
         for idx in df.index:
             val = df.at[idx, col]
             if pd.isnull(val):
                 formatted.at[idx, col] = ""
             elif idx == best_idx:
-                formatted.at[idx, col] = r"$\bf{" + format_value(val) + "}$"
+                formatted.at[idx, col] = r"$\bf{" + format_value(val, classification) + "}$"
             else:
-                formatted.at[idx, col] = format_value(val)
+                formatted.at[idx, col] = format_value(val, classification)
     return formatted
 
-formatted_df = bold_best(pivoted)
+formatted_df = bold_best(pivoted, classification=(mode == "Classification"))
 
-# ────────────────────────────────────────────────
-plt.figure(figsize=(12, 5))
+# Keep only the top N preprocessings if specified
+top_n = args.top_n_preprocs
+
+if top_n is not None:
+    if mode == 'Regression':
+        best_preprocs = pivoted.mean().sort_values().head(top_n).index
+    else:  # Classification
+        best_preprocs = pivoted.mean().sort_values(ascending=False).head(top_n).index
+
+    pivoted = pivoted[best_preprocs]
+    formatted_df = formatted_df[best_preprocs]
+
+
+# ──────────────────────────────────────────────────────
+# Plotting the heatmap
+num_preprocs = len(pivoted.columns)
+fig_width = max(14, num_preprocs * 0.25)
+
+plt.figure(figsize=(fig_width, 5.5 if mode == "Classification" else 5))
+
 sns.heatmap(
-    pivoted,  # raw scores (used for coloring)
-    annot=formatted_df,  # formatted text overlay
-    fmt="",  # already formatted
+    pivoted * (100 if mode == "Classification" else 1),  # scale for accuracy
+    annot=None if only_colors else formatted_df,
+    fmt="" if not only_colors else None,
     linewidths=0.5,
-    cmap="viridis",
-    cbar_kws={"label": "RMSE"},
+    cmap="YlGnBu" if mode == "Classification" else "viridis",
+    cbar_kws={"label": "Accuracy (%)" if mode == "Classification" else "RMSE"},
+    xticklabels=True,
+    yticklabels=True
 )
-plt.title(f"Performance Heatmap (RMSE) / {data_source} dataset ({mode})")
+
+
+plt.xticks(rotation=90, ha="center", fontsize=8 if only_colors else 7)
+plt.yticks(rotation=0, fontsize=10 if only_colors else 9)
+plt.title(f"Performance Heatmap ({'Accuracy' if mode == 'Classification' else 'RMSE'}) / {data_source} dataset ({mode})")
+
 plt.tight_layout()
 output_dir = os.path.join("Figures", "assoc_pp_model", data_source)
 os.makedirs(output_dir, exist_ok=True)
-output_path = os.path.join(output_dir, f"heatmap_{data_source}.png")
+
+# Nom du fichier heatmap avec ou sans mention top_N
+if top_n is not None:
+    heatmap_filename = f"heatmap_{data_source}_top_{top_n}.png"
+else:
+    heatmap_filename = f"heatmap_{data_source}.png"
+
+output_path = os.path.join(output_dir, heatmap_filename)
 plt.savefig(output_path, dpi=300)
 plt.show()

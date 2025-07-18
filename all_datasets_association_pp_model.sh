@@ -1,10 +1,23 @@
 #!/bin/bash
 
-for ds in CoffeeSpecies YamMould Malaria2024 WhiskyConcentration mDigest_custom3; do
-    echo "Running on $ds"
-    python association_pp_model.py --mode Classification --data_source $ds
-done
-for ds in BeerOriginalExtract YamProtein Digest_0.8; do
-    echo "Running on $ds"
-    python association_pp_model.py --mode Regression --data_source $ds
-done
+only_type="$1"  # Peut être "Classification", "Regression" ou vide
+
+# Datasets de classification
+classification_datasets=("CoffeeSpecies" "YamMould" "Malaria2024" "WhiskyConcentration" "mDigest_custom3")
+
+# Datasets de régression
+regression_datasets=("BeerOriginalExtract" "YamProtein" "Digest_0.8")
+
+if [[ -z "$only_type" || "$only_type" == "Classification" ]]; then
+    for ds in "${classification_datasets[@]}"; do
+        echo "Running on $ds (Classification)"
+        python association_pp_model.py --mode Classification --data_source "$ds" --only_colors
+    done
+fi
+
+if [[ -z "$only_type" || "$only_type" == "Regression" ]]; then
+    for ds in "${regression_datasets[@]}"; do
+        echo "Running on $ds (Regression)"
+        python association_pp_model.py --mode Regression --data_source "$ds" --only_colors
+    done
+fi

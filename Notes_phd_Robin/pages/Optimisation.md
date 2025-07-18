@@ -1,0 +1,21 @@
+### Optuna
+- ### Hyperband
+	- La **technique d'optimisation hyperbande** (ou *Hyperband* en anglais) est une méthode efficace pour la **sélection d'hyperparamètres** en **apprentissage automatique** et **deep learning**. Elle vise à trouver rapidement les meilleures configurations d'hyperparamètres parmi un grand espace de recherche, tout en réduisant le temps de calcul. 
+	  Elle repose sur le principe suivant: ne pas entraîner complètement tous les modèles / tester rapidement plein de configurations avec peu de ressources, et n’en entraîner à fond que les plus prometteuses.
+	- C'est un **méta-algorithme** qui repose sur deux idées:
+		- **Allocation de ressources adaptative** : au lieu d'entraîner tous les modèles jusqu'à la fin, on donne à chacun un petit budget (ex : peu d’epochs, ou un petit sous-ensemble de données), on évalue, et on **élimine les moins bons**.
+		- **Successive Halving (réduction successive)** : c’est une stratégie qui consiste à entraîner plusieurs modèles avec peu de ressources, évaluer leurs performances, éliminer une partie (par ex. les 50% moins bons), et redistribuer les ressources restantes aux meilleurs, en augmentant leur budget.
+	- Hyperband généralise cette idée en **testant plusieurs stratégies de budget initial vs nombre de configurations**, pour maximiser l’exploration tout en permettant l’exploitation des bons candidats.
+	- **Avantages:**
+		- Plus rapide qu'un grid search sur de grands espaces;
+		- Adaptation automatique à différents "budgets";
+		- Pas d'hypothèse forte sur le problème ou le modèle;
+		- Palie un coût d'entraînement trop élevé.
+	- **Quand l'utiliser:**
+		- Beaucoup d'hyperparamètres à explorer;
+		- Fort coût d'entaînement d'un modèle (e.g. deep learning);
+		- Trouver rapidement un bon modèle.
+	- **Implémentations Python:**
+		- Optuna: TPE (Tree-structured Parzen Estimator -> optimisation bayésienne) + hyperband
+		- Keras tuner: pur hyperband
+		- Hyperopt: TPE, annealing
