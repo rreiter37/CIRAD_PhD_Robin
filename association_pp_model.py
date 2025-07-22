@@ -1,26 +1,24 @@
 
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 os.environ['PYTHONHASHSEED'] = '42'
 os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
 os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
 os.environ["NUMEXPR_NUM_THREADS"] = "1"
-import csv
-from pathlib import Path
+
+# Clear the cache
+import shutil
+shutil.rmtree(".cache")
+
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 import random
 import tensorflow as tf
-
-rd_seed = 42
-np.random.seed(rd_seed)
-random.seed(rd_seed)
-tf.random.set_seed(rd_seed)
+import json
 
 import argparse
 
@@ -32,7 +30,7 @@ from utils_bdd import split_data
 
 from nicon_optuna import NiconOptunaRegressor
 from nicon_optuna_classif import NiconOptunaClassifier
-from PLS_opti import AutoPLSRegression, ConstantTargetPLSError
+from PLS_opti import AutoPLSRegression
 from PLS_opti_classif import AutoPLSClassifier
 from Ridge_opti import RidgeCVRegressor
 from Ridge_opti_classif import RidgeCVClassifier
@@ -42,8 +40,11 @@ from LGBM_optuna_classif import LGBMOptunaClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.decomposition import PCA
 from sklearn.metrics import root_mean_squared_error, accuracy_score
+from sklearn.base import clone
 
-from itertools import permutations
+import torch
+
+from itertools import combinations
 from joblib import Parallel, delayed, Memory
 memory = Memory(".cache", verbose=0)  # Cache for parallel processing
 from tqdm import tqdm
@@ -77,16 +78,30 @@ parser.add_argument('--top_n_preprocs', type=int, default=None,
 parser.add_argument('--only_colors', action='store_true', default=False,
                     help="Display only colors in the heatmap without values (optional)")
 
+parser.add_argument('--random_seed', type=int, default=42,
+                    help="Global random seed (default: 42)")
 
+
+# Ajout dans argparse
+parser.add_argument('--use_parallelism', action='store_true', default=False,
+                    help="Utilise la parallélisation pour évaluer les combinaisons (optionnel)")
+
+# Retrieve the arg values from the parser
 args = parser.parse_args()
-
 mode = args.mode
 data_source = args.data_source
 only_colors = args.only_colors
+use_parallelism = args.use_parallelism
+# Set the seed for a reproductible script
+rd_seed = args.random_seed
+np.random.seed(rd_seed)
+random.seed(rd_seed)
+tf.random.set_seed(rd_seed)
 
+# Set the calibration and test data sets
 Xcal, Ycal, Xval, Yval = split_data(mode, data_source, verbose=True)
 
-# Liste de base des prétraitements simples
+# List of basic preprocessings
 simple_preprocs = [
     ('baseline', pp.Baseline()),
     ('derivate', pp.Derivate()),
@@ -103,7 +118,7 @@ simple_preprocs = [
 preprocessings = list(simple_preprocs)
 
 # Add 2-combinations of simple preprocessing methods
-for (name1, trans1), (name2, trans2) in permutations(simple_preprocs, 2):
+for (name1, trans1), (name2, trans2) in combinations(simple_preprocs, 2):
     combo_name = f'{name1}_{name2}'
     combo_pipeline = Pipeline([
         (name1, trans1),
@@ -111,23 +126,22 @@ for (name1, trans1), (name2, trans2) in permutations(simple_preprocs, 2):
     ])
     preprocessings.append((combo_name, combo_pipeline))
 
-# Tu peux aussi ajouter 'PCA' si tu veux
+# Add identity and PCA models
 preprocessings.append(('id', pp.IdentityTransformer()))
 preprocessings.append(('PCA', PCA()))
 
 
-
 # Define models 
 if mode == 'Regression':
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    print("Using device:", device)
     models = [
         ("Ridge_opt", RidgeCVRegressor(alphas=np.logspace(-4, 2, 50), cv=5, random_state=rd_seed)),
-        ("PLS", AutoPLSRegression(max_components=Xcal.shape[1], cv=5)),
-        ("LGBM_opt", LGBMOptuna(cv=5, n_trials=50, random_state=rd_seed, verbose=0)),
-        ("NICON", NiconOptunaRegressor(n_trials=50, epochs=10000, patience=10, epochs_optuna=100, random_state=rd_seed)),
+        ('PLS', AutoPLSRegression(max_components=Xcal.shape[1], cv=3, scale=True, seed=rd_seed, max_evals=60)),
+        ("LGBM_opt", LGBMOptuna(cv=5, n_trials=20, random_state=rd_seed, verbose=1, verbose_optuna=False)),
+        ('NICON', NiconOptunaRegressor(n_trials=50, epochs=5000, patience=10, epochs_optuna=20, random_state=rd_seed, device=device)),
     ]
-    models = [
-        ('PLS', AutoPLSRegression(max_components=Xcal.shape[1], cv=5, scale=False)),
-    ]
+    
 else:  # Classification
     num_classes = len(np.unique(Ycal))  # Number of classes in the target variable
     models = [
@@ -138,27 +152,47 @@ else:  # Classification
     ]
 
 
+# Dictionnaire pour stocker les n_composantes optimaux par prétraitement
+prior_components = []
 
-import warnings
+# Fonction modifiée pour collecter le nombre de composantes optimales
+#@memory.cache
+def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xval, Yval, mean_metric, rd_seed):
 
-def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xval, Yval, mean_metric):
+    np.random.seed(rd_seed)
+    random.seed(rd_seed)
+    tf.random.set_seed(rd_seed)
+
     X_train, X_test = np.asarray(Xcal), np.asarray(Xval)
     Y_train, Y_test = np.asarray(Ycal).ravel(), np.asarray(Yval).ravel()
 
     try:
+        if 'PLS' in mdl_name:
+            if len(prior_components) > 0:
+                median = int(np.median(prior_components))
+                lower = max(1, median - 10)
+                upper = min(Xcal.shape[1], median + 10)
+                max_evals = 10
+            else:
+                lower = 1
+                upper = Xcal.shape[1]
+                max_evals = 100
+            
+            mdl = AutoPLSRegression(max_components=Xcal.shape[1], cv=5, scale=True, seed=rd_seed,
+                                    max_evals=max_evals, component_range=(lower, upper))
+
         if mdl_name.startswith("LGBM"):
             pipe = Pipeline([
                 ("prep", pp_method),
                 ("ensure_df", EnsureDataFrame()),
-                ("model", mdl)
+                ("model", clone(mdl))
             ], memory=memory)
         else:
             pipe = Pipeline([
                 ("prep", pp_method),
-                ("model", mdl)
-            ], memory=memory)  # Use caching for the pipeline
+                ("model", clone(mdl))
+            ], memory=memory)
 
-        # Catch specific warnings for PLS
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             pipe.fit(X_train, Y_train)
@@ -173,31 +207,44 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
         if abs(metric) > 1e3 * mean_metric:
             metric = np.nan
 
+        # Si c'est un modèle PLS, extraire le nombre de composantes
+        if mdl_name == 'PLS' and hasattr(mdl, 'best_n_components_'):
+            optimal_comp = mdl.best_n_components_
+            if pp_name not in prior_components:
+                prior_components.append(optimal_comp)
+
     except Exception as e:
         metric = np.nan
         print(f"[ERROR] {pp_name} + {mdl_name}: {e}")
 
     print(f"{pp_name} + {mdl_name} = {metric:.2f}")
+
     return (pp_name, mdl_name, metric)
 
 
-# Construction des combinaisons (pp, modèle)
+# Construction of the combinations (pp, model)
 combinations = []
 for (pp_name, pp_method) in preprocessings:
     for (mdl_name, mdl) in models:
         combinations.append((pp_name, pp_method, mdl_name, mdl))
 
-# Approximation initiale du score moyen (sert à filtrer les outliers extrêmes)
+# Initial approximation of the mean score (to filter the extreme outliers in the heatmap)
 mean_metric = 1.0 if mode == 'Regression' else 0.5
 
-# Exécution parallèle
-results = Parallel(n_jobs=-1)(
-    delayed(evaluate_combination)(
-        pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xval, Yval, mean_metric
+if use_parallelism:
+    print("[INFO] Execution in parallel mode (using joblib).")
+    results = Parallel(n_jobs=-1)(
+        delayed(evaluate_combination)(
+            pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xval, Yval, mean_metric, rd_seed
+        )
+        for (pp_name, pp_method, mdl_name, mdl) in tqdm(combinations, desc="Evaluations")
     )
-    for (pp_name, pp_method, mdl_name, mdl) in tqdm(combinations, desc="Evaluations")
-)
-
+else:
+    print("[INFO] Execution in sequential mode.")
+    results = []
+    for (pp_name, pp_method, mdl_name, mdl) in tqdm(combinations, desc="Evaluations (sequential)"):
+        res = evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xval, Yval, mean_metric, rd_seed)
+        results.append(res)
 
 # store the results in a DataFrame
 df_scores = pd.DataFrame(results, columns=["Preprocessing", "Model", "Score"])
@@ -285,3 +332,11 @@ else:
 output_path = os.path.join(output_dir, heatmap_filename)
 plt.savefig(output_path, dpi=300)
 plt.show()
+
+output_dir = os.path.join("Results", "assoc_pp_model", data_source)
+os.makedirs(output_dir, exist_ok=True)
+components_output_path = os.path.join(output_dir, f"PLS_optimal_components_{data_source}.json")
+with open(components_output_path, 'w') as f:
+    json.dump(prior_components, f, indent=2)
+
+print(f"\nOptimal PLS components saved to: {components_output_path}")

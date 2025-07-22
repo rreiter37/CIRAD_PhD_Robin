@@ -36,8 +36,10 @@ def load_csv_auto_sep(mode, data_source, type_data, verbose=True, delimiter=None
         
         if verbose: 
             print("Detected separator for %s: %s" % (type_data, sep))
-            if type_data[0] == 'X':
+            if type_data == 'Xcal':
                 print("Number of spectra for calibration: ", len(df))
+            elif type_data == 'Xval':
+                print("Number of spectra for test: ", len(df))
 
         return df
     

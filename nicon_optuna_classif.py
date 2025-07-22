@@ -2,30 +2,23 @@ import os
 import optuna
 import numpy as np
 import random
-import tensorflow as tf
-
-from nirs4all.presets.ref_models import customizable_nicon_classification
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import TensorDataset, DataLoader, random_split
 
 from sklearn.base import BaseEstimator, ClassifierMixin
-from sklearn.metrics import log_loss, accuracy_score
-from keras.callbacks import EarlyStopping
-from tensorflow.keras.utils import to_categorical # type: ignore
-from optuna.integration import TFKerasPruningCallback
-from optuna.pruners import HyperbandPruner
-
-# Empêche TensorFlow d'utiliser le GPU
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+from sklearn.metrics import accuracy_score, log_loss
+from Models.nicon_classif_pytorch import customizable_nicon_classification
 
 def set_global_seed(seed):
-    np.random.seed(seed)
     random.seed(seed)
-    tf.random.set_seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
     os.environ["PYTHONHASHSEED"] = str(seed)
-    tf.keras.utils.set_random_seed(seed)
-    tf.config.experimental.enable_op_determinism()
-
-# Importe ta fonction classification prête à l'emploi, ex:
-# from ton_module import customizable_nicon_classification
 
 class NiconOptunaClassifier(BaseEstimator, ClassifierMixin):
     def __init__(self, input_shape=None, num_classes=2, n_trials=20, epochs=100, patience=10, epochs_optuna=100, verbose=0, random_state=42):
@@ -40,10 +33,11 @@ class NiconOptunaClassifier(BaseEstimator, ClassifierMixin):
         self.study_ = None
         self.model_ = None
         self.best_params_ = None
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def _reshape(self, X):
         if len(X.shape) == 2:
-            return np.array(X)[..., np.newaxis]
+            return X[:, :, np.newaxis]
         return X
 
     def _suggest_params(self, trial, n_samples):
@@ -70,125 +64,120 @@ class NiconOptunaClassifier(BaseEstimator, ClassifierMixin):
             "dense_activation": trial.suggest_categorical("dense_activation", ['relu', 'selu', 'elu', 'swish']),
         }
 
+    def _train_model(self, model, train_loader, val_loader, loss_fn, optimizer, trial):
+        best_loss = np.inf
+        best_state = None
+        patience_counter = 0
+
+        for epoch in range(self.epochs_optuna):
+            model.train()
+            for xb, yb in train_loader:
+                xb, yb = xb.to(self.device), yb.to(self.device)
+                optimizer.zero_grad()
+                pred = model(xb)
+                loss = loss_fn(pred, yb)
+                loss.backward()
+                optimizer.step()
+
+            model.eval()
+            val_loss = 0.0
+            with torch.no_grad():
+                for xb, yb in val_loader:
+                    xb, yb = xb.to(self.device), yb.to(self.device)
+                    pred = model(xb)
+                    loss = loss_fn(pred, yb)
+                    val_loss += loss.item()
+
+            val_loss /= len(val_loader)
+
+            trial.report(val_loss, epoch)
+            if trial.should_prune():
+                raise optuna.exceptions.TrialPruned()
+
+            if val_loss < best_loss:
+                best_loss = val_loss
+                best_state = model.state_dict()
+                patience_counter = 0
+            else:
+                patience_counter += 1
+                if patience_counter >= self.patience:
+                    break
+
+        model.load_state_dict(best_state)
+        return best_loss
+
     def _build_and_train(self, trial, X, y):
         set_global_seed(self.random_state)
-        n_samples = X.shape[0]
-        params = self._suggest_params(trial, n_samples)
+        params = self._suggest_params(trial, X.shape[0])
+        model = customizable_nicon_classification(input_shape=self.input_shape, num_classes=self.num_classes, params=params).to(self.device)
 
-        # Calculate total_steps for learning rate scheduling
-        train_size = int(X.shape[0] * 0.8)
-        batch_size = params["batch_size"]
-        steps_per_epoch = int(np.ceil(train_size / batch_size))
-        total_steps = self.epochs_optuna * steps_per_epoch
+        y_tensor = torch.tensor(y, dtype=torch.long if self.num_classes > 2 else torch.float32)
+        X_tensor = torch.tensor(self._reshape(X), dtype=torch.float32)
+        dataset = TensorDataset(X_tensor, y_tensor)
 
+        train_len = int(0.8 * len(dataset))
+        val_len = len(dataset) - train_len
+        train_set, val_set = random_split(dataset, [train_len, val_len], generator=torch.Generator().manual_seed(self.random_state))
 
-        model = customizable_nicon_classification(input_shape=self.input_shape, num_classes=self.num_classes, params=params)
+        train_loader = DataLoader(train_set, batch_size=params["batch_size"], shuffle=True)
+        val_loader = DataLoader(val_set, batch_size=params["batch_size"], shuffle=False)
 
-        # Choix de la loss selon binaire ou multi-classes
         if self.num_classes == 2:
-            loss = "binary_crossentropy"
-            metrics = ["accuracy"]
+            loss_fn = nn.BCEWithLogitsLoss()
         else:
-            loss = "categorical_crossentropy"
-            metrics = ["accuracy"]
-        
-        lr_schedule = tf.keras.optimizers.schedules.CosineDecayRestarts(
-            initial_learning_rate=1e-3,
-            first_decay_steps=total_steps // 4,
-            t_mul=1.0,
-            m_mul=1.0,
-            alpha=1e-6
-        )
-        optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
-        model.compile(optimizer=optimizer,
-                      loss=loss, metrics=metrics)
+            loss_fn = nn.CrossEntropyLoss()
 
-        callbacks = [
-            EarlyStopping(monitor="val_loss", patience=self.patience, restore_best_weights=True, verbose=1),
-            TFKerasPruningCallback(trial, "val_loss")
-        ]
+        optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
-        history = model.fit(
-            self._reshape(X), y,
-            validation_split=0.2,
-            epochs=self.epochs_optuna,
-            batch_size=params["batch_size"],
-            verbose=0,
-            callbacks=callbacks,
-        )
-
-        return history.history["val_loss"][-1]
+        return self._train_model(model, train_loader, val_loader, loss_fn, optimizer, trial)
 
     def fit(self, X, y):
         set_global_seed(self.random_state)
-
         if self.input_shape is None:
             self.input_shape = (X.shape[1], 1) if len(X.shape) == 2 else X.shape[1:]
-
-        # Pour multi-classes, s’assurer que y est one-hot encodé
-        if self.num_classes > 2:
-            y = to_categorical(y, num_classes=self.num_classes)
 
         def objective(trial):
             return self._build_and_train(trial, X, y)
 
         sampler = optuna.samplers.TPESampler(seed=self.random_state)
-        pruner = HyperbandPruner(min_resource=1, max_resource=self.epochs_optuna, reduction_factor=3)
+        pruner = optuna.pruners.HyperbandPruner(min_resource=1, max_resource=self.epochs_optuna, reduction_factor=3)
         self.study_ = optuna.create_study(direction="minimize", sampler=sampler, pruner=pruner)
         self.study_.optimize(objective, n_trials=self.n_trials, timeout=600)
-
         self.best_params_ = self.study_.best_params
 
-        # Calculate total_steps for learning rate scheduling
-        train_size = int(X.shape[0] * 0.8)
-        batch_size = self.best_params_["batch_size"]
-        steps_per_epoch = int(np.ceil(train_size / batch_size))
-        total_steps = self.epochs * steps_per_epoch
+        # Entraînement final
+        X_tensor = torch.tensor(self._reshape(X), dtype=torch.float32)
+        y_tensor = torch.tensor(y, dtype=torch.long if self.num_classes > 2 else torch.float32)
+        dataset = TensorDataset(X_tensor, y_tensor)
+        train_loader = DataLoader(dataset, batch_size=self.best_params_["batch_size"], shuffle=True)
 
-        set_global_seed(self.random_state)
-        self.model_ = customizable_nicon_classification(input_shape=self.input_shape, num_classes=self.num_classes, params=self.best_params_)
-
+        self.model_ = customizable_nicon_classification(input_shape=self.input_shape, num_classes=self.num_classes, params=self.best_params_).to(self.device)
+        optimizer = optim.Adam(self.model_.parameters(), lr=1e-3)
         if self.num_classes == 2:
-            loss = "binary_crossentropy"
+            loss_fn = nn.BCEWithLogitsLoss()
         else:
-            loss = "categorical_crossentropy"
+            loss_fn = nn.CrossEntropyLoss()
 
-        lr_schedule = tf.keras.optimizers.schedules.CosineDecayRestarts(
-            initial_learning_rate=1e-3,
-            first_decay_steps=total_steps // 4,  # 1 cycle = 1/4 of the total
-            t_mul=1.0,        # number of double steps double in each cycle? No : Stays constant
-            m_mul=1.0,        # constant minimum learning rate
-            alpha=1e-6        
-        )
-        optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
-        self.model_.compile(optimizer=optimizer, loss=loss)
+        self._train_model(self.model_, train_loader, train_loader, loss_fn, optimizer, trial=optuna.trial.FixedTrial({}))
 
-        self.model_.fit(
-            self._reshape(X), y,
-            epochs=self.epochs,
-            batch_size=self.best_params_["batch_size"],
-            verbose=self.verbose,
-            callbacks=[EarlyStopping(monitor="loss", patience=self.patience, restore_best_weights=True, verbose=1)]
-        )
         return self
 
-    def predict(self, X):
-        preds = self.model_.predict(self._reshape(X))
-        if self.num_classes == 2:
-            return (preds.flatten() > 0.5).astype(int)
-        else:
-            return np.argmax(preds, axis=1)
-
     def predict_proba(self, X):
-        preds = self.model_.predict(self._reshape(X))
-        if self.num_classes == 2:
-            return np.concatenate([1 - preds, preds], axis=1)
-        else:
-            return preds
+        self.model_.eval()
+        X_tensor = torch.tensor(self._reshape(X), dtype=torch.float32).to(self.device)
+        with torch.no_grad():
+            logits = self.model_(X_tensor)
+            if self.num_classes == 2:
+                probs = torch.sigmoid(logits).cpu().numpy()
+                return np.stack([1 - probs, probs], axis=1)
+            else:
+                return torch.softmax(logits, dim=1).cpu().numpy()
+
+    def predict(self, X):
+        return np.argmax(self.predict_proba(X), axis=1)
 
     def score(self, X, y):
-        y_pred = self.predict(X)
-        return accuracy_score(y, y_pred)
+        return accuracy_score(y, self.predict(X))
 
     def get_best_params(self):
         return self.best_params_
