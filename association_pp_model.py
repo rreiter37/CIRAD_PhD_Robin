@@ -10,7 +10,30 @@ os.environ["NUMEXPR_NUM_THREADS"] = "1"
 
 # Clear the cache
 import shutil
-shutil.rmtree(".cache")
+if os.path.exists(".cache"):
+    shutil.rmtree(".cache")
+LOG_DIR = "lightning_logs"
+if os.path.exists(LOG_DIR):
+    shutil.rmtree(LOG_DIR)
+
+import socket
+import subprocess
+# Function to verify if a port is already occupied
+def is_port_in_use(port):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        return s.connect_ex(('localhost', port)) == 0
+
+# Launch Tensorboard if not yet
+TENSORBOARD_PORT = 6006
+if not is_port_in_use(TENSORBOARD_PORT):
+    print(f"Lancement de TensorBoard sur http://localhost:{TENSORBOARD_PORT} …")
+    subprocess.Popen(
+        ["tensorboard", "--logdir", LOG_DIR, f"--port={TENSORBOARD_PORT}"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+else:
+    print(f"TensorBoard est déjà actif sur http://localhost:{TENSORBOARD_PORT}")
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -23,7 +46,6 @@ import json
 import argparse
 
 import nirs4all.transformations as pp
-from nirs4all.presets.ref_models import nicon
 
 from ensure_dataframe import EnsureDataFrame
 from utils_bdd import split_data
@@ -41,6 +63,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.decomposition import PCA
 from sklearn.metrics import root_mean_squared_error, accuracy_score
 from sklearn.base import clone
+from sklearn.preprocessing import MinMaxScaler
 
 import torch
 
@@ -101,6 +124,14 @@ tf.random.set_seed(rd_seed)
 # Set the calibration and test data sets
 Xcal, Ycal, Xval, Yval = split_data(mode, data_source, verbose=True)
 
+# Apply MinMax scaling to Y if regression mode
+scaler_Y = None
+if mode == 'Regression':
+    scaler_Y = MinMaxScaler()
+    Ycal = scaler_Y.fit_transform(np.array(Ycal).reshape(-1, 1)).ravel()
+    Yval = scaler_Y.transform(np.array(Yval).reshape(-1, 1)).ravel()
+
+
 # List of basic preprocessings
 simple_preprocs = [
     ('baseline', pp.Baseline()),
@@ -139,9 +170,10 @@ if mode == 'Regression':
         ("Ridge_opt", RidgeCVRegressor(alphas=np.logspace(-4, 2, 50), cv=5, random_state=rd_seed)),
         ('PLS', AutoPLSRegression(max_components=Xcal.shape[1], cv=3, scale=True, seed=rd_seed, max_evals=60)),
         ("LGBM_opt", LGBMOptuna(cv=5, n_trials=20, random_state=rd_seed, verbose=1, verbose_optuna=False)),
-        ('NICON', NiconOptunaRegressor(n_trials=50, epochs=5000, patience=10, epochs_optuna=20, random_state=rd_seed, device=device)),
+        ('NICON', NiconOptunaRegressor(n_trials=100, epochs=5000, patience=10, epochs_optuna=20, random_state=rd_seed, device=device)),
     ]
-    
+    models = [('NICON', NiconOptunaRegressor(n_trials=90, epochs=5000, patience=1000, cyclic_learning=True, lr_min=1e-6, lr_max=1e-3, epochs_optuna=5, random_state=rd_seed, device=device, verbose_optuna=True)),]
+
 else:  # Classification
     num_classes = len(np.unique(Ycal))  # Number of classes in the target variable
     models = [
@@ -157,7 +189,7 @@ prior_components = []
 
 # Fonction modifiée pour collecter le nombre de composantes optimales
 #@memory.cache
-def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xval, Yval, mean_metric, rd_seed):
+def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xval, Yval, mean_metric, rd_seed, scaler_Y=None):
 
     np.random.seed(rd_seed)
     random.seed(rd_seed)
@@ -200,7 +232,10 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
         y_pred = pipe.predict(X_test)
 
         if mode == 'Regression':
-            metric = root_mean_squared_error(Y_test, y_pred)
+            # Inverse transform the predictions and targets to compute RMSE in original scale
+            Y_true_original = scaler_Y.inverse_transform(Y_test.reshape(-1, 1)).ravel()
+            Y_pred_original = scaler_Y.inverse_transform(y_pred.reshape(-1, 1)).ravel()
+            metric = root_mean_squared_error(Y_true_original, Y_pred_original)
         else:
             metric = accuracy_score(Y_test, y_pred.ravel())
 
@@ -235,15 +270,16 @@ if use_parallelism:
     print("[INFO] Execution in parallel mode (using joblib).")
     results = Parallel(n_jobs=-1)(
         delayed(evaluate_combination)(
-            pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xval, Yval, mean_metric, rd_seed
+            pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xval, Yval, mean_metric, rd_seed, scaler_Y
         )
         for (pp_name, pp_method, mdl_name, mdl) in tqdm(combinations, desc="Evaluations")
     )
+
 else:
     print("[INFO] Execution in sequential mode.")
     results = []
     for (pp_name, pp_method, mdl_name, mdl) in tqdm(combinations, desc="Evaluations (sequential)"):
-        res = evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xval, Yval, mean_metric, rd_seed)
+        res = evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xval, Yval, mean_metric, rd_seed, scaler_Y)
         results.append(res)
 
 # store the results in a DataFrame

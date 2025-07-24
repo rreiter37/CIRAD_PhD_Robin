@@ -12,34 +12,34 @@ class CustomizableNicon(nn.Module):
         
         self.conv1 = nn.Conv1d(
             in_channels=input_channels,
-            out_channels=8,
+            out_channels=params.get('filters1', 8),
             kernel_size=params.get('kernel_size1', 15),
-            stride=5
+            stride=params.get('strides1', 5)
         )
         self.activation1 = self.get_activation("selu")
         self.dropout = nn.Dropout(0.2)
         
         self.conv2 = nn.Conv1d(
-            in_channels=8,
-            out_channels=64,
+            in_channels=params.get('filters1', 8),
+            out_channels=params.get('filters2', 64),
             kernel_size=params.get('kernel_size2', 21),
-            stride=3
+            stride=params.get('strides2', 3)
         )
-        self.norm1 = nn.BatchNorm1d(64)
+        self.norm1 = nn.BatchNorm1d(params.get('filters2', 64))
         self.activation2 = self.get_activation("relu")
         
         self.conv3 = nn.Conv1d(
-            in_channels=64,
-            out_channels=32,
+            in_channels=params.get('filters2', 64),
+            out_channels=params.get('filters3', 32),
             kernel_size=params.get('kernel_size3', 5),
-            stride=3
+            stride=params.get('strides3', 3)
         )
-        self.norm2 = nn.BatchNorm1d(32)
+        self.norm2 = nn.BatchNorm1d(params.get('filters3', 32))
         self.activation3 = self.get_activation("elu")
         
         self.flatten = nn.Flatten()
         
-        self.dense_units = 16
+        self.dense_units = params.get('dense_units', 16)
         self.dense_activation = self.get_activation("sigmoid")
 
         self.dense = nn.LazyLinear(self.dense_units)

@@ -13,3 +13,5 @@ Outputs/outliers_detection/**/*.pth.tar
 *.pth.tar
 *.pt
 
+# Ignore les logs pour tensorboard dans le dossier lightning_logs
+lightning_logs/
