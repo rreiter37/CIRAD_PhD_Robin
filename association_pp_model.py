@@ -1,4 +1,3 @@
-
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 os.environ['PYTHONHASHSEED'] = '42'
@@ -170,9 +169,8 @@ if mode == 'Regression':
         ("Ridge_opt", RidgeCVRegressor(alphas=np.logspace(-4, 2, 50), cv=5, random_state=rd_seed)),
         ('PLS', AutoPLSRegression(max_components=Xcal.shape[1], cv=3, scale=True, seed=rd_seed, max_evals=60)),
         ("LGBM_opt", LGBMOptuna(cv=5, n_trials=20, random_state=rd_seed, verbose=1, verbose_optuna=False)),
-        ('NICON', NiconOptunaRegressor(n_trials=100, epochs=5000, patience=10, epochs_optuna=20, random_state=rd_seed, device=device)),
+        ('NICON', NiconOptunaRegressor(n_trials=90, epochs=5000, patience=1000, cyclic_learning=True, lr_min=1e-6, lr_max=1e-3, epochs_optuna=10, random_state=rd_seed, device=device, verbose_optuna=True)),
     ]
-    models = [('NICON', NiconOptunaRegressor(n_trials=90, epochs=5000, patience=1000, cyclic_learning=True, lr_min=1e-6, lr_max=1e-3, epochs_optuna=5, random_state=rd_seed, device=device, verbose_optuna=True)),]
 
 else:  # Classification
     num_classes = len(np.unique(Ycal))  # Number of classes in the target variable
