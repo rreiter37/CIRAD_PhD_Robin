@@ -8,7 +8,7 @@ class CustomizableNicon(nn.Module):
         if params is None:
             params = {}
 
-        self.spatial_dropout = nn.Dropout2d(0.08)
+        self.spatial_dropout = nn.Dropout2d(params.get('spatial_dropout', 0.08))
         
         self.conv1 = nn.Conv1d(
             in_channels=input_channels,
@@ -17,7 +17,7 @@ class CustomizableNicon(nn.Module):
             stride=params.get('strides1', 5)
         )
         self.activation1 = self.get_activation("selu")
-        self.dropout = nn.Dropout(0.2)
+        self.dropout = nn.Dropout(params.get('dropout_rate', 0.2))
         
         self.conv2 = nn.Conv1d(
             in_channels=params.get('filters1', 8),

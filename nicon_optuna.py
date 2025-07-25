@@ -43,7 +43,7 @@ from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from sklearn.base import BaseEstimator, RegressorMixin
 from sklearn.metrics import mean_squared_error
 
-
+from max_batch_size import find_max_batch_size
 from Models.nicon_custom_pytorch import CustomizableNicon
 
 from pytorch_lightning.callbacks import Callback
@@ -178,11 +178,13 @@ class NiconPLModule(pl.LightningModule):
 
 
 class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
-    def __init__(self, input_shape=None, n_trials=20, epochs=100, patience=10, lr_min=1e-6, lr_max=1e-3,
-                 epochs_optuna=100, verbose=0, verbose_optuna=False, random_state=42, device=None,
-                 get_logger=True, get_logger_optuna=False, cyclic_learning=True):  
+    def __init__(self, input_shape=None, n_trials=20, batch_size=None, epochs=100, patience=10,
+                 lr_min=1e-6, lr_max=1e-3, epochs_optuna=100, verbose=0, verbose_optuna=False,
+                 random_state=42, device=None, get_logger=True, get_logger_optuna=False,
+                 cyclic_learning=True, best_trials=None):
         self.input_shape = input_shape
         self.n_trials = n_trials
+        self.batch_size = batch_size
         self.epochs = epochs
         self.patience = patience
         self.lr_min = lr_min
@@ -197,44 +199,55 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
         self.device = device if device else ("cuda" if torch.cuda.is_available() else "cpu")
         self.get_logger = get_logger
         self.get_logger_optuna = get_logger_optuna
-        self.cyclic_learning = cyclic_learning  
+        self.cyclic_learning = cyclic_learning
+        self.best_trials = best_trials
 
     def _reshape(self, X):
         X = np.array(X)
         if len(X.shape) == 2:
-            # (samples, features) -> (samples, channels=1, features)
             X = X[:, np.newaxis, :]
         return torch.tensor(X, dtype=torch.float32)
 
-    def _suggest_params(self, trial, n_samples):
-        k_max = int(np.ceil(np.log2(n_samples))) - 1 # Keep the batch_size below half of n_samples
-        k_min = 1
-        if self.device != "cuda": # if no gpu, reduce the exploration space
-            k_max = (k_max + k_min)//2  # at the middle between min and max exponents        
-        k = trial.suggest_int("batch_exponent", k_min, k_max)
-        batch_size = 2 ** k
+    def _suggest_params(self, trial, best_trials=None):
+        def median_and_range(param_name, type, low, high, log=False, step=2):
+            if best_trials is None:
+                if type=='int':
+                    return trial.suggest_int(param_name, low, high, step=step)
+                else:
+                    return trial.suggest_float(param_name, low, high, log=log)
+            values = [t.params[param_name] for t in best_trials if param_name in t.params]
+            if not values:
+                if type=='int':
+                    return trial.suggest_int(param_name, low, high, step=step)
+                else:
+                    return trial.suggest_float(param_name, low, high, log=log)
+            median = np.median(values)
+            if type=='int':
+                median = int(median)
+                delta = int((high - low) * 0.4)
+                bounded_low = max(low, median - delta)
+                bounded_high = min(high, median + delta)
+                return trial.suggest_int(param_name, bounded_low, bounded_high, step = max(1, step//2))
+            else:
+                delta = (high - low) * 0.1
+                bounded_low = max(low, median - delta)
+                bounded_high = min(high, median + delta)
+                return trial.suggest_float(param_name, bounded_low, bounded_high, log=log)
+
         return {
-            "batch_size": batch_size,
-            "kernel_size1": trial.suggest_int("kernel_size1", 3, 25, step=2),
-            "kernel_size2": trial.suggest_int("kernel_size2", 3, 25, step=2),
-            "kernel_size3": trial.suggest_int("kernel_size3", 3, 25, step=2),
-            #"filters1": trial.suggest_categorical("filters1", [4, 8, 16, 32, 64, 128, 256]),
-            #"filters2": trial.suggest_categorical("filters2", [4, 8, 16, 32, 64, 128, 256]),
-            #"filters3": trial.suggest_categorical("filters3", [4, 8, 16, 32, 64, 128, 256]),
-            #"strides1": trial.suggest_categorical("strides1", [1, 2, 3, 4, 5]),
-            #"strides2": trial.suggest_categorical("strides2", [1, 2, 3, 4, 5]),
-            #"strides3": trial.suggest_categorical("strides3", [1, 2, 3, 4, 5]),
-            #"dense_units": trial.suggest_categorical("dense_units", [4, 8, 16, 32, 64, 128, 256]),
+            "kernel_size1": median_and_range("kernel_size1", 'int', 3, 25, step=2),
+            "kernel_size2": median_and_range("kernel_size2", 'int', 3, 25, step=2),
+            "kernel_size3": median_and_range("kernel_size3", 'int', 3, 25, step=2),
+            "spatial_dropout": median_and_range("spatial_dropout", 'float', 0.01, 0.5),
+            "dropout_rate": median_and_range("dropout_rate", 'float', 0.01, 0.5),
         }
 
     def _train_model(self, params, train_loader, val_loader, trial=None):
         set_global_seed(self.random_state)
         input_channels = self.input_shape[0] if self.input_shape else 1
-        
+
         steps_per_epoch = len(train_loader)
-        t0_steps = steps_per_epoch * (self.epochs_optuna // 4)
-        if t0_steps == 0:
-            t0_steps = 1  # avoid zero division or zero step length
+        t0_steps = steps_per_epoch * (self.epochs_optuna // 4) or 1
 
         model = NiconPLModule(
             input_channels=input_channels,
@@ -245,22 +258,19 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
             t0_steps=t0_steps,
             cyclic_learning=self.cyclic_learning
         )
-
         model.to(self.device)
 
-        trainer_callbacks = []
+        callbacks = [pl.callbacks.EarlyStopping(monitor="val_loss", patience=self.patience, verbose=self.verbose_optuna)]
         if trial is not None:
-            trainer_callbacks.append(CustomOptunaPruningCallback(trial, monitor="val_loss"))
-
-        early_stop = pl.callbacks.EarlyStopping(monitor="val_loss", patience=self.patience, verbose=self.verbose_optuna)
-        trainer_callbacks.append(early_stop)
+            callbacks.insert(0, CustomOptunaPruningCallback(trial, monitor="val_loss"))
 
         logger = TensorBoardLogger("lightning_logs", name="nicon_optuna", default_hp_metric=False) if self.get_logger_optuna else False
+
         trainer = pl.Trainer(
             max_epochs=self.epochs_optuna,
             enable_progress_bar=False,
             logger=logger,
-            callbacks=trainer_callbacks,
+            callbacks=callbacks,
             enable_model_summary=False,
             devices=1 if self.device == "cuda" else None,
             accelerator=self.device if self.device == "cuda" else "cpu",
@@ -271,17 +281,14 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
         trainer.fit(model, train_loader, val_loader)
 
         val_loss = trainer.callback_metrics.get("val_loss")
-        if isinstance(val_loss, torch.Tensor):
-            val_loss = val_loss.item()
-
-        return model, val_loss
+        return model, val_loss.item() if isinstance(val_loss, torch.Tensor) else val_loss
 
     def fit(self, X, y):
         X = self._reshape(X)
         y = torch.tensor(y, dtype=torch.float32)
-        
+
         if self.input_shape is None:
-            self.input_shape = X.shape[1:]  # channels + features
+            self.input_shape = X.shape[1:]
 
         n_samples = len(X)
         set_global_seed(self.random_state)
@@ -291,31 +298,44 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
         n_train = n_samples - n_val
         train_set, val_set = random_split(dataset, [n_train, n_val], generator=torch.Generator().manual_seed(self.random_state))
 
-        def objective(trial):
-            params = self._suggest_params(trial, n_train)
-            batch_size = params["batch_size"]
-            train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True)
-            val_loader = DataLoader(val_set, batch_size=batch_size)
+        if self.batch_size is None:
+            params = {"kernel_size1": 3, "kernel_size2": 3, "kernel_size3": 3, "spatial_dropout": 0.01, "dropout_rate": 0.01}
+            model = NiconPLModule(
+                input_channels=self.input_shape[0],
+                params=params,
+                lr_max=self.lr_max,
+                lr_min=self.lr_min,
+                epochs=1,
+                t0_steps=n_samples,
+                cyclic_learning=self.cyclic_learning
+            )
+            self.batch_size = find_max_batch_size(model=model, input_shape=self.input_shape, device=self.device, max_batch=X.shape[-1], min_batch=1)
+            print("Maximum batch size found : ", self.batch_size)
 
-            model, val_loss = self._train_model(params, train_loader, val_loader, trial=trial)
+        def objective(trial):
+            params = self._suggest_params(trial, n_train, best_trials=self.best_trials)
+            train_loader = DataLoader(train_set, batch_size=self.batch_size, shuffle=True)
+            val_loader = DataLoader(val_set, batch_size=self.batch_size)
+            _, val_loss = self._train_model(params, train_loader, val_loader, trial=trial)
             return val_loss
 
-        sampler = TPESampler(seed=self.random_state)
-        pruner = HyperbandPruner()
-
-        self.study_ = optuna.create_study(direction="minimize", sampler=sampler, pruner=pruner)
+        self.study_ = optuna.create_study(direction="minimize", sampler=TPESampler(seed=self.random_state), pruner=HyperbandPruner())
         self.study_.optimize(objective, n_trials=self.n_trials, show_progress_bar=self.verbose_optuna)
 
         self.best_params_ = self.study_.best_params
 
-        # Entraînement final sur tous les données d'entraînement avec les meilleurs hyperparamètres
-        batch_size_final = self.best_params_.get("batch_size", 32)
-        train_loader = DataLoader(dataset, batch_size=batch_size_final, shuffle=True)
+        if self.best_trials is None:
+            self.best_trials = [self.best_params_]
+        else:
+            values = [t.params[param_name] for t in best_trials if param_name in t.params]
+            self.best_trials = 
 
-        steps_per_epoch = len(train_loader)
-        t0_steps = steps_per_epoch * (self.epochs // 4)
-        if t0_steps == 0:
-            t0_steps = 1
+        # Final training phase
+        train_final, val_final = random_split(dataset, [n_samples - n_val, n_val], generator=torch.Generator().manual_seed(self.random_state))
+        train_loader_final = DataLoader(train_final, batch_size=self.batch_size, shuffle=True)
+        val_loader_final = DataLoader(val_final, batch_size=self.batch_size)
+
+        t0_steps = len(train_loader_final) * (self.epochs // 4) or 1
 
         final_model = NiconPLModule(
             input_channels=self.input_shape[0],
@@ -328,31 +348,20 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
         )
         final_model.to(self.device)
 
-        trainer_callbacks = []
-        early_stop = pl.callbacks.EarlyStopping(monitor="val_loss", patience=self.patience, verbose=self.verbose)
-        trainer_callbacks.append(early_stop)
-        
+        callbacks = [pl.callbacks.EarlyStopping(monitor="val_loss", patience=self.patience, verbose=self.verbose)]
         logger = TensorBoardLogger("lightning_logs", name="nicon_final", default_hp_metric=False) if self.get_logger else False
 
         trainer = pl.Trainer(
             max_epochs=self.epochs,
             enable_progress_bar=self.verbose > 0,
             logger=logger,
-            callbacks=trainer_callbacks,
+            callbacks=callbacks,
             enable_model_summary=False,
             devices=1 if self.device == "cuda" else None,
             accelerator=self.device if self.device == "cuda" else "cpu",
             deterministic=True,
             enable_checkpointing=False
         )
-
-        # Final train/validation split for Early Stopping
-        n_val_final = max(1, int(n_samples * 0.2))
-        n_train_final = n_samples - n_val_final
-        train_final, val_final = random_split(dataset, [n_train_final, n_val_final], generator=torch.Generator().manual_seed(self.random_state))
-
-        train_loader_final = DataLoader(train_final, batch_size=batch_size_final, shuffle=True)
-        val_loader_final = DataLoader(val_final, batch_size=batch_size_final)
 
         trainer.fit(final_model, train_loader_final, val_loader_final)
 

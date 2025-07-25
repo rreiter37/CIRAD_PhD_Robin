@@ -6,6 +6,7 @@ os.environ["OPENBLAS_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
 os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
 os.environ["NUMEXPR_NUM_THREADS"] = "1"
+os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 
 # Clear the cache
 import shutil
@@ -171,6 +172,7 @@ if mode == 'Regression':
         ("LGBM_opt", LGBMOptuna(cv=5, n_trials=20, random_state=rd_seed, verbose=1, verbose_optuna=False)),
         ('NICON', NiconOptunaRegressor(n_trials=90, epochs=5000, patience=1000, cyclic_learning=True, lr_min=1e-6, lr_max=1e-3, epochs_optuna=10, random_state=rd_seed, device=device, verbose_optuna=True)),
     ]
+    models = [('NICON', NiconOptunaRegressor(n_trials=90, epochs=5000, patience=1000, cyclic_learning=True, lr_min=1e-6, lr_max=1e-3, epochs_optuna=10, random_state=rd_seed, device=device, verbose_optuna=True)),]
 
 else:  # Classification
     num_classes = len(np.unique(Ycal))  # Number of classes in the target variable
@@ -180,7 +182,6 @@ else:  # Classification
         ("LGBM_classif", LGBMOptunaClassifier(cv=5, n_trials=50, random_state=rd_seed, verbose=0)),
         ("NICON_classif", NiconOptunaClassifier(num_classes=num_classes, n_trials=50, epochs=10000, patience=10, epochs_optuna=100, random_state=rd_seed)),
     ]
-
 
 # Dictionnaire pour stocker les n_composantes optimaux par prétraitement
 prior_components = []
@@ -197,7 +198,7 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
     Y_train, Y_test = np.asarray(Ycal).ravel(), np.asarray(Yval).ravel()
 
     try:
-        if 'PLS' in mdl_name:
+        if mdl_name.startswith('PLS'):
             if len(prior_components) > 0:
                 median = int(np.median(prior_components))
                 lower = max(1, median - 10)
@@ -210,6 +211,11 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
             
             mdl = AutoPLSRegression(max_components=Xcal.shape[1], cv=5, scale=True, seed=rd_seed,
                                     max_evals=max_evals, component_range=(lower, upper))
+
+        elif mdl_name.startswith('NICON'):
+            best_trials = None
+            mdl = NiconOptunaRegressor(n_trials=90, epochs=5000, patience=1000, cyclic_learning=True, lr_min=1e-6, lr_max=1e-3, epochs_optuna=10, 
+                                       random_state=rd_seed, device=device, verbose_optuna=True, best_trials=best_trials)
 
         if mdl_name.startswith("LGBM"):
             pipe = Pipeline([
@@ -240,11 +246,16 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
         if abs(metric) > 1e3 * mean_metric:
             metric = np.nan
 
-        # Si c'est un modèle PLS, extraire le nombre de composantes
+        # if the model is PLS, store the best number of components
         if mdl_name == 'PLS' and hasattr(mdl, 'best_n_components_'):
             optimal_comp = mdl.best_n_components_
             if pp_name not in prior_components:
                 prior_components.append(optimal_comp)
+
+        elif mdl_name.startswith('NICON') and hasattr(mdl, 'best_params_'):
+            best_trials
+        
+        # if the model is NICON, store the best model
 
     except Exception as e:
         metric = np.nan
@@ -366,11 +377,3 @@ else:
 output_path = os.path.join(output_dir, heatmap_filename)
 plt.savefig(output_path, dpi=300)
 plt.show()
-
-output_dir = os.path.join("Results", "assoc_pp_model", data_source)
-os.makedirs(output_dir, exist_ok=True)
-components_output_path = os.path.join(output_dir, f"PLS_optimal_components_{data_source}.json")
-with open(components_output_path, 'w') as f:
-    json.dump(prior_components, f, indent=2)
-
-print(f"\nOptimal PLS components saved to: {components_output_path}")
