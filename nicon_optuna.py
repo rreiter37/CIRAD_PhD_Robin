@@ -44,7 +44,7 @@ from sklearn.base import BaseEstimator, RegressorMixin
 from sklearn.metrics import mean_squared_error
 
 from max_batch_size import find_max_batch_size
-from Models.nicon_custom_pytorch import CustomizableNicon
+from Scripts_python.Models.nicon_custom_pytorch import CustomizableNicon
 
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.loggers import TensorBoardLogger
@@ -181,7 +181,7 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
     def __init__(self, input_shape=None, n_trials=20, batch_size=None, epochs=100, patience=10,
                  lr_min=1e-6, lr_max=1e-3, epochs_optuna=100, verbose=0, verbose_optuna=False,
                  random_state=42, device=None, get_logger=True, get_logger_optuna=False,
-                 cyclic_learning=True, best_trials=None):
+                 cyclic_learning=True, best_trials=None, name_pp=None):
         self.input_shape = input_shape
         self.n_trials = n_trials
         self.batch_size = batch_size
@@ -201,6 +201,7 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
         self.get_logger_optuna = get_logger_optuna
         self.cyclic_learning = cyclic_learning
         self.best_trials = best_trials
+        self.name_pp = name_pp
 
     def _reshape(self, X):
         X = np.array(X)
@@ -208,20 +209,25 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
             X = X[:, np.newaxis, :]
         return torch.tensor(X, dtype=torch.float32)
 
-    def _suggest_params(self, trial, best_trials=None):
+    def _suggest_params(self, trial):
+        best_trials = self.best_trials
         def median_and_range(param_name, type, low, high, log=False, step=2):
             if best_trials is None:
                 if type=='int':
                     return trial.suggest_int(param_name, low, high, step=step)
                 else:
                     return trial.suggest_float(param_name, low, high, log=log)
-            values = [t.params[param_name] for t in best_trials if param_name in t.params]
+                
+            values = [t[param_name] for t in best_trials if param_name in t.keys()]
+
             if not values:
                 if type=='int':
                     return trial.suggest_int(param_name, low, high, step=step)
                 else:
                     return trial.suggest_float(param_name, low, high, log=log)
+                
             median = np.median(values)
+
             if type=='int':
                 median = int(median)
                 delta = int((high - low) * 0.4)
@@ -313,7 +319,7 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
             print("Maximum batch size found : ", self.batch_size)
 
         def objective(trial):
-            params = self._suggest_params(trial, n_train, best_trials=self.best_trials)
+            params = self._suggest_params(trial)
             train_loader = DataLoader(train_set, batch_size=self.batch_size, shuffle=True)
             val_loader = DataLoader(val_set, batch_size=self.batch_size)
             _, val_loss = self._train_model(params, train_loader, val_loader, trial=trial)
@@ -327,8 +333,7 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
         if self.best_trials is None:
             self.best_trials = [self.best_params_]
         else:
-            values = [t.params[param_name] for t in best_trials if param_name in t.params]
-            self.best_trials = 
+            self.best_trials.append(self.best_params_)
 
         # Final training phase
         train_final, val_final = random_split(dataset, [n_samples - n_val, n_val], generator=torch.Generator().manual_seed(self.random_state))
@@ -349,7 +354,11 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
         final_model.to(self.device)
 
         callbacks = [pl.callbacks.EarlyStopping(monitor="val_loss", patience=self.patience, verbose=self.verbose)]
-        logger = TensorBoardLogger("lightning_logs", name="nicon_final", default_hp_metric=False) if self.get_logger else False
+        if self.name_pp is None:
+            name = "nicon_final"
+        else:
+            name = "nicon_final_%s"%self.name_pp
+        logger = TensorBoardLogger("lightning_logs", name=name, default_hp_metric=False) if self.get_logger else False
 
         trainer = pl.Trainer(
             max_epochs=self.epochs,

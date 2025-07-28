@@ -1,0 +1,2 @@
+data_source,n_trials_first,n_trials_next,epochs_first,epochs_next,epochs_final,patience,optimization_type,time
+BeerOriginalExtract,200,30,100,10,5000,5000,progressive,1267.2042498588562

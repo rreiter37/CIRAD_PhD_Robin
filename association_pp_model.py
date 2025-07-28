@@ -42,13 +42,15 @@ import seaborn as sns
 import random
 import tensorflow as tf
 import json
+import time
 
 import argparse
 
 import nirs4all.transformations as pp
 
 from ensure_dataframe import EnsureDataFrame
-from utils_bdd import split_data
+from Scripts_python.utils.utils_bdd import split_data
+from Scripts_python.utils.make_serializable import make_json_serializable
 
 from nicon_optuna import NiconOptunaRegressor
 from nicon_optuna_classif import NiconOptunaClassifier
@@ -84,11 +86,10 @@ filterwarnings("ignore", category=FutureWarning)
 
     
 
-# Regression: 'BeerOriginalExtract' or 'Digest_0.8' or 'YamProtein' //
-# Classification: 'CoffeeSpecies' or 'Malaria2024' or 'mDigest_custom3' or 'WhiskyConcentration' or 'YamMould'
-
 parser = argparse.ArgumentParser(description="Association modèle / preprocessing avec heatmap")
 
+# Regression: 'BeerOriginalExtract' or 'Digest_0.8' or 'YamProtein' //
+# Classification: 'CoffeeSpecies' or 'Malaria2024' or 'mDigest_custom3' or 'WhiskyConcentration' or 'YamMould'
 parser.add_argument('--mode', type=str, choices=["Regression", "Classification"], required=True,
                     help="Type of task: 'Regression' or 'Classification'")
 
@@ -98,14 +99,15 @@ parser.add_argument('--data_source', type=str, required=True,
 parser.add_argument('--top_n_preprocs', type=int, default=None,
                     help="Display only the top N preprocessings based on their performance (optional). If None, all preprocessings are displayed.")
 
+parser.add_argument('--progressive_optim', action='store_true', default=True,
+                    help="Activate progressive optimization : first combination with a deep hyperparameter search, the next ones using the best_trials. If False, all researches are the same.")
+
 parser.add_argument('--only_colors', action='store_true', default=False,
                     help="Display only colors in the heatmap without values (optional)")
 
 parser.add_argument('--random_seed', type=int, default=42,
                     help="Global random seed (default: 42)")
 
-
-# Ajout dans argparse
 parser.add_argument('--use_parallelism', action='store_true', default=False,
                     help="Utilise la parallélisation pour évaluer les combinaisons (optionnel)")
 
@@ -120,7 +122,12 @@ rd_seed = args.random_seed
 np.random.seed(rd_seed)
 random.seed(rd_seed)
 tf.random.set_seed(rd_seed)
+# Keep only the top N preprocessings if specified
+top_n = args.top_n_preprocs
+progressive_optim = args.progressive_optim
+print(f"[INFO] Optimisation {'progressive' if progressive_optim else 'uniforme'} activée.")
 
+start_time = time.time()
 # Set the calibration and test data sets
 Xcal, Ycal, Xval, Yval = split_data(mode, data_source, verbose=True)
 
@@ -161,6 +168,14 @@ for (name1, trans1), (name2, trans2) in combinations(simple_preprocs, 2):
 preprocessings.append(('id', pp.IdentityTransformer()))
 preprocessings.append(('PCA', PCA()))
 
+# Parameters related to the progressive optimization of NICON
+if progressive_optim:
+    n_trials_first, n_trials_next = 200, 30
+    epochs_first, epochs_next = 100, 10
+else:
+    n_trials = 90
+    epochs_optuna = 10
+epochs, patience = 5000, 5000
 
 # Define models 
 if mode == 'Regression':
@@ -172,7 +187,7 @@ if mode == 'Regression':
         ("LGBM_opt", LGBMOptuna(cv=5, n_trials=20, random_state=rd_seed, verbose=1, verbose_optuna=False)),
         ('NICON', NiconOptunaRegressor(n_trials=90, epochs=5000, patience=1000, cyclic_learning=True, lr_min=1e-6, lr_max=1e-3, epochs_optuna=10, random_state=rd_seed, device=device, verbose_optuna=True)),
     ]
-    models = [('NICON', NiconOptunaRegressor(n_trials=90, epochs=5000, patience=1000, cyclic_learning=True, lr_min=1e-6, lr_max=1e-3, epochs_optuna=10, random_state=rd_seed, device=device, verbose_optuna=True)),]
+    models = [('NICON', NiconOptunaRegressor(n_trials=90, epochs=epochs, patience=patience, cyclic_learning=True, lr_min=1e-6, lr_max=1e-3, epochs_optuna=10, random_state=rd_seed, device=device, verbose_optuna=True)),]
 
 else:  # Classification
     num_classes = len(np.unique(Ycal))  # Number of classes in the target variable
@@ -183,12 +198,15 @@ else:  # Classification
         ("NICON_classif", NiconOptunaClassifier(num_classes=num_classes, n_trials=50, epochs=10000, patience=10, epochs_optuna=100, random_state=rd_seed)),
     ]
 
-# Dictionnaire pour stocker les n_composantes optimaux par prétraitement
+# Dictionnary to store the optimal n_components of the PLS, per preprocessing
 prior_components = []
+
+# Initialize the best_trials stored for the NICON model
+best_trials = None
 
 # Fonction modifiée pour collecter le nombre de composantes optimales
 #@memory.cache
-def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xval, Yval, mean_metric, rd_seed, scaler_Y=None):
+def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xval, Yval, mean_metric, progressive_optim, best_trials, rd_seed, scaler_Y=None):
 
     np.random.seed(rd_seed)
     random.seed(rd_seed)
@@ -213,9 +231,20 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
                                     max_evals=max_evals, component_range=(lower, upper))
 
         elif mdl_name.startswith('NICON'):
-            best_trials = None
-            mdl = NiconOptunaRegressor(n_trials=90, epochs=5000, patience=1000, cyclic_learning=True, lr_min=1e-6, lr_max=1e-3, epochs_optuna=10, 
-                                       random_state=rd_seed, device=device, verbose_optuna=True, best_trials=best_trials)
+            if not progressive_optim:
+                best_trials = None
+            else:
+                print("Number of best trials used to optimize the NICON model : ", len(best_trials) if best_trials is not None else 0)
+
+            if best_trials is None: # if this is the first optimization, it must be precise
+                if progressive_optim:
+                    n_trials = n_trials_first
+                    epochs_optuna = epochs_first
+            else: # if we can use the previous results to reduce the optimization space
+                n_trials = n_trials_next
+                epochs_optuna = epochs_next
+            mdl = NiconOptunaRegressor(n_trials=n_trials, epochs=epochs, patience=patience, cyclic_learning=True, lr_min=1e-6, lr_max=1e-3, epochs_optuna=epochs_optuna, 
+                                       random_state=rd_seed, device=device, verbose_optuna=True, best_trials=best_trials, name_pp=pp_name)
 
         if mdl_name.startswith("LGBM"):
             pipe = Pipeline([
@@ -246,16 +275,17 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
         if abs(metric) > 1e3 * mean_metric:
             metric = np.nan
 
+        trained_model = pipe.named_steps["model"]
+
         # if the model is PLS, store the best number of components
-        if mdl_name == 'PLS' and hasattr(mdl, 'best_n_components_'):
-            optimal_comp = mdl.best_n_components_
+        if mdl_name == 'PLS' and hasattr(trained_model, 'best_n_components_'):
+            optimal_comp = trained_model.best_n_components_
             if pp_name not in prior_components:
                 prior_components.append(optimal_comp)
 
-        elif mdl_name.startswith('NICON') and hasattr(mdl, 'best_params_'):
-            best_trials
-        
-        # if the model is NICON, store the best model
+        # if the model is NICON, store the optimal hyperparameters
+        elif mdl_name.startswith('NICON') and hasattr(trained_model, 'best_trials'):
+            best_trials = trained_model.best_trials
 
     except Exception as e:
         metric = np.nan
@@ -263,7 +293,7 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
 
     print(f"{pp_name} + {mdl_name} = {metric:.2f}")
 
-    return (pp_name, mdl_name, metric)
+    return (pp_name, mdl_name, metric, best_trials)
 
 
 # Construction of the combinations (pp, model)
@@ -277,19 +307,26 @@ mean_metric = 1.0 if mode == 'Regression' else 0.5
 
 if use_parallelism:
     print("[INFO] Execution in parallel mode (using joblib).")
-    results = Parallel(n_jobs=-1)(
+    raw_results = Parallel(n_jobs=-1)(
         delayed(evaluate_combination)(
-            pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xval, Yval, mean_metric, rd_seed, scaler_Y
+            pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xval, Yval, mean_metric, progressive_optim, best_trials, rd_seed, scaler_Y
         )
         for (pp_name, pp_method, mdl_name, mdl) in tqdm(combinations, desc="Evaluations")
     )
+    results = [(pp, mdl, score) for pp, mdl, score, _ in raw_results]
+    for _, mdl, _, trials in raw_results:
+        if mdl.startswith("NICON") and trials is not None:
+            best_trials = trials
+            break
 
 else:
     print("[INFO] Execution in sequential mode.")
     results = []
     for (pp_name, pp_method, mdl_name, mdl) in tqdm(combinations, desc="Evaluations (sequential)"):
-        res = evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xval, Yval, mean_metric, rd_seed, scaler_Y)
-        results.append(res)
+        pp_name, mdl_name, metric, trials = evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xval, Yval, mean_metric, progressive_optim, best_trials, rd_seed, scaler_Y)
+        results.append((pp_name, mdl_name, metric))
+        if trials is not None:
+            best_trials = trials
 
 # store the results in a DataFrame
 df_scores = pd.DataFrame(results, columns=["Preprocessing", "Model", "Score"])
@@ -298,7 +335,12 @@ pivoted = df_scores.pivot(index="Model", columns="Preprocessing", values="Score"
 # save the results to a CSV file
 output_dir = os.path.join("Results", "assoc_pp_model", data_source)
 os.makedirs(output_dir, exist_ok=True)
-output_path = os.path.join(output_dir, f"results_{data_source}.csv")
+optim_type = "progressive" if progressive_optim else "uniform"
+if top_n is not None:
+    name_file = f"results_{data_source}_top_{top_n}_{optim_type}_optim.csv"
+else:
+    name_file = f"results_{data_source}_{optim_type}_optim.csv"
+output_path = os.path.join(output_dir, name_file)
 pivoted.to_csv(output_path)
 
 # ──────────────────────────────────────────────────────
@@ -327,9 +369,6 @@ def bold_best(df, classification=False):
     return formatted
 
 formatted_df = bold_best(pivoted, classification=(mode == "Classification"))
-
-# Keep only the top N preprocessings if specified
-top_n = args.top_n_preprocs
 
 if top_n is not None:
     if mode == 'Regression':
@@ -368,12 +407,66 @@ plt.tight_layout()
 output_dir = os.path.join("Figures", "assoc_pp_model", data_source)
 os.makedirs(output_dir, exist_ok=True)
 
-# Nom du fichier heatmap avec ou sans mention top_N
+# Name of the heatmap file
+optim_type = "progressive" if progressive_optim else "uniform"
 if top_n is not None:
-    heatmap_filename = f"heatmap_{data_source}_top_{top_n}.png"
+    heatmap_filename = f"heatmap_{data_source}_top_{top_n}_epochs_{epochs}_patience_{patience}_{optim_type}_optim.png"
 else:
-    heatmap_filename = f"heatmap_{data_source}.png"
+    heatmap_filename = f"heatmap_{data_source}_epochs_{epochs}_patience_{patience}_{optim_type}_optim.png"
 
 output_path = os.path.join(output_dir, heatmap_filename)
 plt.savefig(output_path, dpi=300)
 plt.show()
+
+elapsed_time = time.time() - start_time
+
+# ──────────────────────────────────────────────────────
+# Save the execution time (if it exists) into a csv file
+timing_output_path = os.path.join("Figures", "assoc_pp_model", data_source)
+os.makedirs(timing_output_path, exist_ok=True)
+
+timing_csv_path = os.path.join(timing_output_path, "timing_results.csv")
+if progressive_optim:
+    timing_data = {
+    "data_source": data_source,
+    "n_trials_first": n_trials_first,
+    "n_trials_next": n_trials_next,
+    "epochs_first": epochs_first,
+    "epochs_next": epochs_next,
+    "epochs_final": epochs,
+    "patience": patience,
+    "optimization_type": optim_type,
+    "time": elapsed_time
+    }
+else:
+    timing_data = {
+    "data_source": data_source,
+    "n_trials": n_trials_first,
+    "epochs_optuna": epochs_optuna,
+    "epochs_final": epochs,
+    "patience": patience,
+    "optimization_type": optim_type,
+    "time": elapsed_time
+    }
+
+# Ajout ou création du fichier CSV
+if os.path.exists(timing_csv_path):
+    df_time = pd.read_csv(timing_csv_path)
+    df_time = df_time.append(timing_data, ignore_index=True)
+else:
+    df_time = pd.DataFrame([timing_data])
+
+df_time.to_csv(timing_csv_path, index=False)
+print(f"[INFO] Execution time saved to {timing_csv_path}")
+
+
+# ──────────────────────────────────────────────────────
+# Save best_trials (if it exists) into a JSON file
+if best_trials is not None and progressive_optim:
+    trials_path = os.path.join(output_dir, f"best_trials_{data_source}.json")
+    try:
+        with open(trials_path, "w") as f:
+            json.dump(make_json_serializable(best_trials), f, indent=2)
+        print(f"[INFO] best_trials saved to path : {trials_path}")
+    except Exception as e:
+        print(f"[WARNING] Error while saving best_trials : {e}")

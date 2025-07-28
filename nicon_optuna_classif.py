@@ -9,7 +9,7 @@ from torch.utils.data import TensorDataset, DataLoader, random_split
 
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.metrics import accuracy_score, log_loss
-from Models.nicon_classif_pytorch import customizable_nicon_classification
+from Scripts_python.Models.nicon_classif_pytorch import customizable_nicon_classification
 
 def set_global_seed(seed):
     random.seed(seed)
