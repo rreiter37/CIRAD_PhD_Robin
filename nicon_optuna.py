@@ -45,6 +45,7 @@ from sklearn.metrics import mean_squared_error
 
 from max_batch_size import find_max_batch_size
 from Scripts_python.Models.nicon_custom_pytorch import CustomizableNicon
+from Scripts_python.utils.checkpointing_logger import CheckpointLoggerCallback
 
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.loggers import TensorBoardLogger
@@ -80,13 +81,19 @@ def set_global_seed(seed):
 class NiconPLModule(pl.LightningModule):
     def __init__(self, input_channels, params, lr_max, lr_min, epochs, t0_steps=None, cyclic_learning=True):
         super().__init__()
-        self.model = CustomizableNicon(input_channels=input_channels, params=params)
-        self.criterion = nn.MSELoss()
+        self.save_hyperparameters(ignore=["t0_steps", "cyclic_learning"])
+        self.params = params
         self.lr_max = lr_max
         self.lr_min = lr_min
         self.epochs = epochs
-        self.t0_steps = t0_steps  # Scheduler restart cycle length
+        self.t0_steps = t0_steps
         self.cyclic_learning = cyclic_learning
+
+        self.model = CustomizableNicon(
+            input_channels=input_channels,
+            params=self.params
+        )
+        self.criterion = nn.MSELoss()
 
     def forward(self, x):
         x = x.to(self.device)
@@ -266,7 +273,18 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
         )
         model.to(self.device)
 
-        callbacks = [pl.callbacks.EarlyStopping(monitor="val_loss", patience=self.patience, verbose=self.verbose_optuna)]
+        checkpoint_callback = pl.callbacks.ModelCheckpoint(
+            monitor="val_loss",
+            save_top_k=1,
+            mode="min",
+            save_last=False,
+            verbose=self.verbose_optuna,
+            filename=f"{self.name_pp or 'noprep'}-{{epoch:02d}}-{{val_loss:.4f}}"
+        )
+
+        early_stopping = pl.callbacks.EarlyStopping(monitor="val_loss", patience=self.patience, verbose=self.verbose_optuna)
+
+        callbacks = [checkpoint_callback, early_stopping, CheckpointLoggerCallback()]
         if trial is not None:
             callbacks.insert(0, CustomOptunaPruningCallback(trial, monitor="val_loss"))
 
@@ -281,10 +299,13 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
             devices=1 if self.device == "cuda" else None,
             accelerator=self.device if self.device == "cuda" else "cpu",
             deterministic=True,
-            enable_checkpointing=False
         )
 
         trainer.fit(model, train_loader, val_loader)
+
+        if checkpoint_callback.best_model_path:
+            model = NiconPLModule.load_from_checkpoint(checkpoint_callback.best_model_path)
+
 
         val_loss = trainer.callback_metrics.get("val_loss")
         return model, val_loss.item() if isinstance(val_loss, torch.Tensor) else val_loss
@@ -306,6 +327,7 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
 
         if self.batch_size is None:
             params = {"kernel_size1": 3, "kernel_size2": 3, "kernel_size3": 3, "spatial_dropout": 0.01, "dropout_rate": 0.01}
+            params["output_dim"] = 1
             model = NiconPLModule(
                 input_channels=self.input_shape[0],
                 params=params,
@@ -320,6 +342,7 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
 
         def objective(trial):
             params = self._suggest_params(trial)
+            params["output_dim"] = 1
             train_loader = DataLoader(train_set, batch_size=self.batch_size, shuffle=True)
             val_loader = DataLoader(val_set, batch_size=self.batch_size)
             _, val_loss = self._train_model(params, train_loader, val_loader, trial=trial)
@@ -329,6 +352,8 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
         self.study_.optimize(objective, n_trials=self.n_trials, show_progress_bar=self.verbose_optuna)
 
         self.best_params_ = self.study_.best_params
+        self.best_params_["output_dim"] = 1
+
 
         if self.best_trials is None:
             self.best_trials = [self.best_params_]
@@ -353,7 +378,18 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
         )
         final_model.to(self.device)
 
-        callbacks = [pl.callbacks.EarlyStopping(monitor="val_loss", patience=self.patience, verbose=self.verbose)]
+        checkpoint_callback = pl.callbacks.ModelCheckpoint(
+            monitor="val_loss",
+            save_top_k=1,
+            mode="min",
+            verbose=self.verbose,
+            filename=f"{self.name_pp or 'noprep'}-{{epoch:02d}}-{{val_loss:.4f}}"
+        )
+
+        early_stopping = pl.callbacks.EarlyStopping(monitor="val_loss", patience=self.patience, verbose=self.verbose)
+
+        callbacks = [checkpoint_callback, early_stopping, CheckpointLoggerCallback()]
+
         if self.name_pp is None:
             name = "nicon_final"
         else:
@@ -369,10 +405,12 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
             devices=1 if self.device == "cuda" else None,
             accelerator=self.device if self.device == "cuda" else "cpu",
             deterministic=True,
-            enable_checkpointing=False
         )
 
         trainer.fit(final_model, train_loader_final, val_loader_final)
+
+        if checkpoint_callback.best_model_path:
+            final_model = NiconPLModule.load_from_checkpoint(checkpoint_callback.best_model_path)
 
         self.model_ = final_model
         return self

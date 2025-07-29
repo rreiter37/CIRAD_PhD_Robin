@@ -15,3 +15,11 @@ Outputs/outliers_detection/**/*.pth.tar
 
 # Ignore les logs pour tensorboard dans le dossier lightning_logs
 lightning_logs/
+
+# Ignore les checkpoints pour le modèle NICON
+checkpoints/
+
+# Ignore le cache
+__pycache__/
+Scripts_python/Models/__pycache__/
+Scripts_python/utils/__pycache__/

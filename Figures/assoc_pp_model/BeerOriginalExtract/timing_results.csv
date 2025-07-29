@@ -1,2 +1,3 @@
-data_source,n_trials_first,n_trials_next,epochs_first,epochs_next,epochs_final,patience,optimization_type,time
-BeerOriginalExtract,200,30,100,10,5000,5000,progressive,1267.2042498588562
+data_source,n_trials_first,n_trials_next,epochs_first,epochs_next,epochs_final,patience,optimization_type,time,n_trials,epochs_optuna
+BeerOriginalExtract,200.0,30.0,100.0,10.0,5000,5000,progressive,1384.1681966781616,,
+BeerOriginalExtract,,,,,5000,5000,uniform,1580.961677789688,90.0,10.0

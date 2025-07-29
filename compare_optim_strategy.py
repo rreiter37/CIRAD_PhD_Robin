@@ -43,6 +43,16 @@ df_perf = pd.DataFrame(performance_data)
 # Fusionner les deux (temps + perf)
 df_merge = pd.merge(df_timing, df_perf, on=["dataset", "optimization_type"], how="left")
 
+# Supprimer les lignes avec des NaN dans 'time' ou 'mean_score'
+df_merge_clean = df_merge.dropna(subset=["time", "mean_score"])
+
+# Affichage statistique propre
+summary = df_merge_clean.groupby("optimization_type").agg({
+    "time": ["mean", "std"],
+    "mean_score": ["mean", "std"]
+}).round(2)
+
+
 # Affichage statistique
 summary = df_merge.groupby("optimization_type").agg({
     "time": ["mean", "std"],
@@ -55,15 +65,52 @@ print(summary)
 # ──────────────────────────────
 # Plotting the execution time
 plt.figure(figsize=(10, 5))
-sns.boxplot(data=df_merge, x="optimization_type", y="time", palette="Set2")
+sns.boxplot(data=df_merge_clean, x="optimization_type", y="time",
+            hue="optimization_type", palette="Set2", legend=False)
 plt.title("Temps d'exécution par stratégie d'optimisation")
 plt.ylabel("Temps (secondes)")
 plt.xlabel("Type d'optimisation")
 plt.tight_layout()
+fig_path = "Figures"
 plt.savefig("comparaison_temps_execution.png", dpi=300)
-plt.show()
 
 # ──────────────────────────────
-# Facultatif : export CSV combiné
+# Plotting the performance (mean_score)
+plt.figure(figsize=(10, 5))
+sns.boxplot(data=df_merge_clean, x="optimization_type", y="mean_score",
+            hue="optimization_type", palette="Set1", legend=False)
+plt.title("Score moyen par stratégie d'optimisation")
+plt.ylabel("Score moyen (plus bas = mieux)" if "RMSE" in df_merge_clean["filename"].iloc[0] else "Score moyen (plus haut = mieux)")
+plt.gca().invert_yaxis()
+plt.xlabel("Type d'optimisation")
+plt.tight_layout()
+plt.savefig("comparaison_performance_score.png", dpi=300)
+
+# ──────────────────────────────
+# Scatter plot: compromis performance vs. temps
+plt.figure(figsize=(10, 6))
+sns.scatterplot(data=df_merge_clean,
+                x="time",
+                y="mean_score",
+                hue="optimization_type",
+                style="optimization_type",
+                palette="Dark2",
+                s=100, edgecolor="black")
+
+# Axe Y : inverser si RMSE (plus bas = mieux)
+if "RMSE" in df_merge_clean["filename"].iloc[0]:
+    plt.gca().invert_yaxis()
+    plt.ylabel("Score moyen (plus bas = mieux)")
+else:
+    plt.ylabel("Score moyen (plus haut = mieux)")
+
+plt.xlabel("Temps d'exécution (s)")
+plt.title("Compromis entre temps et performance")
+plt.grid(True, linestyle='--', alpha=0.5)
+plt.tight_layout()
+plt.savefig("scatter_temps_vs_performance.png", dpi=300)
+
+# ──────────────────────────────
+# Export csv file
 df_merge.to_csv("comparaison_optimisation.csv", index=False)
 print("\n[INFO] Fichier exporté : comparaison_optimisation.csv")

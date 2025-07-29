@@ -99,7 +99,7 @@ parser.add_argument('--data_source', type=str, required=True,
 parser.add_argument('--top_n_preprocs', type=int, default=None,
                     help="Display only the top N preprocessings based on their performance (optional). If None, all preprocessings are displayed.")
 
-parser.add_argument('--progressive_optim', action='store_true', default=True,
+parser.add_argument('--progressive_optim', action='store_true', default=False,
                     help="Activate progressive optimization : first combination with a deep hyperparameter search, the next ones using the best_trials. If False, all researches are the same.")
 
 parser.add_argument('--only_colors', action='store_true', default=False,
@@ -125,7 +125,7 @@ tf.random.set_seed(rd_seed)
 # Keep only the top N preprocessings if specified
 top_n = args.top_n_preprocs
 progressive_optim = args.progressive_optim
-print(f"[INFO] Optimisation {'progressive' if progressive_optim else 'uniforme'} activée.")
+print(f"[INFO] {'Progressive' if progressive_optim else 'Uniform'} optimization activated.")
 
 start_time = time.time()
 # Set the calibration and test data sets
@@ -173,11 +173,11 @@ if progressive_optim:
     n_trials_first, n_trials_next = 200, 30
     epochs_first, epochs_next = 100, 10
 else:
-    n_trials = 90
-    epochs_optuna = 10
+    n_trials_uniform = 90
+    epochs_uniform = 10
 epochs, patience = 5000, 5000
 
-# Define models 
+# Define models
 if mode == 'Regression':
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print("Using device:", device)
@@ -240,9 +240,15 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
                 if progressive_optim:
                     n_trials = n_trials_first
                     epochs_optuna = epochs_first
+                else:
+                    print("checkup before")
+                    n_trials = n_trials_uniform
+                    epochs_optuna = epochs_uniform
+                    print("checkup after")
             else: # if we can use the previous results to reduce the optimization space
                 n_trials = n_trials_next
                 epochs_optuna = epochs_next
+
             mdl = NiconOptunaRegressor(n_trials=n_trials, epochs=epochs, patience=patience, cyclic_learning=True, lr_min=1e-6, lr_max=1e-3, epochs_optuna=epochs_optuna, 
                                        random_state=rd_seed, device=device, verbose_optuna=True, best_trials=best_trials, name_pp=pp_name)
 
@@ -441,8 +447,8 @@ if progressive_optim:
 else:
     timing_data = {
     "data_source": data_source,
-    "n_trials": n_trials_first,
-    "epochs_optuna": epochs_optuna,
+    "n_trials": n_trials_uniform,
+    "epochs_optuna": epochs_uniform,
     "epochs_final": epochs,
     "patience": patience,
     "optimization_type": optim_type,
@@ -452,7 +458,7 @@ else:
 # Ajout ou création du fichier CSV
 if os.path.exists(timing_csv_path):
     df_time = pd.read_csv(timing_csv_path)
-    df_time = df_time.append(timing_data, ignore_index=True)
+    df_time = pd.concat([df_time, pd.DataFrame([timing_data])], ignore_index=True)
 else:
     df_time = pd.DataFrame([timing_data])
 

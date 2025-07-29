@@ -1,0 +1,5 @@
+data_source,n_trials_first,n_trials_next,epochs_first,epochs_next,epochs_final,patience,optimization_type,time,n_trials,epochs_optuna,dataset,filename,mean_score
+BeerOriginalExtract,200.0,30.0,100.0,10.0,5000,5000,progressive,1384.1681966781616,,,BeerOriginalExtract,results_BeerOriginalExtract_top_16_progressive_optim.csv,1.6857378899131155
+BeerOriginalExtract,,,,,5000,5000,uniform,1580.961677789688,90.0,10.0,BeerOriginalExtract,results_BeerOriginalExtract_top_16_uniform_optim.csv,1.70458561530655
+BeerOriginalExtract,,,,,5000,5000,uniform,1580.961677789688,90.0,10.0,BeerOriginalExtract,results_BeerOriginalExtract.csv,1.935862407916923
+BeerOriginalExtract,,,,,5000,5000,uniform,1580.961677789688,90.0,10.0,BeerOriginalExtract,results_BeerOriginalExtract_top_16.csv,2.0259165898059694
