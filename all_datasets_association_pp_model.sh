@@ -18,6 +18,6 @@ fi
 if [[ -z "$only_type" || "$only_type" == "Regression" ]]; then
     for ds in "${regression_datasets[@]}"; do
         echo "Running on $ds (Regression)"
-        python association_pp_model.py --mode Regression --data_source "$ds" --only_colors
+        python association_pp_model.py --mode Regression --data_source "$ds" --only_colors --progressive_optim
     done
 fi

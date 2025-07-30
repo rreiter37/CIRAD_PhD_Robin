@@ -343,8 +343,8 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
         def objective(trial):
             params = self._suggest_params(trial)
             params["output_dim"] = 1
-            train_loader = DataLoader(train_set, batch_size=self.batch_size, shuffle=True)
-            val_loader = DataLoader(val_set, batch_size=self.batch_size)
+            train_loader = DataLoader(train_set, batch_size=self.batch_size, shuffle=True, num_workers=0)
+            val_loader = DataLoader(val_set, batch_size=self.batch_size, num_workers=0)
             _, val_loss = self._train_model(params, train_loader, val_loader, trial=trial)
             return val_loss
 
@@ -362,8 +362,8 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
 
         # Final training phase
         train_final, val_final = random_split(dataset, [n_samples - n_val, n_val], generator=torch.Generator().manual_seed(self.random_state))
-        train_loader_final = DataLoader(train_final, batch_size=self.batch_size, shuffle=True)
-        val_loader_final = DataLoader(val_final, batch_size=self.batch_size)
+        train_loader_final = DataLoader(train_final, batch_size=self.batch_size, shuffle=True, num_workers=0)
+        val_loader_final = DataLoader(val_final, batch_size=self.batch_size, num_workers=0)
 
         t0_steps = len(train_loader_final) * (self.epochs // 4) or 1
 

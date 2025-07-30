@@ -67,7 +67,6 @@ from sklearn.metrics import root_mean_squared_error, accuracy_score
 from sklearn.base import clone
 from sklearn.preprocessing import MinMaxScaler
 
-import torch
 
 from itertools import combinations
 from joblib import Parallel, delayed, Memory
@@ -84,8 +83,6 @@ simplefilter(action='ignore', category=FutureWarning)
 simplefilter(action='ignore', category=UserWarning)
 filterwarnings("ignore", category=FutureWarning)
 
-    
-
 parser = argparse.ArgumentParser(description="Association modèle / preprocessing avec heatmap")
 
 # Regression: 'BeerOriginalExtract' or 'Digest_0.8' or 'YamProtein' //
@@ -98,6 +95,9 @@ parser.add_argument('--data_source', type=str, required=True,
 
 parser.add_argument('--top_n_preprocs', type=int, default=None,
                     help="Display only the top N preprocessings based on their performance (optional). If None, all preprocessings are displayed.")
+
+parser.add_argument('--model_names', nargs='+', type=str, default=None,
+                    help="Perform the association pp/model with the models specified in the list of model names (optional). If None, all models are used (Ridge, PLS, LGBM, NICON).")
 
 parser.add_argument('--progressive_optim', action='store_true', default=False,
                     help="Activate progressive optimization : first combination with a deep hyperparameter search, the next ones using the best_trials. If False, all researches are the same.")
@@ -124,12 +124,24 @@ random.seed(rd_seed)
 tf.random.set_seed(rd_seed)
 # Keep only the top N preprocessings if specified
 top_n = args.top_n_preprocs
+model_names = args.model_names
 progressive_optim = args.progressive_optim
 print(f"[INFO] {'Progressive' if progressive_optim else 'Uniform'} optimization activated.")
+
+import torch
+torch.manual_seed(rd_seed)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
 
 start_time = time.time()
 # Set the calibration and test data sets
 Xcal, Ycal, Xval, Yval = split_data(mode, data_source, verbose=True)
+
+device = "cuda" if torch.cuda.is_available() else "cpu"
+print("Using device:", device)
+
+# Number of classes in the target variable
+num_classes = len(np.unique(Ycal)) # Useful only in the case of Classification
 
 # Apply MinMax scaling to Y if regression mode
 scaler_Y = None
@@ -166,7 +178,7 @@ for (name1, trans1), (name2, trans2) in combinations(simple_preprocs, 2):
 
 # Add identity and PCA models
 preprocessings.append(('id', pp.IdentityTransformer()))
-preprocessings.append(('PCA', PCA()))
+preprocessings.append(('PCA', PCA(random_state=rd_seed)))
 
 # Parameters related to the progressive optimization of NICON
 if progressive_optim:
@@ -175,27 +187,32 @@ if progressive_optim:
 else:
     n_trials_uniform = 90
     epochs_uniform = 10
-epochs, patience = 5000, 5000
+epochs, patience = 10000, 1000
+
+# Create a dictionary storing each model
+dict_models = {
+    "Ridge_reg": RidgeCVRegressor(alphas=np.logspace(-4, 2, 50), cv=5, random_state=rd_seed),
+    "PLS_reg": AutoPLSRegression(max_components=Xcal.shape[1], cv=3, scale=True, seed=rd_seed, max_evals=60),
+    "LGBM_reg": LGBMOptuna(cv=5, n_trials=20, random_state=rd_seed, verbose=1, verbose_optuna=False),
+    "NICON_reg": NiconOptunaRegressor(n_trials=90, epochs=epochs, patience=patience, cyclic_learning=True, lr_min=1e-6, lr_max=1e-3, epochs_optuna=10, random_state=rd_seed, device=device, verbose_optuna=True),
+    "Ridge_classif": RidgeCVClassifier(alphas=np.logspace(-4, 2, 50), cv=5, random_state=rd_seed),
+    "PLS_classif": AutoPLSClassifier(max_components=Xcal.shape[1], cv=5),
+    "LGBM_classif": LGBMOptunaClassifier(cv=5, n_trials=50, random_state=rd_seed, verbose=0),
+    "NICON_classif": NiconOptunaClassifier(num_classes=num_classes, n_trials=50, epochs=10000, patience=10, epochs_optuna=100, random_state=rd_seed),
+}
 
 # Define models
-if mode == 'Regression':
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    print("Using device:", device)
+suffixe = "_reg" if mode=="Regression" else "_classif"
+if model_names is None:
     models = [
-        ("Ridge_opt", RidgeCVRegressor(alphas=np.logspace(-4, 2, 50), cv=5, random_state=rd_seed)),
-        ('PLS', AutoPLSRegression(max_components=Xcal.shape[1], cv=3, scale=True, seed=rd_seed, max_evals=60)),
-        ("LGBM_opt", LGBMOptuna(cv=5, n_trials=20, random_state=rd_seed, verbose=1, verbose_optuna=False)),
-        ('NICON', NiconOptunaRegressor(n_trials=90, epochs=5000, patience=1000, cyclic_learning=True, lr_min=1e-6, lr_max=1e-3, epochs_optuna=10, random_state=rd_seed, device=device, verbose_optuna=True)),
+        ("Ridge" + suffixe, dict_models["Ridge" + suffixe]),
+        ("PLS" + suffixe, dict_models["PLS" + suffixe]),
+        ("LGBM" + suffixe, dict_models["LGBM" + suffixe]),
+        ("NICON" + suffixe, dict_models["NICON" + suffixe]),
     ]
-    models = [('NICON', NiconOptunaRegressor(n_trials=90, epochs=epochs, patience=patience, cyclic_learning=True, lr_min=1e-6, lr_max=1e-3, epochs_optuna=10, random_state=rd_seed, device=device, verbose_optuna=True)),]
-
-else:  # Classification
-    num_classes = len(np.unique(Ycal))  # Number of classes in the target variable
+else:
     models = [
-        ("Ridge_classif", RidgeCVClassifier(alphas=np.logspace(-4, 2, 50), cv=5, random_state=rd_seed)),
-        ("PLS_classif", AutoPLSClassifier(max_components=Xcal.shape[1], cv=5)),
-        ("LGBM_classif", LGBMOptunaClassifier(cv=5, n_trials=50, random_state=rd_seed, verbose=0)),
-        ("NICON_classif", NiconOptunaClassifier(num_classes=num_classes, n_trials=50, epochs=10000, patience=10, epochs_optuna=100, random_state=rd_seed)),
+        (name_model + suffixe, dict_models[name_model + suffixe]) for name_model in model_names
     ]
 
 # Dictionnary to store the optimal n_components of the PLS, per preprocessing
@@ -342,10 +359,11 @@ pivoted = df_scores.pivot(index="Model", columns="Preprocessing", values="Score"
 output_dir = os.path.join("Results", "assoc_pp_model", data_source)
 os.makedirs(output_dir, exist_ok=True)
 optim_type = "progressive" if progressive_optim else "uniform"
-if top_n is not None:
-    name_file = f"results_{data_source}_top_{top_n}_{optim_type}_optim.csv"
+if model_names is not None:
+    names = "_".join(model_names)
+    name_file = f"results_{data_source}_{optim_type}_optim_{epochs}_epc_{patience}_ptc_{names}.csv"
 else:
-    name_file = f"results_{data_source}_{optim_type}_optim.csv"
+    name_file = f"results_{data_source}_{optim_type}_optim_{epochs}_epc_{patience}_ptc.csv"
 output_path = os.path.join(output_dir, name_file)
 pivoted.to_csv(output_path)
 
@@ -385,44 +403,71 @@ if top_n is not None:
     pivoted = pivoted[best_preprocs]
     formatted_df = formatted_df[best_preprocs]
 
-
 # ──────────────────────────────────────────────────────
 # Plotting the heatmap
 num_preprocs = len(pivoted.columns)
 fig_width = max(14, num_preprocs * 0.25)
 
-plt.figure(figsize=(fig_width, 5.5 if mode == "Classification" else 5))
+from matplotlib.patches import Rectangle
 
-sns.heatmap(
-    pivoted * (100 if mode == "Classification" else 1),  # scale for accuracy
+fig, ax = plt.subplots(figsize=(fig_width, 5.5 if mode == "Classification" else 5))
+
+# Draw the base heatmap
+heatmap = sns.heatmap(
+    pivoted * (100 if mode == "Classification" else 1),
     annot=None if only_colors else formatted_df,
     fmt="" if not only_colors else None,
     linewidths=0.5,
     cmap="YlGnBu" if mode == "Classification" else "viridis",
     cbar_kws={"label": "Accuracy (%)" if mode == "Classification" else "RMSE"},
     xticklabels=True,
-    yticklabels=True
+    yticklabels=True,
+    ax=ax
 )
 
+# Encadrer la meilleure valeur de chaque colonne (prétraitement)
+for j, col in enumerate(pivoted.columns):
+    values = pivoted[col]
+    if values.isnull().all():
+        continue
 
+    # Trouve la/les meilleures lignes (index du modèle) pour cette colonne
+    if mode == "Classification":
+        best_val = values.max()
+    else:
+        best_val = values.min()
+
+    best_indices = values[values == best_val].index
+
+    for idx in best_indices:
+        i = list(pivoted.index).index(idx)
+        # Rectangle(xy, width, height), xy = bottom left
+        ax.add_patch(Rectangle((j, i), 1, 1, fill=False, edgecolor='red', lw=2))
+
+# Finalisation de l'affichage
 plt.xticks(rotation=90, ha="center", fontsize=8 if only_colors else 7)
 plt.yticks(rotation=0, fontsize=10 if only_colors else 9)
 plt.title(f"Performance Heatmap ({'Accuracy' if mode == 'Classification' else 'RMSE'}) / {data_source} dataset ({mode})")
-
 plt.tight_layout()
 output_dir = os.path.join("Figures", "assoc_pp_model", data_source)
 os.makedirs(output_dir, exist_ok=True)
 
 # Name of the heatmap file
 optim_type = "progressive" if progressive_optim else "uniform"
-if top_n is not None:
-    heatmap_filename = f"heatmap_{data_source}_top_{top_n}_epochs_{epochs}_patience_{patience}_{optim_type}_optim.png"
+if model_names is not None:
+    names = "_".join(model_names)
+    if top_n is not None:
+        heatmap_filename = f"heatmap_{data_source}_top_{top_n}_epochs_{epochs}_patience_{patience}_{optim_type}_optim_{names}.png"
+    else:
+        heatmap_filename = f"heatmap_{data_source}_epochs_{epochs}_patience_{patience}_{optim_type}_optim_{names}.png"
 else:
-    heatmap_filename = f"heatmap_{data_source}_epochs_{epochs}_patience_{patience}_{optim_type}_optim.png"
+    if top_n is not None:
+        heatmap_filename = f"heatmap_{data_source}_top_{top_n}_epochs_{epochs}_patience_{patience}_{optim_type}_optim.png"
+    else:
+        heatmap_filename = f"heatmap_{data_source}_epochs_{epochs}_patience_{patience}_{optim_type}_optim.png"
 
 output_path = os.path.join(output_dir, heatmap_filename)
 plt.savefig(output_path, dpi=300)
-plt.show()
 
 elapsed_time = time.time() - start_time
 
@@ -464,7 +509,6 @@ else:
 
 df_time.to_csv(timing_csv_path, index=False)
 print(f"[INFO] Execution time saved to {timing_csv_path}")
-
 
 # ──────────────────────────────────────────────────────
 # Save best_trials (if it exists) into a JSON file

@@ -44,10 +44,12 @@ class LGBMOptuna(BaseEstimator, RegressorMixin):
                 'reg_alpha': trial.suggest_float('reg_alpha', 1e-4, 10.0, log=True),
                 #'reg_lambda': trial.suggest_float('reg_lambda', 1e-6, 1e-4, log=True),
                 'random_state': self.random_state,
-                #'n_jobs': -1,
+                'n_jobs': 1,
                 'deterministic': True,
                 'verbose': -1,
                 'force_col_wise': True,
+                'device':'gpu',
+                'gpu_use_dp': True
             }
 
             kf = KFold(n_splits=self.cv, shuffle=True, random_state=self.random_state)
