@@ -218,7 +218,7 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
 
     def _suggest_params(self, trial):
         best_trials = self.best_trials
-        def median_and_range(param_name, type, low, high, log=False, step=2):
+        def median_and_range(param_name, type, low, high, log=False, step=2, scale=0.4):
             if best_trials is None:
                 if type=='int':
                     return trial.suggest_int(param_name, low, high, step=step)
@@ -237,22 +237,22 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
 
             if type=='int':
                 median = int(median)
-                delta = int((high - low) * 0.4)
+                delta = int((high - low) * scale/2)
                 bounded_low = max(low, median - delta)
                 bounded_high = min(high, median + delta)
                 return trial.suggest_int(param_name, bounded_low, bounded_high, step = max(1, step//2))
             else:
-                delta = (high - low) * 0.1
+                delta = (high - low) * scale/2
                 bounded_low = max(low, median - delta)
                 bounded_high = min(high, median + delta)
                 return trial.suggest_float(param_name, bounded_low, bounded_high, log=log)
 
         return {
-            "kernel_size1": median_and_range("kernel_size1", 'int', 3, 25, step=2),
-            "kernel_size2": median_and_range("kernel_size2", 'int', 3, 25, step=2),
-            "kernel_size3": median_and_range("kernel_size3", 'int', 3, 25, step=2),
-            "spatial_dropout": median_and_range("spatial_dropout", 'float', 0.01, 0.5),
-            "dropout_rate": median_and_range("dropout_rate", 'float', 0.01, 0.5),
+            "kernel_size1": median_and_range("kernel_size1", 'int', 3, 25, step=2, scale=0.4),
+            "kernel_size2": median_and_range("kernel_size2", 'int', 3, 25, step=2, scale=0.4),
+            "kernel_size3": median_and_range("kernel_size3", 'int', 3, 25, step=2, scale=0.4),
+            "spatial_dropout": median_and_range("spatial_dropout", 'float', 0.01, 0.5, scale=0.2),
+            "dropout_rate": median_and_range("dropout_rate", 'float', 0.01, 0.5, scale=0.2),
         }
 
     def _train_model(self, params, train_loader, val_loader, trial=None):
@@ -353,7 +353,6 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
 
         self.best_params_ = self.study_.best_params
         self.best_params_["output_dim"] = 1
-
 
         if self.best_trials is None:
             self.best_trials = [self.best_params_]

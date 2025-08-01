@@ -153,6 +153,7 @@ if mode == 'Regression':
 
 # List of basic preprocessings
 simple_preprocs = [
+    ('id', pp.IdentityTransformer()),
     ('baseline', pp.Baseline()),
     ('derivate', pp.Derivate()),
     ('detrend', pp.Detrend()),
@@ -168,7 +169,7 @@ simple_preprocs = [
 preprocessings = list(simple_preprocs)
 
 # Add 2-combinations of simple preprocessing methods
-for (name1, trans1), (name2, trans2) in combinations(simple_preprocs, 2):
+for (name1, trans1), (name2, trans2) in combinations(simple_preprocs[1:], 2): # we do not take "id" into account
     combo_name = f'{name1}_{name2}'
     combo_pipeline = Pipeline([
         (name1, trans1),
@@ -176,18 +177,17 @@ for (name1, trans1), (name2, trans2) in combinations(simple_preprocs, 2):
     ])
     preprocessings.append((combo_name, combo_pipeline))
 
-# Add identity and PCA models
-preprocessings.append(('id', pp.IdentityTransformer()))
+# Add PCA transformation
 preprocessings.append(('PCA', PCA(random_state=rd_seed)))
 
 # Parameters related to the progressive optimization of NICON
 if progressive_optim:
-    n_trials_first, n_trials_next = 200, 30
+    n_trials_first, n_trials_next = 500, 90
     epochs_first, epochs_next = 100, 10
 else:
     n_trials_uniform = 90
     epochs_uniform = 10
-epochs, patience = 10000, 1000
+epochs, patience = 10000, 10000
 
 # Create a dictionary storing each model
 dict_models = {
