@@ -329,7 +329,7 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
             params = {"kernel_size1": 3, "kernel_size2": 3, "kernel_size3": 3, "spatial_dropout": 0.01, "dropout_rate": 0.01}
             params["output_dim"] = 1
             model = NiconPLModule(
-                input_channels=self.input_shape[0],
+                input_channels=self.input_shape if isinstance(self.input_shape, int) else self.input_shape[0],
                 params=params,
                 lr_max=self.lr_max,
                 lr_min=self.lr_min,

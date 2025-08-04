@@ -266,8 +266,14 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
                 n_trials = n_trials_next
                 epochs_optuna = epochs_next
 
-            mdl = NiconOptunaRegressor(n_trials=n_trials, epochs=epochs, patience=patience, cyclic_learning=True, lr_min=1e-6, lr_max=1e-3, epochs_optuna=epochs_optuna, 
-                                       random_state=rd_seed, device=device, verbose_optuna=True, best_trials=best_trials, name_pp=pp_name)
+            if mode == "Regression":
+                mdl = NiconOptunaRegressor(n_trials=n_trials, epochs=epochs, patience=patience, cyclic_learning=True, lr_min=1e-6, lr_max=1e-3, 
+                                           epochs_optuna=epochs_optuna, random_state=rd_seed, device=device, verbose_optuna=True, 
+                                           best_trials=best_trials, name_pp=pp_name)
+            else:
+                mdl = NiconOptunaClassifier(num_classes=num_classes, n_trials=n_trials, epochs=epochs, patience=patience, epochs_optuna=epochs_optuna, 
+                                            cyclic_learning=True, lr_min=1e-6, lr_max=1e-3, random_state=rd_seed, 
+                                            verbose_optuna=True, device=device, best_trials=best_trials, name_pp=pp_name)
 
         if mdl_name.startswith("LGBM"):
             pipe = Pipeline([

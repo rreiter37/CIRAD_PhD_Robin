@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import TensorDataset, DataLoader, random_split
 import optuna
+from optuna.exceptions import TrialPruned
 from optuna.samplers import TPESampler
 from optuna.pruners import HyperbandPruner
 from sklearn.base import BaseEstimator, ClassifierMixin
@@ -57,7 +58,6 @@ class NiconPLClassifier(pl.LightningModule):
         self.t0_steps = t0_steps
         self.cyclic_learning = cyclic_learning
         self.num_classes = num_classes
-
         self.model = customizable_nicon_classification(
             input_shape=input_shape,
             num_classes=num_classes,
@@ -71,6 +71,8 @@ class NiconPLClassifier(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         x, y = batch
         y_pred = self(x)
+        if self.hparams.num_classes == 2:
+            y = y.float()
         loss = self.criterion(y_pred, y)
         self.log("train_loss", loss, prog_bar=True, on_epoch=True)
         return loss
@@ -78,6 +80,8 @@ class NiconPLClassifier(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         x, y = batch
         y_pred = self(x)
+        if self.hparams.num_classes == 2:
+            y = y.float()
         loss = self.criterion(y_pred, y)
         self.log("val_loss", loss, prog_bar=True, on_epoch=True)
         return loss
@@ -102,7 +106,6 @@ class NiconPLClassifier(pl.LightningModule):
             }
         else:
             return optimizer
-
 
 # Main Optuna classifier class
 class NiconOptunaClassifier(BaseEstimator, ClassifierMixin):
@@ -191,7 +194,7 @@ class NiconOptunaClassifier(BaseEstimator, ClassifierMixin):
 
     def _build_and_train(self, trial, X, y):
         set_global_seed(self.random_state)
-        params = self._suggest_params(trial, X.shape[0])
+        params = self._suggest_params(trial)
         X_tensor = torch.tensor(self._reshape(X), dtype=torch.float32)
         y_tensor = torch.tensor(y, dtype=torch.long)
         dataset = TensorDataset(X_tensor, y_tensor)
@@ -222,7 +225,9 @@ class NiconOptunaClassifier(BaseEstimator, ClassifierMixin):
             enable_progress_bar=False,
             logger=False,
             deterministic=True,
-            enable_model_summary=False
+            enable_model_summary=False,
+            accelerator="gpu",
+            devices=1
         )
 
         trainer.fit(model, train_loader, val_loader)
@@ -237,13 +242,12 @@ class NiconOptunaClassifier(BaseEstimator, ClassifierMixin):
             self.input_shape = (X.shape[1], 1) if len(X.shape) == 2 else X.shape[1:]
         
         n_samples = len(X)
-
         # Find the maximum batch size accepted by the GPU
         if self.batch_size is None:
             params = {"kernel_size1": 3, "kernel_size2": 3, "kernel_size3": 3, "spatial_dropout": 0.01, "dropout_rate": 0.01}
             params["output_dim"] = 1
             model = NiconPLClassifier(
-                input_shape=self.input_shape[0],
+                input_shape=self.input_shape,
                 num_classes=self.num_classes,
                 params=params,
                 lr_max=self.lr_max,
@@ -254,10 +258,14 @@ class NiconOptunaClassifier(BaseEstimator, ClassifierMixin):
             )
             self.batch_size = find_max_batch_size(model=model, input_shape=self.input_shape, device=self.device, max_batch=X.shape[-1], min_batch=1)
             print("Maximum batch size found : ", self.batch_size)
-
         def objective(trial):
-            return self._build_and_train(trial, X, y)
 
+            try:
+                mdl = self._build_and_train(trial, X, y)
+            except ValueError as e:
+                raise TrialPruned(str(e))
+            return mdl
+         
         sampler = optuna.samplers.TPESampler(seed=self.random_state)
         pruner = optuna.pruners.HyperbandPruner(min_resource=1, max_resource=self.epochs, reduction_factor=3)
         self.study_ = optuna.create_study(direction="minimize", sampler=sampler, pruner=pruner)
@@ -265,6 +273,11 @@ class NiconOptunaClassifier(BaseEstimator, ClassifierMixin):
 
         self.best_params_ = self.study_.best_trial.user_attrs["best_model_state_dict"]
         best_trial_params = self.study_.best_trial.params.copy()
+
+        X_tensor = torch.tensor(self._reshape(X), dtype=torch.float32)
+        y_tensor = torch.tensor(y, dtype=torch.long)
+        dataset = TensorDataset(X_tensor, y_tensor)
+        train_loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True, num_workers=4, pin_memory=True)
 
         # Train final model
         self.model_ = NiconPLClassifier(
@@ -274,10 +287,20 @@ class NiconOptunaClassifier(BaseEstimator, ClassifierMixin):
             lr_max=self.lr_max,
             lr_min=self.lr_min,
             epochs=self.epochs,
-            t0_steps=None,
+            t0_steps=len(train_loader),
             cyclic_learning=self.cyclic_learning
         )
-        self.model_.load_state_dict(self.best_params_)
+
+        trainer = pl.Trainer(
+            max_epochs=self.epochs,
+            accelerator="gpu",
+            devices=1,
+            logger=False,
+            enable_progress_bar=self.verbose,
+            deterministic=True
+        )
+
+        trainer.fit(self.model_, train_loader)
         self.model_.to(self.device)
         self.model_.eval()
         return self
