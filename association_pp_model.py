@@ -51,11 +51,12 @@ import nirs4all.transformations as pp
 from ensure_dataframe import EnsureDataFrame
 from Scripts_python.utils.utils_bdd import split_data
 from Scripts_python.utils.make_serializable import make_json_serializable
+from Scripts_python.Model_optim.pls_components_hybrid import get_pls_component_candidates
 
 from nicon_optuna import NiconOptunaRegressor
 from nicon_optuna_classif import NiconOptunaClassifier
 from PLS_opti import AutoPLSRegression
-from PLS_opti_classif import AutoPLSClassifier
+from PLS_opti_classif import AutoPLSDAClassifier
 from Ridge_opti import RidgeCVRegressor
 from Ridge_opti_classif import RidgeCVClassifier
 from LGBM_optuna import LGBMOptuna
@@ -142,6 +143,7 @@ print("Using device:", device)
 
 # Number of classes in the target variable
 num_classes = len(np.unique(Ycal)) # Useful only in the case of Classification
+if mode == "Classification": print("Number of classes detected : ", num_classes)
 
 # Apply MinMax scaling to Y if regression mode
 scaler_Y = None
@@ -192,11 +194,11 @@ epochs, patience = 10000, 10000
 # Create a dictionary storing each model
 dict_models = {
     "Ridge_reg": RidgeCVRegressor(alphas=np.logspace(-4, 2, 50), cv=5, random_state=rd_seed),
-    "PLS_reg": AutoPLSRegression(max_components=Xcal.shape[1], cv=3, scale=True, seed=rd_seed, max_evals=60),
+    "PLS_reg": AutoPLSRegression(cv=3, seed=rd_seed),
     "LGBM_reg": LGBMOptuna(cv=5, n_trials=20, random_state=rd_seed, verbose=1, verbose_optuna=False),
     "NICON_reg": NiconOptunaRegressor(n_trials=90, epochs=epochs, patience=patience, cyclic_learning=True, lr_min=1e-6, lr_max=1e-3, epochs_optuna=10, random_state=rd_seed, device=device, verbose_optuna=True),
     "Ridge_classif": RidgeCVClassifier(alphas=np.logspace(-4, 2, 50), cv=5, random_state=rd_seed),
-    "PLS_classif": AutoPLSClassifier(max_components=Xcal.shape[1], cv=5),
+    "PLS_classif": AutoPLSDAClassifier(cv=5, seed=rd_seed),
     "LGBM_classif": LGBMOptunaClassifier(cv=5, n_trials=50, random_state=rd_seed, verbose=0),
     "NICON_classif": NiconOptunaClassifier(num_classes=num_classes, n_trials=50, epochs=10000, patience=10, epochs_optuna=100, random_state=rd_seed),
 }
@@ -234,18 +236,39 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
 
     try:
         if mdl_name.startswith('PLS'):
-            if len(prior_components) > 0:
-                median = int(np.median(prior_components))
-                lower = max(1, median - 10)
-                upper = min(Xcal.shape[1], median + 10)
-                max_evals = 10
-            else:
-                lower = 1
-                upper = Xcal.shape[1]
-                max_evals = 100
+            n_wavelengths = Xcal.shape[1]
+            total_evals = max(100, n_wavelengths // 10)
             
-            mdl = AutoPLSRegression(max_components=Xcal.shape[1], cv=5, scale=True, seed=rd_seed,
-                                    max_evals=max_evals, component_range=(lower, upper))
+            big_dataset = Xcal.shape[0] > 1e3
+            cv = 3 if big_dataset else 5
+            parallelism = big_dataset
+            
+            # Hybrid candidate selection
+            max_evals = total_evals // 20 if len(prior_components) > 0 else total_evals
+            candidates = get_pls_component_candidates(
+                n_spectra = Xcal.shape[0],
+                n_wavelengths=n_wavelengths,
+                prior_components=prior_components,
+                max_evals=max_evals,
+                cv=cv,
+                rd_seed=rd_seed
+            )
+            
+            if mode == "Regression":
+                mdl = AutoPLSRegression(
+                    cv=cv,
+                    scale=True,
+                    seed=rd_seed,
+                    candidate_components=candidates
+                )
+            else:
+                mdl = AutoPLSDAClassifier(
+                    cv=cv,
+                    scale=True,
+                    seed=rd_seed,
+                    candidate_components=candidates,
+                    parallelism=parallelism
+                )
 
         elif mdl_name.startswith('NICON'):
             if not progressive_optim:
@@ -258,10 +281,8 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
                     n_trials = n_trials_first
                     epochs_optuna = epochs_first
                 else:
-                    print("checkup before")
                     n_trials = n_trials_uniform
                     epochs_optuna = epochs_uniform
-                    print("checkup after")
             else: # if we can use the previous results to reduce the optimization space
                 n_trials = n_trials_next
                 epochs_optuna = epochs_next
@@ -271,8 +292,9 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
                                            epochs_optuna=epochs_optuna, random_state=rd_seed, device=device, verbose_optuna=True, 
                                            best_trials=best_trials, name_pp=pp_name)
             else:
+                big_dataset = Xcal.shape[0] > 10**3
                 mdl = NiconOptunaClassifier(num_classes=num_classes, n_trials=n_trials, epochs=epochs, patience=patience, epochs_optuna=epochs_optuna, 
-                                            cyclic_learning=True, lr_min=1e-6, lr_max=1e-3, random_state=rd_seed, 
+                                            cyclic_learning=True, lr_min=1e-6, lr_max=1e-3, parallelize=big_dataset, random_state=rd_seed, 
                                             verbose_optuna=True, device=device, best_trials=best_trials, name_pp=pp_name)
 
         if mdl_name.startswith("LGBM"):
@@ -307,7 +329,7 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
         trained_model = pipe.named_steps["model"]
 
         # if the model is PLS, store the best number of components
-        if mdl_name == 'PLS' and hasattr(trained_model, 'best_n_components_'):
+        if mdl_name.startswith("PLS") and hasattr(trained_model, 'best_n_components_'):
             optimal_comp = trained_model.best_n_components_
             if pp_name not in prior_components:
                 prior_components.append(optimal_comp)
@@ -324,7 +346,6 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
 
     return (pp_name, mdl_name, metric, best_trials)
 
-
 # Construction of the combinations (pp, model)
 combinations = []
 for (pp_name, pp_method) in preprocessings:
@@ -335,7 +356,7 @@ for (pp_name, pp_method) in preprocessings:
 mean_metric = 1.0 if mode == 'Regression' else 0.5
 
 if use_parallelism:
-    print("[INFO] Execution in parallel mode (using joblib).")
+    print("[INFO] Execution of combinations in parallel mode (using joblib).")
     raw_results = Parallel(n_jobs=-1)(
         delayed(evaluate_combination)(
             pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xval, Yval, mean_metric, progressive_optim, best_trials, rd_seed, scaler_Y
@@ -349,7 +370,7 @@ if use_parallelism:
             break
 
 else:
-    print("[INFO] Execution in sequential mode.")
+    print("[INFO] Execution of combinations in sequential mode.")
     results = []
     for (pp_name, pp_method, mdl_name, mdl) in tqdm(combinations, desc="Evaluations (sequential)"):
         pp_name, mdl_name, metric, trials = evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xval, Yval, mean_metric, progressive_optim, best_trials, rd_seed, scaler_Y)
@@ -431,7 +452,7 @@ heatmap = sns.heatmap(
     ax=ax
 )
 
-# Encadrer la meilleure valeur de chaque colonne (prétraitement)
+# Square the best value of each column (preprocessing)
 for j, col in enumerate(pivoted.columns):
     values = pivoted[col]
     if values.isnull().all():
@@ -463,14 +484,20 @@ optim_type = "progressive" if progressive_optim else "uniform"
 if model_names is not None:
     names = "_".join(model_names)
     if top_n is not None:
-        heatmap_filename = f"heatmap_{data_source}_top_{top_n}_epochs_{epochs}_patience_{patience}_{optim_type}_optim_{names}.png"
+        if "NICON" in names:
+            heatmap_filename = f"heatmap_{data_source}_top_{top_n}_{epochs}epochs_{patience}patience_{optim_type}_optim_{names}.png"
+        else:
+            heatmap_filename = f"heatmap_{data_source}_top_{top_n}_{optim_type}_optim_{names}.png"
     else:
-        heatmap_filename = f"heatmap_{data_source}_epochs_{epochs}_patience_{patience}_{optim_type}_optim_{names}.png"
+        if "NICON" in names:
+            heatmap_filename = f"heatmap_{data_source}_{epochs}epochs_{patience}patience_{optim_type}_optim_{names}.png"
+        else:
+            heatmap_filename = f"heatmap_{data_source}_{optim_type}_optim_{names}.png"
 else:
     if top_n is not None:
-        heatmap_filename = f"heatmap_{data_source}_top_{top_n}_epochs_{epochs}_patience_{patience}_{optim_type}_optim.png"
+        heatmap_filename = f"heatmap_{data_source}_top_{top_n}_{epochs}epochs_{patience}patience_{optim_type}_optim.png"
     else:
-        heatmap_filename = f"heatmap_{data_source}_epochs_{epochs}_patience_{patience}_{optim_type}_optim.png"
+        heatmap_filename = f"heatmap_{data_source}_{epochs}epochs_{patience}patience_{optim_type}_optim.png"
 
 output_path = os.path.join(output_dir, heatmap_filename)
 plt.savefig(output_path, dpi=300)
@@ -481,8 +508,15 @@ elapsed_time = time.time() - start_time
 # Save the execution time (if it exists) into a csv file
 timing_output_path = os.path.join("Figures", "assoc_pp_model", data_source)
 os.makedirs(timing_output_path, exist_ok=True)
+optim_type = "progressive" if progressive_optim else "uniform"
+if model_names is not None:
+    names = "_".join(model_names)
+    if "NICON" in names:
+          timing_csv_path = os.path.join(timing_output_path, f"timing_results_{epochs}epochs_{patience}patience_{optim_type}_optim_{names}.csv")
+    timing_csv_path = os.path.join(timing_output_path, f"timing_results_{optim_type}_optim_{names}.csv")
+else:
+    timing_csv_path = os.path.join(timing_output_path, f"timing_results_{optim_type}_optim.csv")
 
-timing_csv_path = os.path.join(timing_output_path, "timing_results.csv")
 if progressive_optim:
     timing_data = {
     "data_source": data_source,

@@ -11,16 +11,13 @@ class ConstantTargetPLSError(Exception):
     pass
 
 class AutoPLSRegression(BaseEstimator, RegressorMixin):
-    def __init__(self, max_components=100, cv=5, scale=True,
-                 scoring=None, seed=42, max_evals=30,
-                 component_range=None):
-        self.max_components = max_components
+    def __init__(self, cv=5, scale=True,
+                 scoring=None, seed=42, candidate_components=None):
         self.cv = cv
         self.scale = scale
         self.scoring = scoring
         self.seed = seed
-        self.max_evals = max_evals
-        self.component_range = component_range  # (min_components, max_components)
+        self.candidate_components = candidate_components
 
     def fit(self, X, y):
         y_arr = np.asarray(y)
@@ -32,21 +29,13 @@ class AutoPLSRegression(BaseEstimator, RegressorMixin):
         # Raise exception if y has near-zero variance
         if np.all(np.std(y_arr, axis=0) < 1e-15):
             raise ConstantTargetPLSError("y is constant (null variance). Cannot fit a PLS model.")
-
+        
+        n_wavelengths = X.shape[-1]
         # Determine valid upper limit for components
-        nb_spectra_cv = int(X.shape[0] * (self.cv - 1) / self.cv)
-        global_max = min(self.max_components, X.shape[1], nb_spectra_cv)
-
-        # Determine component range for Hyperopt
-        if self.component_range is not None:
-            lower, upper = self.component_range
-            lower = max(1, int(lower))
-            upper = min(global_max, int(upper))
-        else:
-            lower, upper = 1, global_max
-
-        if lower > upper:
-            raise ValueError(f"Invalid component_range: ({lower}, {upper}) exceeds data limits.")
+        if self.candidate_components is None:
+            nb_spectra_cv = int(X.shape[0] * (self.cv - 1) / self.cv)
+            global_max = min(n_wavelengths, nb_spectra_cv)
+            self.candidate_components = np.linspace(1, global_max, global_max, dtype=int)
 
         # Define the scoring function (default: negative MSE)
         if self.scoring is None:
@@ -67,16 +56,13 @@ class AutoPLSRegression(BaseEstimator, RegressorMixin):
             return {'loss': avg_loss, 'status': STATUS_OK}
 
         # Search space: quantized uniform integer in component_range
-        space = {
-            'n_components': hp.quniform('n_components', lower, upper, 1)
-        }
+        space = hp.choice('n_components', self.candidate_components)
 
         trials = Trials()
         best = fmin(
             fn=objective,
             space=space,
             algo=tpe.suggest,
-            max_evals=self.max_evals,
             trials=trials,
             rstate=np.random.default_rng(self.seed)
         )

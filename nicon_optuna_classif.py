@@ -8,6 +8,10 @@ import optuna
 from optuna.exceptions import TrialPruned
 from optuna.samplers import TPESampler
 from optuna.pruners import HyperbandPruner
+from optuna.storages import RDBStorage
+from joblib import Parallel, delayed
+import tempfile
+import uuid
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.metrics import accuracy_score
 from pytorch_lightning import Trainer
@@ -16,8 +20,8 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, Callback
 from Scripts_python.Models.nicon_classif_pytorch import customizable_nicon_classification
 from Scripts_python.utils.checkpointing_logger import CheckpointLoggerCallback
-from max_batch_size import find_max_batch_size
-
+from Scripts_python.utils.max_batch_size import find_max_batch_size
+from pytorch_lightning.loggers import TensorBoardLogger
 
 # Custom Optuna pruning callback for PyTorch Lightning
 class CustomOptunaPruningCallback(Callback):
@@ -67,8 +71,17 @@ class NiconPLClassifier(pl.LightningModule):
 
     def forward(self, x):
         return self.model(x)
+    
+    def check_device_consistency(self, batch, stage=""):
+        x, y = batch
+        model_device = next(self.model.parameters()).device
+        if x.device != model_device:
+            self.print(f"[⚠️ DEVICE WARNING] {stage}: Input x is on {x.device}, model is on {model_device}")
+        if y.device != model_device:
+            self.print(f"[⚠️ DEVICE WARNING] {stage}: Target y is on {y.device}, model is on {model_device}")
 
     def training_step(self, batch, batch_idx):
+        self.check_device_consistency(batch, stage="Training")
         x, y = batch
         y_pred = self(x)
         if self.hparams.num_classes == 2:
@@ -78,6 +91,7 @@ class NiconPLClassifier(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
+        self.check_device_consistency(batch, stage="Validation")
         x, y = batch
         y_pred = self(x)
         if self.hparams.num_classes == 2:
@@ -111,7 +125,7 @@ class NiconPLClassifier(pl.LightningModule):
 class NiconOptunaClassifier(BaseEstimator, ClassifierMixin):
     def __init__(self, input_shape=None, num_classes=2, n_trials=20, epochs=100, patience=10, epochs_optuna=10, batch_size=None,
                  verbose=0, verbose_optuna=False, timeout=600, random_state=42, cyclic_learning=True, lr_max=1e-3, lr_min=1e-6, 
-                 device=None, get_logger=True, get_logger_optuna=False, best_trials=None, name_pp=None):
+                 parallelize=False, device=None, get_logger=True, get_logger_optuna=False, best_trials=None, name_pp=None):
         self.input_shape = input_shape
         self.num_classes = num_classes
         self.n_trials = n_trials
@@ -125,6 +139,7 @@ class NiconOptunaClassifier(BaseEstimator, ClassifierMixin):
         self.random_state = random_state
         self.lr_max = lr_max
         self.lr_min = lr_min
+        self.parallelize = parallelize
         self.study_ = None
         self.best_params_ = None
         self.model_ = None
@@ -176,27 +191,27 @@ class NiconOptunaClassifier(BaseEstimator, ClassifierMixin):
             "filters1": 2** median_and_range("filters1_power", "int", 2, 8, step=1, scale=0.4),
             "kernel_size1": median_and_range("kernel_size1", "int", 3, 25, step=2, scale=0.4),
             "strides1": median_and_range("strides1", "int", 1, 5, step=1, scale=0.4),
-            "activation1": trial.suggest_categorical("activation1", ['relu', 'selu', 'elu', 'swish']),
+            #"activation1": trial.suggest_categorical("activation1", ['relu', 'selu', 'elu', 'swish']),
             "dropout_rate": median_and_range("dropout_rate", "float", 0.01, 0.5, log=True, scale=0.2),
             "filters2": 2** median_and_range("filters2_power", "int", 2, 8, step=1, scale=0.4),
             "kernel_size2": median_and_range("kernel_size2", "int", 3, 25, step=2, scale=0.4),
             "strides2": median_and_range("strides2", "int", 1, 5, step=1, scale=0.4),
-            "activation2": trial.suggest_categorical("activation2", ['relu', 'selu', 'elu', 'swish']),
-            "normalization_method1": trial.suggest_categorical("normalization_method1", ['BatchNormalization', 'LayerNormalization']),
+            #"activation2": trial.suggest_categorical("activation2", ['relu', 'selu', 'elu', 'swish']),
+            #"normalization_method1": trial.suggest_categorical("normalization_method1", ['BatchNormalization', 'LayerNormalization']),
             "filters3": 2** median_and_range("filters3_power", "int", 2, 8, step=1, scale=0.4),
             "kernel_size3": median_and_range("kernel_size3", "int", 3, 25, step=2, scale=0.4),
             "strides3": median_and_range("strides3", "int", 1, 5, step=1, scale=0.4),
-            "activation3": trial.suggest_categorical("activation3", ['relu', 'selu', 'elu', 'swish']),
-            "normalization_method2": trial.suggest_categorical("normalization_method2", ['BatchNormalization', 'LayerNormalization']),
+            #"activation3": trial.suggest_categorical("activation3", ['relu', 'selu', 'elu', 'swish']),
+            #"normalization_method2": trial.suggest_categorical("normalization_method2", ['BatchNormalization', 'LayerNormalization']),
             "dense_units": 2** median_and_range("dense_units_power", "int", 2, 8, step=1, scale=0.4),
-            "dense_activation": trial.suggest_categorical("dense_activation", ['relu', 'selu', 'elu', 'swish']),
+            #"dense_activation": trial.suggest_categorical("dense_activation", ['relu', 'selu', 'elu', 'swish']),
             }
 
     def _build_and_train(self, trial, X, y):
         set_global_seed(self.random_state)
         params = self._suggest_params(trial)
-        X_tensor = torch.tensor(self._reshape(X), dtype=torch.float32)
-        y_tensor = torch.tensor(y, dtype=torch.long)
+        X_tensor = torch.tensor(self._reshape(X), dtype=torch.float32, device=self.device)
+        y_tensor = torch.tensor(y, dtype=torch.long, device=self.device)
         dataset = TensorDataset(X_tensor, y_tensor)
         train_len = int(0.8 * len(dataset))
         val_len = len(dataset) - train_len
@@ -217,6 +232,7 @@ class NiconOptunaClassifier(BaseEstimator, ClassifierMixin):
 
         callbacks = [
             EarlyStopping(monitor="val_loss", mode="min", patience=self.patience),
+            CustomOptunaPruningCallback(trial, monitor="val_loss"),
         ]
 
         trainer = pl.Trainer(
@@ -227,13 +243,13 @@ class NiconOptunaClassifier(BaseEstimator, ClassifierMixin):
             deterministic=True,
             enable_model_summary=False,
             accelerator="gpu",
-            devices=1
+            devices=1,
+            precision=16,
+            profiler="simple"
         )
 
         trainer.fit(model, train_loader, val_loader)
         val_loss = trainer.callback_metrics["val_loss"].item()
-
-        trial.set_user_attr("best_model_state_dict", model.state_dict())
         return val_loss
 
     def fit(self, X, y):
@@ -258,8 +274,8 @@ class NiconOptunaClassifier(BaseEstimator, ClassifierMixin):
             )
             self.batch_size = find_max_batch_size(model=model, input_shape=self.input_shape, device=self.device, max_batch=X.shape[-1], min_batch=1)
             print("Maximum batch size found : ", self.batch_size)
-        def objective(trial):
 
+        def objective(trial):
             try:
                 mdl = self._build_and_train(trial, X, y)
             except ValueError as e:
@@ -268,14 +284,42 @@ class NiconOptunaClassifier(BaseEstimator, ClassifierMixin):
          
         sampler = optuna.samplers.TPESampler(seed=self.random_state)
         pruner = optuna.pruners.HyperbandPruner(min_resource=1, max_resource=self.epochs, reduction_factor=3)
-        self.study_ = optuna.create_study(direction="minimize", sampler=sampler, pruner=pruner)
-        self.study_.optimize(objective, n_trials=self.n_trials, timeout=self.timeout)
+        if self.parallelize:
+            # Créer un stockage SQLite temporaire (utiliser un vrai fichier pour relancer plus tard)
+            study_id = str(uuid.uuid4())
+            storage_path = f"sqlite:///{tempfile.gettempdir()}/optuna_study_{study_id}.db"
+            storage = RDBStorage(url=storage_path)
+
+            study_name = f"parallel_nicon_{study_id}"
+            self.study_ = optuna.create_study(
+                direction="minimize", 
+                study_name=study_name,
+                storage=storage,
+                sampler=sampler,
+                pruner=pruner,
+                load_if_exists=True,
+            )
+
+            def _objective_wrapper(trial_number):
+                optuna.logging.set_verbosity(optuna.logging.WARNING)
+                study = optuna.load_study(study_name=study_name, storage=storage)
+                study.optimize(objective, n_trials=1)
+
+            # Lance n_trials essais en parallèle
+            Parallel(n_jobs=-1)(
+                delayed(_objective_wrapper)(i) for i in range(self.n_trials)
+            )
+
+        else:
+            self.study_ = optuna.create_study(direction="minimize", sampler=sampler, pruner=pruner)
+            self.study_.optimize(objective, n_trials=self.n_trials, timeout=self.timeout)
+
 
         self.best_params_ = self.study_.best_trial.user_attrs["best_model_state_dict"]
         best_trial_params = self.study_.best_trial.params.copy()
 
-        X_tensor = torch.tensor(self._reshape(X), dtype=torch.float32)
-        y_tensor = torch.tensor(y, dtype=torch.long)
+        X_tensor = torch.tensor(self._reshape(X), dtype=torch.float32, device=self.device)
+        y_tensor = torch.tensor(y, dtype=torch.long, device=self.device)
         dataset = TensorDataset(X_tensor, y_tensor)
         train_loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True, num_workers=4, pin_memory=True)
 
@@ -297,7 +341,9 @@ class NiconOptunaClassifier(BaseEstimator, ClassifierMixin):
             devices=1,
             logger=False,
             enable_progress_bar=self.verbose,
-            deterministic=True
+            deterministic=True,
+            precision=16,
+            profiler="simple",
         )
 
         trainer.fit(self.model_, train_loader)
@@ -306,6 +352,7 @@ class NiconOptunaClassifier(BaseEstimator, ClassifierMixin):
         return self
 
     def predict_proba(self, X):
+        self.model_.to(self.device)
         self.model_.eval()
         X_tensor = torch.tensor(self._reshape(X), dtype=torch.float32).to(self.device)
         with torch.no_grad():

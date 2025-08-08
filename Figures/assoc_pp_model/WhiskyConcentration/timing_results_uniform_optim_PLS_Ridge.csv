@@ -1,0 +1,2 @@
+data_source,n_trials,epochs_optuna,epochs_final,patience,optimization_type,time
+WhiskyConcentration,90,10,10000,10000,uniform,639.7700624465942

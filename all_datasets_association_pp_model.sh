@@ -1,6 +1,6 @@
 #!/bin/bash
 
-only_type="$1"  # Peut être "Classification", "Regression" ou vide
+only_type="$1"  # Can be "Classification", "Regression" or empty
 
 # Datasets de classification
 classification_datasets=("CoffeeSpecies" "YamMould" "Malaria2024" "WhiskyConcentration" "mDigest_custom3")
@@ -11,7 +11,7 @@ regression_datasets=("BeerOriginalExtract" "YamProtein" "Digest_0.8")
 if [[ -z "$only_type" || "$only_type" == "Classification" ]]; then
     for ds in "${classification_datasets[@]}"; do
         echo "Running on $ds (Classification)"
-        python association_pp_model.py --mode Classification --data_source "$ds" --only_colors
+        python association_pp_model.py --mode Classification --data_source "$ds" --only_colors --model_names PLS Ridge
     done
 fi
 

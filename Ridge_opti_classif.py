@@ -12,7 +12,7 @@ class RidgeCVClassifier(BaseEstimator, ClassifierMixin):
     def __init__(self, alphas=None, cv=5, scoring=None, random_state=42):
         self.alphas = alphas if alphas is not None else np.logspace(-4, 2, 50)
         self.cv = cv
-        self.scoring = scoring  # peut être None, "accuracy", "f1", etc.
+        self.scoring = scoring 
         self.random_state = random_state
         self.best_model_ = None
 

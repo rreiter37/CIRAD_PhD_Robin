@@ -1,0 +1,2 @@
+data_source,n_trials_first,n_trials_next,epochs_first,epochs_next,epochs_final,patience,optimization_type,time
+CoffeeSpecies,500,90,100,10,10000,10000,progressive,13.794043779373169

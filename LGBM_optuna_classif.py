@@ -1,24 +1,30 @@
 import optuna
 import numpy as np
+import pandas as pd
 import random
 from sklearn.base import BaseEstimator, ClassifierMixin
-from sklearn.model_selection import cross_val_score, KFold
+from sklearn.model_selection import cross_val_score, KFold, StratifiedKFold
 from lightgbm import LGBMClassifier
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, log_loss
 from optuna.integration import LightGBMPruningCallback
 
 class LGBMOptunaClassifier(BaseEstimator, ClassifierMixin):
-    def __init__(self, cv=5, n_trials=50, random_state=42, scoring='accuracy', verbose=0, timeout=600):
+    def __init__(self, cv=5, n_trials=50, random_state=42, verbose=0, timeout=600, scoring="binary_logloss", direction_opt = "minimize"):
         self.cv = cv
         self.n_trials = n_trials
         self.random_state = random_state
-        self.scoring = scoring
         self.verbose = verbose
         self.timeout = timeout
         self.best_params_ = None
         self.best_model_ = None
+        self.scoring = scoring
+        self.direction_opt = direction_opt
 
     def fit(self, X, y):
+        if isinstance(X, pd.DataFrame):
+            X = X.values
+        if isinstance(y, pd.DataFrame):
+            y = y.values
         np.random.seed(self.random_state)
         random.seed(self.random_state)
 
@@ -39,10 +45,10 @@ class LGBMOptunaClassifier(BaseEstimator, ClassifierMixin):
                 'verbose': -1
             }
 
-            kf = KFold(n_splits=self.cv, shuffle=True, random_state=self.random_state)
+            kf = StratifiedKFold(n_splits=self.cv, shuffle=True, random_state=self.random_state)
             scores = []
 
-            for train_idx, valid_idx in kf.split(X):
+            for train_idx, valid_idx in kf.split(X, y):
                 X_train, X_valid = X[train_idx], X[valid_idx]
                 y_train, y_valid = y[train_idx], y[valid_idx]
 
@@ -51,10 +57,9 @@ class LGBMOptunaClassifier(BaseEstimator, ClassifierMixin):
                     X_train, y_train,
                     eval_set=[(X_valid, y_valid)],
                     eval_metric=self.scoring,
-                    early_stopping_rounds=50,
                     callbacks=[LightGBMPruningCallback(trial, self.scoring)],
                 )
-                score = accuracy_score(y_valid, model.predict(X_valid))
+                score = log_loss(y_valid, model.predict_proba(X_valid)) if self.scoring == "binary_logloss" else accuracy_score(y_valid, model.predict_proba(X_valid))
                 scores.append(score)
 
             return np.mean(scores)
@@ -63,7 +68,7 @@ class LGBMOptunaClassifier(BaseEstimator, ClassifierMixin):
         pruner = optuna.pruners.MedianPruner(n_startup_trials=5, n_warmup_steps=10)
 
         study = optuna.create_study(
-            direction='maximize',
+            direction=self.direction_opt,
             sampler=sampler,
             pruner=pruner
         )
@@ -82,7 +87,6 @@ class LGBMOptunaClassifier(BaseEstimator, ClassifierMixin):
         self.best_model_.fit(
             X, y,
             eval_metric=self.scoring,
-            early_stopping_rounds=50,
             eval_set=[(X, y)],
         )
         return self
@@ -95,7 +99,7 @@ class LGBMOptunaClassifier(BaseEstimator, ClassifierMixin):
 
     def score(self, X, y):
         y_pred = self.predict(X)
-        return accuracy_score(y, y_pred)
+        return log_loss(y, y_pred) if self.scoring == "binary_logloss" else accuracy_score(y, y_pred)
 
     def get_params(self, deep=True):
         return {
