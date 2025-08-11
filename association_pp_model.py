@@ -244,7 +244,8 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
             parallelism = big_dataset
             
             # Hybrid candidate selection
-            max_evals = total_evals // 20 if len(prior_components) > 0 else total_evals
+            max_evals = total_evals // 5 if len(prior_components) > 0 else total_evals
+            print("Number of trials tested for PLSDA : ", max_evals)
             candidates = get_pls_component_candidates(
                 n_spectra = Xcal.shape[0],
                 n_wavelengths=n_wavelengths,
@@ -329,10 +330,11 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
         trained_model = pipe.named_steps["model"]
 
         # if the model is PLS, store the best number of components
-        if mdl_name.startswith("PLS") and hasattr(trained_model, 'best_n_components_'):
-            optimal_comp = trained_model.best_n_components_
+        if mdl_name.startswith("PLS") and hasattr(trained_model, 'best_n_component_'):
+            optimal_comp = trained_model.best_n_component_
             if pp_name not in prior_components:
                 prior_components.append(optimal_comp)
+                print("Prior components list updated : ", prior_components)
 
         # if the model is NICON, store the optimal hyperparameters
         elif mdl_name.startswith('NICON') and hasattr(trained_model, 'best_trials'):

@@ -1,2 +1,5 @@
 data_source,n_trials,epochs_optuna,epochs_final,patience,optimization_type,time
 CoffeeSpecies,90,10,10000,10000,uniform,17.763021230697632
+CoffeeSpecies,90,10,10000,10000,uniform,23.278400897979736
+CoffeeSpecies,90,10,10000,10000,uniform,22.142057180404663
+CoffeeSpecies,90,10,10000,10000,uniform,20.7959201335907
