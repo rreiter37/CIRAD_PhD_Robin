@@ -1,7 +1,6 @@
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.cross_decomposition import PLSRegression
 from sklearn.model_selection import KFold
-from sklearn.preprocessing import LabelBinarizer
 from sklearn.metrics import accuracy_score
 from sklearn.exceptions import NotFittedError
 from hyperopt import fmin, tpe, hp, Trials, STATUS_OK
@@ -20,48 +19,63 @@ class AutoPLSDAClassifier(BaseEstimator, ClassifierMixin):
 
     def fit(self, X, y):
         n_wavelengths = X.shape[-1]
-        
-        # Determine valid upper limit for components
+
+        # Déterminer le nombre max de composantes possibles
         if self.candidate_components is None:
             nb_spectra_cv = int(X.shape[0] * (self.cv - 1) / self.cv)
             global_max = min(n_wavelengths, nb_spectra_cv)
             self.candidate_components = np.linspace(1, global_max, global_max, dtype=int)
-        
+
         self.candidate_components = list(self.candidate_components)
 
-        self.label_binarizer_ = LabelBinarizer()
-        y_bin = self.label_binarizer_.fit_transform(y)
-        n_classes = len(self.label_binarizer_.classes_)
-
-        # Ensure shape (n_samples, n_classes)
-        if y_bin.ndim == 1:
-            y_bin = y_bin.reshape(-1, 1)
-        if y_bin.shape[1] < n_classes:
-            missing_cols = n_classes - y_bin.shape[1]
-            y_bin = np.hstack([y_bin, np.zeros((y_bin.shape[0], missing_cols))])
-
         kf = KFold(n_splits=self.cv, shuffle=True, random_state=self.seed)
+
+        # Détecter si y est déjà one-hot ou pas
+        if y.ndim == 2 and y.shape[1] > 1:
+            # One-hot → on retrouve les labels
+            y_labels = np.argmax(y, axis=1)
+            classes_ = np.arange(y.shape[1])
+            n_classes = y.shape[1]
+            y_is_onehot = True
+        else:
+            y_labels = y
+            classes_ = np.unique(y_labels)
+            n_classes = len(classes_)
+            y_is_onehot = False
 
         def run_fold(train_idx, test_idx, n_components):
             try:
                 model = PLSRegression(n_components=int(n_components), scale=self.scale)
                 X_train, X_test = X[train_idx], X[test_idx]
-                y_train, y_test = y_bin[train_idx], y_bin[test_idx]
-                
-                model.fit(X_train, y_train)
+                y_train, y_test = y[train_idx], y[test_idx]
+                y_train_labels = y_labels[train_idx]
+                y_test_labels = y_labels[test_idx]
+
+                # Si y est déjà one-hot → pas besoin de réencoder
+                if y_is_onehot:
+                    y_train_pls = y_train
+                else:
+                    if n_classes == 2:
+                        y_train_pls = (y_train_labels == classes_[1]).astype(float).reshape(-1, 1)
+                    else:
+                        y_train_pls = np.eye(n_classes)[
+                            np.searchsorted(classes_, y_train_labels)
+                        ]
+
+                model.fit(X_train, y_train_pls)
                 y_scores = model.predict(X_test)
 
-                # Convert scores to predicted classes
+                # Décodage des prédictions
                 if n_classes == 2:
                     y_pred = (y_scores[:, 0] > 0.5).astype(int)
-                    y_true = y_test[:, 0]
+                    y_true = (y_test_labels == classes_[1]).astype(int)
                 else:
                     y_pred = np.argmax(y_scores, axis=1)
-                    y_true = np.argmax(y_test, axis=1)
+                    y_true = y_test_labels
 
                 return accuracy_score(y_true, y_pred)
             except Exception:
-                return 0.0  # Penalize failures
+                return 0.0  # penalisation en cas d'erreur
 
         def objective(n_components):
             if self.parallelism:
@@ -70,14 +84,13 @@ class AutoPLSDAClassifier(BaseEstimator, ClassifierMixin):
                     for train_idx, test_idx in kf.split(X)
                 )
             else:
-                accs = [run_fold(train_idx, test_idx, n_components) for train_idx, test_idx in kf.split(X)]
-
+                accs = [run_fold(train_idx, test_idx, n_components)
+                        for train_idx, test_idx in kf.split(X)]
             avg_acc = np.mean(accs)
+            return {'loss': -avg_acc, 'status': STATUS_OK}
 
-            return {'loss': -avg_acc, 'status': STATUS_OK}  # negative for maximization
-        
         statut_parallel = "in parallel" if self.parallelism else "sequentially"
-        print(f"[INFO] Execution of PLSDA {self.cv}-fold cv in {statut_parallel}.")
+        print(f"[INFO] Execution of PLSDA {self.cv}-fold CV {statut_parallel}.")
 
         space = hp.choice('n_components', self.candidate_components)
         trials = Trials()
@@ -94,31 +107,47 @@ class AutoPLSDAClassifier(BaseEstimator, ClassifierMixin):
         self.best_n_component_ = int(self.candidate_components[best_idx])
         print(f"[AutoPLSDAClassifier] Optimal number of components: {self.best_n_component_}")
 
+        # Entraînement final sur tout le jeu
+        if y_is_onehot:
+            y_pls = y
+        else:
+            if n_classes == 2:
+                y_pls = (y_labels == classes_[1]).astype(float).reshape(-1, 1)
+            else:
+                y_pls = np.eye(n_classes)[np.searchsorted(classes_, y_labels)]
+
+        self.classes_ = classes_
         self.best_model_ = PLSRegression(n_components=self.best_n_component_, scale=self.scale)
-        self.best_model_.fit(X, y_bin)
+        self.best_model_.fit(X, y_pls)
         return self
 
     def predict(self, X):
         if not hasattr(self, "best_model_"):
             raise NotFittedError("Model is not fitted yet.")
         y_scores = self.best_model_.predict(X)
-        if y_scores.ndim == 1:
-            y_scores = y_scores.reshape(-1, 1)
 
-        n_classes = len(self.label_binarizer_.classes_)
-        if n_classes == 2:
-            y_pred = (y_scores[:, 0] > 0.5).astype(int)
-            return self.label_binarizer_.inverse_transform(y_pred)
+        # Classification binaire
+        if len(self.classes_) == 2:
+            if y_scores.ndim == 2 and y_scores.shape[1] > 1:
+                # Prendre la classe avec la plus grande valeur
+                y_pred_idx = np.argmax(y_scores, axis=1)
+            else:
+                # Seuil à 0.5 sur la première colonne
+                y_pred_idx = (y_scores[:, 0] > 0.5).astype(int)
         else:
-            return self.label_binarizer_.classes_[np.argmax(y_scores, axis=1)]
+            # Multi-classes
+            y_pred_idx = np.argmax(y_scores, axis=1)
+
+        # Retourne un vecteur 1D d'étiquettes (pas de multi-output)
+        return np.array([self.classes_[i] for i in y_pred_idx])
 
     def predict_proba(self, X):
         if not hasattr(self, "best_model_"):
             raise NotFittedError("Model is not fitted yet.")
         y_scores = self.best_model_.predict(X)
-        if y_scores.ndim == 1 or y_scores.shape[1] == 1:
-            y_prob = np.clip(y_scores.reshape(-1, 1), 0, 1)
-            return np.hstack([1 - y_prob, y_prob])
+        if len(self.classes_) == 2:
+            y_prob = np.clip(y_scores[:, 0], 0, 1)
+            return np.vstack([1 - y_prob, y_prob]).T
         else:
             y_scores = np.clip(y_scores, 0, None)
             row_sums = y_scores.sum(axis=1, keepdims=True)
@@ -126,4 +155,5 @@ class AutoPLSDAClassifier(BaseEstimator, ClassifierMixin):
 
     def score(self, X, y):
         y_pred = self.predict(X)
-        return accuracy_score(y, y_pred)
+        score_value = accuracy_score(y, y_pred)
+        return score_value

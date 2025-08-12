@@ -47,8 +47,7 @@ class AutoPLSRegression(BaseEstimator, RegressorMixin):
         kf = KFold(n_splits=self.cv, shuffle=True, random_state=self.seed)
 
         # Objective function for Hyperopt
-        def objective(params):
-            n_components = int(params['n_components'])
+        def objective(n_components):
             model = PLSRegression(n_components=n_components, scale=self.scale)
 
             scores = cross_val_score(model, X, y, cv=kf, scoring=scorer, n_jobs=-1)
@@ -56,7 +55,7 @@ class AutoPLSRegression(BaseEstimator, RegressorMixin):
             return {'loss': avg_loss, 'status': STATUS_OK}
 
         # Search space: quantized uniform integer in component_range
-        space = hp.choice('n_components', self.candidate_components)
+        space = hp.choice('n_components', list(self.candidate_components))
 
         trials = Trials()
         best = fmin(
@@ -64,13 +63,15 @@ class AutoPLSRegression(BaseEstimator, RegressorMixin):
             space=space,
             algo=tpe.suggest,
             trials=trials,
+            max_evals = len(self.candidate_components),
             rstate=np.random.default_rng(self.seed)
         )
 
-        self.best_n_components_ = int(best['n_components'])
-        print(f"Optimal number of components found for PLS: {self.best_n_components_}")
+        best_index = best['n_components']
+        self.best_n_component_ = int(self.candidate_components[best_index])
+        print(f"Optimal number of components found for PLS: {self.best_n_component_}")
 
-        self.best_model_ = PLSRegression(n_components=self.best_n_components_, scale=self.scale)
+        self.best_model_ = PLSRegression(n_components=self.best_n_component_, scale=self.scale)
         self.best_model_.fit(X, y)
 
         return self

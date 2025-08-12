@@ -52,6 +52,7 @@ from ensure_dataframe import EnsureDataFrame
 from Scripts_python.utils.utils_bdd import split_data
 from Scripts_python.utils.make_serializable import make_json_serializable
 from Scripts_python.Model_optim.pls_components_hybrid import get_pls_component_candidates
+from Scripts_python.utils.correct_class_unbalances import correct_class_unbalances
 
 from nicon_optuna import NiconOptunaRegressor
 from nicon_optuna_classif import NiconOptunaClassifier
@@ -116,6 +117,7 @@ parser.add_argument('--use_parallelism', action='store_true', default=False,
 args = parser.parse_args()
 mode = args.mode
 data_source = args.data_source
+print(f"[INFO] Running on the dataset named {data_source}.")
 only_colors = args.only_colors
 use_parallelism = args.use_parallelism
 # Set the seed for a reproductible script
@@ -227,6 +229,8 @@ best_trials = None
 #@memory.cache
 def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xval, Yval, mean_metric, progressive_optim, best_trials, rd_seed, scaler_Y=None):
 
+    combo_start = time.time()  # Start timer for this model-preproc pair
+
     np.random.seed(rd_seed)
     random.seed(rd_seed)
     tf.random.set_seed(rd_seed)
@@ -244,18 +248,20 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
             parallelism = big_dataset
             
             # Hybrid candidate selection
-            max_evals = total_evals // 5 if len(prior_components) > 0 else total_evals
-            print("Number of trials tested for PLSDA : ", max_evals)
-            candidates = get_pls_component_candidates(
-                n_spectra = Xcal.shape[0],
-                n_wavelengths=n_wavelengths,
-                prior_components=prior_components,
-                max_evals=max_evals,
-                cv=cv,
-                rd_seed=rd_seed
-            )
+            max_evals = total_evals // 5 if (len(prior_components) > 0 and progressive_optim) else total_evals
+            candidates = None
+            if progressive_optim:
+                candidates = get_pls_component_candidates(
+                    n_spectra = Xcal.shape[0],
+                    n_wavelengths=n_wavelengths,
+                    prior_components=prior_components,
+                    max_evals=max_evals,
+                    cv=cv,
+                    rd_seed=rd_seed
+                )
             
             if mode == "Regression":
+                # Define the PLS model with adapted hyperparameters
                 mdl = AutoPLSRegression(
                     cv=cv,
                     scale=True,
@@ -263,6 +269,8 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
                     candidate_components=candidates
                 )
             else:
+                print("Number of trials tested for PLSDA : ", max_evals)
+                # Define the PLS-DA model with adapted hyperparameters
                 mdl = AutoPLSDAClassifier(
                     cv=cv,
                     scale=True,
@@ -270,6 +278,8 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
                     candidate_components=candidates,
                     parallelism=parallelism
                 )
+                # Correct class unbalances before applying PLS-DA
+                #X_train, Y_train = correct_class_unbalances(X_train, Y_train, type_correction="duplicate", random_state=rd_seed)
 
         elif mdl_name.startswith('NICON'):
             if not progressive_optim:
@@ -344,9 +354,10 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
         metric = np.nan
         print(f"[ERROR] {pp_name} + {mdl_name}: {e}")
 
-    print(f"{pp_name} + {mdl_name} = {metric:.2f}")
+    combo_time = time.time() - combo_start  # Time for this combination
+    print(f"{pp_name} + {mdl_name} = {metric:.2f} (Time: {combo_time:.2f}s)")
 
-    return (pp_name, mdl_name, metric, best_trials)
+    return (pp_name, mdl_name, metric, best_trials, combo_time)
 
 # Construction of the combinations (pp, model)
 combinations = []
@@ -365,8 +376,9 @@ if use_parallelism:
         )
         for (pp_name, pp_method, mdl_name, mdl) in tqdm(combinations, desc="Evaluations")
     )
-    results = [(pp, mdl, score) for pp, mdl, score, _ in raw_results]
-    for _, mdl, _, trials in raw_results:
+    results = [(pp, mdl_name, score) for pp, mdl_name, score, _, _ in raw_results]
+    timings = [(mdl_name, combo_time) for _, mdl_name, _, _, combo_time in raw_results]
+    for _, mdl, _, trials, _ in raw_results:
         if mdl.startswith("NICON") and trials is not None:
             best_trials = trials
             break
@@ -374,9 +386,11 @@ if use_parallelism:
 else:
     print("[INFO] Execution of combinations in sequential mode.")
     results = []
+    timings = []
     for (pp_name, pp_method, mdl_name, mdl) in tqdm(combinations, desc="Evaluations (sequential)"):
-        pp_name, mdl_name, metric, trials = evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xval, Yval, mean_metric, progressive_optim, best_trials, rd_seed, scaler_Y)
+        pp_name, mdl_name, metric, trials, combo_time = evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xval, Yval, mean_metric, progressive_optim, best_trials, rd_seed, scaler_Y)
         results.append((pp_name, mdl_name, metric))
+        timings.append((mdl_name, combo_time))
         if trials is not None:
             best_trials = trials
 
@@ -508,6 +522,38 @@ elapsed_time = time.time() - start_time
 
 # ──────────────────────────────────────────────────────
 # Save the execution time (if it exists) into a csv file
+
+### Save the exectution time per model
+
+# Aggregate average execution time per model
+df_time_models = pd.DataFrame(timings, columns=["Model", "Time_seconds"])
+df_avg_time = df_time_models.groupby("Model", as_index=False)["Time_seconds"].mean()
+df_avg_time["Data_source"] = data_source
+df_avg_time["Optimization_type"] = optim_type
+df_avg_time["epochs_final"] = epochs
+df_avg_time["patience"] = patience
+
+if progressive_optim:
+    df_avg_time["n_trials_first"] = n_trials_first
+    df_avg_time["n_trials_next"] = n_trials_next
+    df_avg_time["epochs_first"] = epochs_first
+    df_avg_time["epochs_next"] = epochs_next
+else:
+    df_avg_time["n_trials"] = n_trials_uniform
+    df_avg_time["epochs_optuna"] = epochs_uniform
+
+# Save per-model timing CSV
+timing_models_path = os.path.join("Figures", "assoc_pp_model", data_source, f"timing_per_model_{optim_type}_optim.csv")
+if os.path.exists(timing_models_path):
+    df_existing = pd.read_csv(timing_models_path)
+    df_avg_time = pd.concat([df_existing, df_avg_time], ignore_index=True)
+
+df_avg_time.to_csv(timing_models_path, index=False)
+print(f"[INFO] Per-model execution times saved to {timing_models_path}")
+
+
+### Save the total execution time
+
 timing_output_path = os.path.join("Figures", "assoc_pp_model", data_source)
 os.makedirs(timing_output_path, exist_ok=True)
 optim_type = "progressive" if progressive_optim else "uniform"
@@ -519,28 +565,21 @@ if model_names is not None:
 else:
     timing_csv_path = os.path.join(timing_output_path, f"timing_results_{optim_type}_optim.csv")
 
+timing_data = {
+    "data_source": data_source,
+    "epochs_final": epochs,
+    "patience": patience,
+    "optimization_type": optim_type,
+    "time": elapsed_time
+    }
 if progressive_optim:
-    timing_data = {
-    "data_source": data_source,
-    "n_trials_first": n_trials_first,
-    "n_trials_next": n_trials_next,
-    "epochs_first": epochs_first,
-    "epochs_next": epochs_next,
-    "epochs_final": epochs,
-    "patience": patience,
-    "optimization_type": optim_type,
-    "time": elapsed_time
-    }
+    timing_data["n_trials_first"] = n_trials_first
+    timing_data["n_trials_next"] = n_trials_next
+    timing_data["epochs_first"] = epochs_first
+    timing_data["epochs_next"] = epochs_next
 else:
-    timing_data = {
-    "data_source": data_source,
-    "n_trials": n_trials_uniform,
-    "epochs_optuna": epochs_uniform,
-    "epochs_final": epochs,
-    "patience": patience,
-    "optimization_type": optim_type,
-    "time": elapsed_time
-    }
+    timing_data["n_trials"] = n_trials_uniform
+    timing_data["epochs_optuna"] = epochs_uniform
 
 # Ajout ou création du fichier CSV
 if os.path.exists(timing_csv_path):
