@@ -16,6 +16,9 @@ Outputs/outliers_detection/**/*.pth.tar
 # Ignore les logs pour tensorboard dans le dossier lightning_logs
 lightning_logs/
 
+# Ignore the changes in the tensorflow env
+tf_env/
+
 # Ignore les checkpoints pour le modèle NICON
 checkpoints/
 

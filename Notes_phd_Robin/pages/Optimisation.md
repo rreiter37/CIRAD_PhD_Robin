@@ -37,3 +37,11 @@
 		- Optuna: TPE (Tree-structured Parzen Estimator -> optimisation bayésienne) + hyperband
 		- Keras tuner: pur hyperband
 		- Hyperopt: TPE, annealing
+- ### PLS model
+	- Comme évoqué plus haut, il est possible lorsqu'on fait plusieurs fois l'évaluation d'un même modèle qu'on hyperparamètre à chaque fois, d'utiliser les résultats précédents pour réduire l'espace de recherche. On peut appliquer cette logique à la PLS: le premier modèle applique une recherche approfondie du nombre optimal de composantes, puis on réduit la grille de recherche à un intervalle restreint du type: $[M(n-1) - \delta; M(n-1) + \delta]$, où $M(n-1)$ est la médiane des composantes optimales des $n-1$ premières évaluations.
+	  Cependant, cette approche suppose que les composantes optimales sont toujours proches les unes des autres d'une évaluation à l'autre. Il arrive néanmoins qu'avec cette approche on rate complètement les optima globaux pour les évaluations suivantes car la réduction de l'espace de recherche est trop restrictive.
+	  En gardant cette logique d'utilisation des résultats précédents, on peut proposer une approche moins brutale dans la réduction de l'espace de recherche.
+		- Les n premiers résultats permettent de construire une médiane $m(n)$ et un écart-type $\sigma(n)$ empiriques, qui définissent une distribution normale $\mathcal{N}(m(n), \sigma(n)^2)$.
+		- La distribution est tronquée entre 1 et le nombre maximal de composantes possibles.
+		- On peut alors tirer aléatoirement, sans remise, un nombre fini et restreint de nombres de composantes principales à tester dans l'hyperparamétrisation, en suivant cette distribution normale (de façon adaptée au fait que ce sont des entiers).
+		- Cette distribution est centrée en la moyenne des résultats précédents, donc on garde la logique précédente. L'écart-type empirique permet par ailleurs de réguler la probabilité d'éloignement à la médiane. C'est-à-dire que si les premiers résultats montrent que les évaluations aboutissent à des nombres de composantes optimaux très différents, alors on favorise les essais d'hyperparamètres loin de la médiane. Au contraire, si les premiers résultats montrent des optima proches, alors on favorise la proximité à la médiane.
