@@ -1,0 +1,2 @@
+data_source,epochs_final,patience,optimization_type,time,n_trials,epochs_optuna
+CoffeeSpecies,10000,10000,uniform,21.02745532989502,90,10

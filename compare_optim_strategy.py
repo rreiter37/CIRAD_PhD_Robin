@@ -2,39 +2,55 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import argparse
 
-# Paths to timing and result directories
-timing_base_dir = os.path.join("Figures", "assoc_pp_model")
-results_base_dir = os.path.join("Results", "assoc_pp_model")
+parser = argparse.ArgumentParser(description="Comparison of optimization strategies on the results of models")
+
+# Regression: 'BeerOriginalExtract' or 'Digest_0.8' or 'YamProtein' //
+# Classification: 'CoffeeSpecies' or 'Malaria2024' or 'mDigest_custom3' or 'WhiskyConcentration' or 'YamMould'
+parser.add_argument('--mode', type=str, default=None,
+                    help="Type of task to take into account for the comparison: 'Regression' or 'Classification' (optional)")
+
+parser.add_argument('--data_source', type=str, default=None,
+                    help="Name of the dataset to use exclusively for the comparison (e.g., 'BeerOriginalExtract', 'CoffeeSpecies', etc.) (optional)")
+
+parser.add_argument('--model_names', nargs='+', type=str, default=None,
+                    help="Perform the association pp/model with the models specified in the list of model names (optional). If None, all models are used (Ridge, PLS, LGBM, NICON).")
+
+# Retrieve the arg values from the parser
+args = parser.parse_args()
+mode = args.mode
+data_source = args.data_source
 
 # Stocker les résultats cumulés
 timing_data = []
 performance_data = []
 
-# Récupérer tous les sous-dossiers de jeux de données
-for dataset in os.listdir(timing_base_dir):
-    timing_path = os.path.join(timing_base_dir, dataset, "timing_results.csv")
-    result_dir = os.path.join(results_base_dir, dataset)
-    
-    if not os.path.exists(timing_path):
-        continue
-    
-    # Charger les temps de calcul
-    df_time = pd.read_csv(timing_path)
-    df_time["dataset"] = dataset
-    timing_data.append(df_time)
-    
-    # Essayer de trouver les fichiers de performances correspondants
-    for fname in os.listdir(result_dir):
-        if fname.startswith("results_") and fname.endswith(".csv"):
-            df_perf = pd.read_csv(os.path.join(result_dir, fname), index_col=0)
-            mean_score = df_perf.min().mean() if "RMSE" in fname else df_perf.max().mean()
-            performance_data.append({
-                "filename": fname,
-                "dataset": dataset,
-                "optimization_type": "progressive" if "progressive" in fname else "uniform",
-                "mean_score": mean_score
-            })
+file_dir = os.path.join("Results", "assoc_pp_model", data_source)
+
+# Essayer de trouver les fichiers de performances correspondants
+for fname in os.listdir(file_dir):
+    ### timing results
+    if fname.startswith("timing_results") and fname.endswith(".csv"):
+        df_time = pd.read_csv(os.path.join(file_dir, fname), index_col=0)
+        mean_timing = df_time["time"].mean()
+        timing_data.append({
+            "filename": fname,
+            "dataset": data_source,
+            "optimization_type": "progressive" if "progressive" in fname else "uniform",
+            "mean_score": mean_timing
+        })
+
+    ### Performances results
+    if fname.startswith("results_") and fname.endswith(".csv"):
+        df_perf = pd.read_csv(os.path.join(file_dir, fname), index_col=0)
+        mean_score = df_perf.min().mean() if mode=="Regression" else df_perf.max().mean()
+        performance_data.append({
+            "filename": fname,
+            "dataset": data_source,
+            "optimization_type": "progressive" if "progressive" in fname else "uniform",
+            "mean_score": mean_score
+        })
 
 # Fusionner tous les résultats dans des DataFrames
 df_timing = pd.concat(timing_data, ignore_index=True)
@@ -108,9 +124,14 @@ plt.xlabel("Temps d'exécution (s)")
 plt.title("Compromis entre temps et performance")
 plt.grid(True, linestyle='--', alpha=0.5)
 plt.tight_layout()
+
+# ------------------------------
+# Save the figure
+output_dir = os.path.join("Figures", "assoc_pp_model", data_source)
+os.makedirs(output_dir, exist_ok=True)
 plt.savefig("scatter_temps_vs_performance.png", dpi=300)
 
-# ──────────────────────────────
+# ------------------------------
 # Export csv file
 df_merge.to_csv("comparaison_optimisation.csv", index=False)
 print("\n[INFO] Fichier exporté : comparaison_optimisation.csv")

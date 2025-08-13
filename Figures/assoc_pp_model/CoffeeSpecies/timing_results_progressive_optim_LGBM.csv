@@ -1,8 +1,0 @@
-data_source,n_trials_first,n_trials_next,epochs_first,epochs_next,epochs_final,patience,optimization_type,time
-CoffeeSpecies,500,90,100,10,10000,10000,progressive,0.8420979976654053
-CoffeeSpecies,500,90,100,10,10000,10000,progressive,0.749549388885498
-CoffeeSpecies,500,90,100,10,10000,10000,progressive,0.8963136672973633
-CoffeeSpecies,500,90,100,10,10000,10000,progressive,0.865365743637085
-CoffeeSpecies,500,90,100,10,10000,10000,progressive,0.3954079151153564
-CoffeeSpecies,500,90,100,10,10000,10000,progressive,0.3935680389404297
-CoffeeSpecies,500,90,100,10,10000,10000,progressive,0.7392563819885254

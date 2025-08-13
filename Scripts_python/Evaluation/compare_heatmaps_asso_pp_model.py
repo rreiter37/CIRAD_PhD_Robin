@@ -79,4 +79,6 @@ for tick, label in zip(ax.get_xticks(), ax.get_xticklabels()):
                 color='black')
 
 fig_path = f"Figures/assoc_pp_model/{data_source}/"
-plt.savefig(fig_path + "boxplot_comparison_heatmaps.png", dpi=300)
+total_path = fig_path + "boxplot_comparison_heatmaps.png"
+plt.savefig(total_path, dpi=300)
+print(f"[INFO] Saving the boxplot to path : {total_path}")

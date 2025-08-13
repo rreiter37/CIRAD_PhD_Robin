@@ -65,7 +65,7 @@ from LGBM_optuna_classif import LGBMOptunaClassifier
 
 from sklearn.pipeline import Pipeline
 from sklearn.decomposition import PCA
-from sklearn.metrics import root_mean_squared_error, accuracy_score
+from sklearn.metrics import root_mean_squared_error, accuracy_score, f1_score, confusion_matrix
 from sklearn.base import clone
 from sklearn.preprocessing import MinMaxScaler
 
@@ -153,7 +153,6 @@ if mode == 'Regression':
     scaler_Y = MinMaxScaler()
     Ycal = scaler_Y.fit_transform(np.array(Ycal).reshape(-1, 1)).ravel()
     Yval = scaler_Y.transform(np.array(Yval).reshape(-1, 1)).ravel()
-
 
 # List of basic preprocessings
 simple_preprocs = [
@@ -333,8 +332,18 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
             metric = root_mean_squared_error(Y_true_original, Y_pred_original)
         else:
             metric = accuracy_score(Y_test, y_pred.ravel())
+            metric_f1 = f1_score(Y_test, y_pred.ravel(), average='weighted')
+            # Compute FPR
+            cm = confusion_matrix(Y_test, y_pred.ravel(), labels=np.unique(Y_test))
+            # For multi-class: take macro-average FPR
+            fp = cm.sum(axis=0) - np.diag(cm)
+            tn = cm.sum() - (cm.sum(axis=0) + cm.sum(axis=1) - np.diag(cm))
+            fpr = np.mean(fp / (fp + tn))
 
-        if abs(metric) > 1e3 * mean_metric:
+        if mode == "Regression" and abs(metric) > 1e2 * mean_metric:
+            metric = np.nan
+        
+        elif mode== "Classification" and metric < 0.4 * mean_metric:
             metric = np.nan
 
         trained_model = pipe.named_steps["model"]
@@ -355,9 +364,13 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
         print(f"[ERROR] {pp_name} + {mdl_name}: {e}")
 
     combo_time = time.time() - combo_start  # Time for this combination
-    print(f"{pp_name} + {mdl_name} = {metric:.2f} (Time: {combo_time:.2f}s)")
-
-    return (pp_name, mdl_name, metric, best_trials, combo_time)
+    if mode=="Regression":
+        print(f"{pp_name} + {mdl_name} = {metric:.2f} (Time: {combo_time:.2f}s)")
+        return (pp_name, mdl_name, metric, best_trials, combo_time)
+    else: # mode="Classification"
+        print(f"{pp_name} + {mdl_name} = ACC={metric:.2f} / F1={metric_f1:.2f} / FPR={fpr:.2f} (Time: {combo_time:.2f}s)")
+        return (pp_name, mdl_name, metric, metric_f1, fpr, best_trials, combo_time)
+    
 
 # Construction of the combinations (pp, model)
 combinations = []
@@ -376,8 +389,13 @@ if use_parallelism:
         )
         for (pp_name, pp_method, mdl_name, mdl) in tqdm(combinations, desc="Evaluations")
     )
-    results = [(pp, mdl_name, score) for pp, mdl_name, score, _, _ in raw_results]
-    timings = [(mdl_name, combo_time) for _, mdl_name, _, _, combo_time in raw_results]
+    if mode == "Regression": 
+        results = [(pp, mdl_name, score) for pp, mdl_name, score, _, _ in raw_results]
+    else:
+        results = [(pp, mdl_name, acc) for pp, mdl_name, acc, _, _, _, _ in raw_results]
+        results_f1 = [(pp, mdl_name, f1) for pp, mdl_name, _, f1, _, _, _ in raw_results]
+        results_fpr = [(pp, mdl_name, fpr) for pp, mdl_name, _, _, fpr, _, _ in raw_results]
+    timings = [(mdl_name, combo_time) for _, mdl_name, _, _, _, combo_time in raw_results]
     for _, mdl, _, trials, _ in raw_results:
         if mdl.startswith("NICON") and trials is not None:
             best_trials = trials
@@ -386,10 +404,20 @@ if use_parallelism:
 else:
     print("[INFO] Execution of combinations in sequential mode.")
     results = []
+    results_f1 = [] if mode == "Classification" else None
+    results_fpr = [] if mode == "Classification" else None
     timings = []
     for (pp_name, pp_method, mdl_name, mdl) in tqdm(combinations, desc="Evaluations (sequential)"):
-        pp_name, mdl_name, metric, trials, combo_time = evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xval, Yval, mean_metric, progressive_optim, best_trials, rd_seed, scaler_Y)
+        if mode == "Regression":
+            pp_name, mdl_name, metric, trials, combo_time = evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xval, Yval, 
+                                                                                 mean_metric, progressive_optim, best_trials, rd_seed, scaler_Y)
+        else:
+            pp_name, mdl_name, metric, f1, fpr, trials, combo_time = evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xval, Yval, 
+                                                                                 mean_metric, progressive_optim, best_trials, rd_seed, scaler_Y)
         results.append((pp_name, mdl_name, metric))
+        if mode == "Classification":
+            results_f1.append((pp_name, mdl_name, f1))
+            results_fpr.append((pp_name, mdl_name, fpr))
         timings.append((mdl_name, combo_time))
         if trials is not None:
             best_trials = trials
@@ -398,17 +426,32 @@ else:
 df_scores = pd.DataFrame(results, columns=["Preprocessing", "Model", "Score"])
 pivoted = df_scores.pivot(index="Model", columns="Preprocessing", values="Score")  # preprocessing as columns
 
+if mode == "Classification":
+    ### F1 score results
+    df_scores_f1 = pd.DataFrame(results_f1, columns=["Preprocessing", "Model", "Score"])
+    pivoted_f1 = df_scores_f1.pivot(index="Model", columns="Preprocessing", values="Score")
+    ### FPR results
+    df_scores_fpr = pd.DataFrame(results_fpr, columns=["Preprocessing", "Model", "Score"])
+    pivoted_fpr = df_scores_fpr.pivot(index="Model", columns="Preprocessing", values="Score")
+
 # save the results to a CSV file
 output_dir = os.path.join("Results", "assoc_pp_model", data_source)
 os.makedirs(output_dir, exist_ok=True)
 optim_type = "progressive" if progressive_optim else "uniform"
 if model_names is not None:
     names = "_".join(model_names)
-    name_file = f"results_{data_source}_{optim_type}_optim_{epochs}_epc_{patience}_ptc_{names}.csv"
+    if "NICON" in names:
+        name_file = f"results_{data_source}_{optim_type}_optim_{epochs}_epc_{patience}_ptc_{names}.csv"
+    else:
+        name_file = f"results_{data_source}_{optim_type}_optim_{names}.csv"
 else:
     name_file = f"results_{data_source}_{optim_type}_optim_{epochs}_epc_{patience}_ptc.csv"
 output_path = os.path.join(output_dir, name_file)
 pivoted.to_csv(output_path)
+
+if mode == "Classification":
+    pivoted_f1.to_csv(os.path.join(output_dir, name_file.replace("results", "F1_results")))
+    pivoted_fpr.to_csv(os.path.join(output_dir, name_file.replace("results", "FPR_results")))
 
 # ──────────────────────────────────────────────────────
 # Format functions for heatmap annotation and bolding best
@@ -474,7 +517,7 @@ for j, col in enumerate(pivoted.columns):
     if values.isnull().all():
         continue
 
-    # Trouve la/les meilleures lignes (index du modèle) pour cette colonne
+    # Find the best score of the column
     if mode == "Classification":
         best_val = values.max()
     else:
@@ -487,7 +530,7 @@ for j, col in enumerate(pivoted.columns):
         # Rectangle(xy, width, height), xy = bottom left
         ax.add_patch(Rectangle((j, i), 1, 1, fill=False, edgecolor='red', lw=2))
 
-# Finalisation de l'affichage
+# Finalize the display
 plt.xticks(rotation=90, ha="center", fontsize=8 if only_colors else 7)
 plt.yticks(rotation=0, fontsize=10 if only_colors else 9)
 plt.title(f"Performance Heatmap ({'Accuracy' if mode == 'Classification' else 'RMSE'}) / {data_source} dataset ({mode})")
@@ -518,52 +561,110 @@ else:
 output_path = os.path.join(output_dir, heatmap_filename)
 plt.savefig(output_path, dpi=300)
 
-elapsed_time = time.time() - start_time
+# --------------------------------------------------------------
+# Generate F1 heatmap in the case of classification
+if mode == "Classification":
+    num_preprocs = len(pivoted_f1.columns)
+    fig_width = max(14, num_preprocs * 0.25)
+    fig, ax = plt.subplots(figsize=(fig_width, 5.5))
+
+    # Draw the base heatmap
+    heatmap = sns.heatmap(
+        pivoted_f1 * 100,
+        annot=None if only_colors else formatted_df,
+        fmt="" if not only_colors else None,
+        linewidths=0.5,
+        cmap="YlGnBu",
+        cbar_kws={"label": "F1-score (%)"},
+        xticklabels=True,
+        yticklabels=True,
+        ax=ax
+    )
+
+    # Square the best value of each column (preprocessing)
+    for j, col in enumerate(pivoted_f1.columns):
+        values = pivoted_f1[col]
+        if values.isnull().all():
+            continue
+
+        # Find the best score for this column
+        best_val = values.max()
+
+        best_indices = values[values == best_val].index
+
+        for idx in best_indices:
+            i = list(pivoted_f1.index).index(idx)
+            # Rectangle(xy, width, height), xy = bottom left
+            ax.add_patch(Rectangle((j, i), 1, 1, fill=False, edgecolor='red', lw=2))
+    
+    # Finalize the display
+    plt.xticks(rotation=90, ha="center", fontsize=8 if only_colors else 7)
+    plt.yticks(rotation=0, fontsize=10 if only_colors else 9)
+    plt.title(f"F1-score Heatmap - {data_source}")
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, heatmap_filename.replace("heatmap", "F1_heatmap")), dpi=300)
+
+# -------------------------------------------------------------------------------
+# In the case of Classification, generate FPR heatmap
+if mode == "Classification":
+    df_scores_fpr = pd.DataFrame(results_fpr, columns=["Preprocessing", "Model", "Score"])
+    pivoted_fpr = df_scores_fpr.pivot(index="Model", columns="Preprocessing", values="Score")
+
+    # Apply top_n filtering if needed (best = minimal FPR)
+    if top_n is not None:
+        best_preprocs_fpr = pivoted_fpr.mean().sort_values().head(top_n).index
+        pivoted_fpr = pivoted_fpr[best_preprocs_fpr]
+
+    fig, ax = plt.subplots(figsize=(max(14, len(pivoted_fpr.columns) * 0.25), 5.5))
+    # Annotate best (lowest) value in each column
+    formatted_fpr = bold_best(pivoted_fpr, classification=False)  # False = lower is better
+    heatmap = sns.heatmap(
+        pivoted_fpr * 100,  # percentage
+        annot=None if only_colors else formatted_fpr,
+        fmt="" if not only_colors else None,
+        linewidths=0.5,
+        cmap="YlGnBu_r",  # Inverted Reds (low = white, high = dark red)
+        cbar_kws={"label": "False Positive Rate (%)"},
+        xticklabels=True,
+        yticklabels=True,
+        ax=ax
+    )
+    for j, col in enumerate(pivoted_fpr.columns):
+        values = pivoted_fpr[col]
+        if values.isnull().all():
+            continue
+        best_val = values.min()  # Best = smallest
+        best_indices = values[values == best_val].index
+        for idx in best_indices:
+            i = list(pivoted_fpr.index).index(idx)
+            ax.add_patch(Rectangle((j, i), 1, 1, fill=False, edgecolor='red', lw=2))
+    plt.xticks(rotation=90, ha="center", fontsize=8 if only_colors else 7)
+    plt.yticks(rotation=0, fontsize=10 if only_colors else 9)
+    plt.title(f"False Positive Rate Heatmap - {data_source}")
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, heatmap_filename.replace("heatmap", "FPR_heatmap")), dpi=300)
 
 # ──────────────────────────────────────────────────────
 # Save the execution time (if it exists) into a csv file
 
-### Save the exectution time per model
-
-# Aggregate average execution time per model
-df_time_models = pd.DataFrame(timings, columns=["Model", "Time_seconds"])
-df_avg_time = df_time_models.groupby("Model", as_index=False)["Time_seconds"].mean()
-df_avg_time["Data_source"] = data_source
-df_avg_time["Optimization_type"] = optim_type
-df_avg_time["epochs_final"] = epochs
-df_avg_time["patience"] = patience
-
-if progressive_optim:
-    df_avg_time["n_trials_first"] = n_trials_first
-    df_avg_time["n_trials_next"] = n_trials_next
-    df_avg_time["epochs_first"] = epochs_first
-    df_avg_time["epochs_next"] = epochs_next
-else:
-    df_avg_time["n_trials"] = n_trials_uniform
-    df_avg_time["epochs_optuna"] = epochs_uniform
-
-# Save per-model timing CSV
-timing_models_path = os.path.join("Figures", "assoc_pp_model", data_source, f"timing_per_model_{optim_type}_optim.csv")
-if os.path.exists(timing_models_path):
-    df_existing = pd.read_csv(timing_models_path)
-    df_avg_time = pd.concat([df_existing, df_avg_time], ignore_index=True)
-
-df_avg_time.to_csv(timing_models_path, index=False)
-print(f"[INFO] Per-model execution times saved to {timing_models_path}")
-
+elapsed_time = time.time() - start_time
 
 ### Save the total execution time
 
-timing_output_path = os.path.join("Figures", "assoc_pp_model", data_source)
+timing_output_path = os.path.join("Results", "assoc_pp_model", data_source)
 os.makedirs(timing_output_path, exist_ok=True)
 optim_type = "progressive" if progressive_optim else "uniform"
 if model_names is not None:
     names = "_".join(model_names)
     if "NICON" in names:
-          timing_csv_path = os.path.join(timing_output_path, f"timing_results_{epochs}epochs_{patience}patience_{optim_type}_optim_{names}.csv")
-    timing_csv_path = os.path.join(timing_output_path, f"timing_results_{optim_type}_optim_{names}.csv")
+          file_name = f"timing_results_{epochs}epochs_{patience}patience_{optim_type}_optim_{names}.csv"
+          timing_csv_path = os.path.join(timing_output_path, file_name)
+    else:
+        file_name = f"timing_results_{optim_type}_optim_{names}.csv"
+        timing_csv_path = os.path.join(timing_output_path, file_name)
 else:
-    timing_csv_path = os.path.join(timing_output_path, f"timing_results_{optim_type}_optim.csv")
+    file_name = f"timing_results_{epochs}epochs_{patience}patience_{optim_type}_optim.csv"
+    timing_csv_path = os.path.join(timing_output_path, file_name)
 
 timing_data = {
     "data_source": data_source,
@@ -590,6 +691,37 @@ else:
 
 df_time.to_csv(timing_csv_path, index=False)
 print(f"[INFO] Execution time saved to {timing_csv_path}")
+
+### Save the execution time per model
+
+# Aggregate average execution time per model
+df_time_models = pd.DataFrame(timings, columns=["Model", "Time_seconds"])
+df_avg_time = df_time_models.groupby("Model", as_index=False)["Time_seconds"].mean()
+df_avg_time["Data_source"] = data_source
+df_avg_time["Optimization_type"] = optim_type
+df_avg_time["epochs_final"] = epochs
+df_avg_time["patience"] = patience
+
+if progressive_optim:
+    df_avg_time["n_trials_first"] = n_trials_first
+    df_avg_time["n_trials_next"] = n_trials_next
+    df_avg_time["epochs_first"] = epochs_first
+    df_avg_time["epochs_next"] = epochs_next
+else:
+    df_avg_time["n_trials"] = n_trials_uniform
+    df_avg_time["epochs_optuna"] = epochs_uniform
+
+
+### Save per-model timing CSV
+
+file_name = file_name.replace("results", "per_model")
+timing_models_path = os.path.join("Results", "assoc_pp_model", data_source, file_name)
+if os.path.exists(timing_models_path):
+    df_existing = pd.read_csv(timing_models_path)
+    df_avg_time = pd.concat([df_existing, df_avg_time], ignore_index=True)
+
+df_avg_time.to_csv(timing_models_path, index=False)
+print(f"[INFO] Per-model execution times saved to {timing_models_path}")
 
 # ──────────────────────────────────────────────────────
 # Save best_trials (if it exists) into a JSON file

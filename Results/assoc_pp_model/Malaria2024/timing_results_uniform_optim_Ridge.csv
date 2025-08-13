@@ -1,0 +1,2 @@
+data_source,epochs_final,patience,optimization_type,time,n_trials,epochs_optuna
+Malaria2024,10000,10000,uniform,2587.5693221092224,90,10
