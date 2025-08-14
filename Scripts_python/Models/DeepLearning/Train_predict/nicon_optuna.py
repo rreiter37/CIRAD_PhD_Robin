@@ -44,7 +44,7 @@ from sklearn.base import BaseEstimator, RegressorMixin
 from sklearn.metrics import mean_squared_error
 
 from Scripts_python.utils.max_batch_size import find_max_batch_size
-from Scripts_python.Models.nicon_custom_pytorch import CustomizableNicon
+from Scripts_python.Models.DeepLearning.Architectures.nicon_custom_pytorch import CustomizableNicon
 from Scripts_python.utils.checkpointing_logger import CheckpointLoggerCallback
 
 from pytorch_lightning.callbacks import Callback

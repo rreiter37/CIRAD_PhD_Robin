@@ -48,20 +48,20 @@ import argparse
 
 import nirs4all.transformations as pp
 
-from ensure_dataframe import EnsureDataFrame
+from Scripts_python.utils.ensure_dataframe import EnsureDataFrame
 from Scripts_python.utils.utils_bdd import split_data
 from Scripts_python.utils.make_serializable import make_json_serializable
 from Scripts_python.Model_optim.pls_components_hybrid import get_pls_component_candidates
 from Scripts_python.utils.correct_class_unbalances import correct_class_unbalances
 
-from nicon_optuna import NiconOptunaRegressor
-from nicon_optuna_classif import NiconOptunaClassifier
-from PLS_opti import AutoPLSRegression
-from PLS_opti_classif import AutoPLSDAClassifier
-from Ridge_opti import RidgeCVRegressor
-from Ridge_opti_classif import RidgeCVClassifier
-from LGBM_optuna import LGBMOptuna
-from LGBM_optuna_classif import LGBMOptunaClassifier
+from Scripts_python.Models.DeepLearning.Train_predict.nicon_optuna import NiconOptunaRegressor
+from Scripts_python.Models.DeepLearning.Train_predict.nicon_optuna_classif import NiconOptunaClassifier
+from Scripts_python.Models.PLS.PLS_opti import AutoPLSRegression
+from Scripts_python.Models.PLS.PLS_opti_classif import AutoPLSDAClassifier
+from Scripts_python.Models.Ridge.Ridge_opti import RidgeCVRegressor
+from Scripts_python.Models.Ridge.Ridge_opti_classif import RidgeCVClassifier
+from Scripts_python.Models.LGBM.LGBM_optuna import LGBMOptuna
+from Scripts_python.Models.LGBM.LGBM_optuna_classif import LGBMOptunaClassifier
 
 from sklearn.pipeline import Pipeline
 from sklearn.decomposition import PCA

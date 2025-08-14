@@ -1,0 +1,4 @@
+Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials,epochs_optuna
+LGBM_classif,609.0277314676958,CoffeeSpecies,uniform,10000,10000,90,10
+PLS_classif,0.1113758367650649,CoffeeSpecies,uniform,10000,10000,90,10
+Ridge_classif,0.19613379941267126,CoffeeSpecies,uniform,10000,10000,90,10
