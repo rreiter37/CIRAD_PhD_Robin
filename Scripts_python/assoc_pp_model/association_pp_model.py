@@ -69,7 +69,6 @@ from sklearn.metrics import root_mean_squared_error, accuracy_score, f1_score, c
 from sklearn.base import clone
 from sklearn.preprocessing import MinMaxScaler
 
-
 from itertools import combinations
 from joblib import Parallel, delayed, Memory
 memory = Memory(".cache", verbose=0)  # Cache for parallel processing
@@ -185,12 +184,14 @@ preprocessings.append(('PCA', PCA(random_state=rd_seed)))
 
 # Parameters related to the progressive optimization of NICON
 if progressive_optim:
-    n_trials_first, n_trials_next = 500, 90
-    epochs_first, epochs_next = 100, 10
+    n_trials_first = 500 if mode=="Regression" else 100
+    n_trials_next = 90 if mode=="Regression" else 20
+    epochs_first = 30
+    epochs_next = 10
 else:
     n_trials_uniform = 90
     epochs_uniform = 10
-epochs, patience = 10000, 10000
+epochs, patience = 10000, 1000
 
 # Create a dictionary storing each model
 dict_models = {
@@ -238,11 +239,10 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
     Y_train, Y_test = np.asarray(Ycal).ravel(), np.asarray(Yval).ravel()
 
     try:
+        big_dataset = Xcal.shape[0] > 1e3
         if mdl_name.startswith('PLS'):
             n_wavelengths = Xcal.shape[1]
             total_evals = max(100, n_wavelengths // 10)
-            
-            big_dataset = Xcal.shape[0] > 1e3
             cv = 3 if big_dataset else 5
             parallelism = big_dataset
             
@@ -279,6 +279,28 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
                 )
                 # Correct class unbalances before applying PLS-DA
                 #X_train, Y_train = correct_class_unbalances(X_train, Y_train, type_correction="duplicate", random_state=rd_seed)
+        
+        elif mdl_name.startswith("LGBM"):
+            cv = 3 if big_dataset else 5
+
+            if not progressive_optim:
+                best_trials = None
+            else:
+                print("Number of best trials used to optimize the LGBM model : ", len(best_trials) if best_trials is not None else 0)
+
+            if best_trials is None:  # first optimization = large search
+                n_trials = 100
+            else:  # reduced search space from best_trials
+                n_trials = 20
+
+            if mode == "Regression":
+                mdl = LGBMOptuna(cv=cv, n_trials=n_trials, random_state=rd_seed,
+                                verbose=0, verbose_optuna=True,
+                                best_trials=best_trials, name_pp=pp_name)
+            else:
+                mdl = LGBMOptunaClassifier(cv=cv, n_trials=n_trials, random_state=rd_seed,
+                                        verbose=0, verbose_optuna=True, scoring="log_loss",
+                                        best_trials=best_trials, name_pp=pp_name)
 
         elif mdl_name.startswith('NICON'):
             if not progressive_optim:
@@ -286,7 +308,7 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
             else:
                 print("Number of best trials used to optimize the NICON model : ", len(best_trials) if best_trials is not None else 0)
 
-            if best_trials is None: # if this is the first optimization, it must be precise
+            if best_trials is None: # if this is the first optimization, it must be wide and deep
                 if progressive_optim:
                     n_trials = n_trials_first
                     epochs_optuna = epochs_first
@@ -354,22 +376,26 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
             if pp_name not in prior_components:
                 prior_components.append(optimal_comp)
                 print("Prior components list updated : ", prior_components)
+        
+        elif mdl_name.startswith("LGBM") and hasattr(trained_model, 'best_trials'):
+            best_trials = trained_model.best_trials
 
         # if the model is NICON, store the optimal hyperparameters
         elif mdl_name.startswith('NICON') and hasattr(trained_model, 'best_trials'):
             best_trials = trained_model.best_trials
+        
+        # Store timing and performances
+        combo_time = time.time() - combo_start  # Time for this combination
+        if mode=="Regression":
+            print(f"{pp_name} + {mdl_name} = {metric:.2f} (Time: {combo_time:.2f}s)")
+            return (pp_name, mdl_name, metric, best_trials, combo_time)
+        else: # mode="Classification"
+            print(f"{pp_name} + {mdl_name} = ACC={metric:.2f} / F1={metric_f1:.2f} / FPR={fpr:.2f} (Time: {combo_time:.2f}s)")
+            return (pp_name, mdl_name, metric, metric_f1, fpr, best_trials, combo_time)
 
     except Exception as e:
         metric = np.nan
         print(f"[ERROR] {pp_name} + {mdl_name}: {e}")
-
-    combo_time = time.time() - combo_start  # Time for this combination
-    if mode=="Regression":
-        print(f"{pp_name} + {mdl_name} = {metric:.2f} (Time: {combo_time:.2f}s)")
-        return (pp_name, mdl_name, metric, best_trials, combo_time)
-    else: # mode="Classification"
-        print(f"{pp_name} + {mdl_name} = ACC={metric:.2f} / F1={metric_f1:.2f} / FPR={fpr:.2f} (Time: {combo_time:.2f}s)")
-        return (pp_name, mdl_name, metric, metric_f1, fpr, best_trials, combo_time)
     
 
 # Construction of the combinations (pp, model)

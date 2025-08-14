@@ -18,7 +18,7 @@ from pytorch_lightning import Trainer
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, Callback
-from Scripts_python.Models.nicon_classif_pytorch import customizable_nicon_classification
+from Scripts_python.Models.DeepLearning.Architectures.nicon_classif_pytorch import customizable_nicon_classification
 from Scripts_python.utils.checkpointing_logger import CheckpointLoggerCallback
 from Scripts_python.utils.max_batch_size import find_max_batch_size
 from pytorch_lightning.loggers import TensorBoardLogger
@@ -272,7 +272,7 @@ class NiconOptunaClassifier(BaseEstimator, ClassifierMixin):
                 t0_steps=n_samples,
                 cyclic_learning=self.cyclic_learning
             )
-            self.batch_size = find_max_batch_size(model=model, input_shape=self.input_shape, device=self.device, max_batch=X.shape[-1], min_batch=1)
+            self.batch_size = find_max_batch_size(model=model, input_shape=self.input_shape, device=self.device, max_batch=min(X.shape[0], X.shape[-1]), min_batch=1)
             print("Maximum batch size found : ", self.batch_size)
 
         def objective(trial):
@@ -285,7 +285,7 @@ class NiconOptunaClassifier(BaseEstimator, ClassifierMixin):
         sampler = optuna.samplers.TPESampler(seed=self.random_state)
         pruner = optuna.pruners.HyperbandPruner(min_resource=1, max_resource=self.epochs, reduction_factor=3)
         if self.parallelize:
-            # Créer un stockage SQLite temporaire (utiliser un vrai fichier pour relancer plus tard)
+            # Create a temporary SQLite storage space
             study_id = str(uuid.uuid4())
             storage_path = f"sqlite:///{tempfile.gettempdir()}/optuna_study_{study_id}.db"
             storage = RDBStorage(url=storage_path)
@@ -314,9 +314,14 @@ class NiconOptunaClassifier(BaseEstimator, ClassifierMixin):
             self.study_ = optuna.create_study(direction="minimize", sampler=sampler, pruner=pruner)
             self.study_.optimize(objective, n_trials=self.n_trials, timeout=self.timeout)
 
-
         self.best_params_ = self.study_.best_trial.user_attrs["best_model_state_dict"]
         best_trial_params = self.study_.best_trial.params.copy()
+
+        # Store the best hyperameters for next pp-model associations
+        if self.best_trials is None:
+            self.best_trials = [best_trial_params]
+        else:
+            self.best_trials.append(best_trial_params)
 
         X_tensor = torch.tensor(self._reshape(X), dtype=torch.float32, device=self.device)
         y_tensor = torch.tensor(y, dtype=torch.long, device=self.device)

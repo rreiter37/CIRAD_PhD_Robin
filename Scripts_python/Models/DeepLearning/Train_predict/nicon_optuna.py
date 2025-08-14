@@ -351,7 +351,8 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
 
         self.best_params_ = self.study_.best_params
         self.best_params_["output_dim"] = 1
-
+        
+        # Store the best hyperameters for next pp-model associations
         if self.best_trials is None:
             self.best_trials = [self.best_params_]
         else:
