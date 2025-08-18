@@ -11,7 +11,7 @@ regression_datasets=("BeerOriginalExtract" "YamProtein" "Digest_0.8")
 if [[ -z "$only_type" || "$only_type" == "Classification" ]]; then
     for ds in "${classification_datasets[@]}"; do
         echo "Running on $ds (Classification)"
-        python -m Scripts_python.assoc_pp_model.association_pp_model --mode Classification --data_source "$ds" --only_colors --model_names PLS Ridge LGBM
+        python -m Scripts_python.assoc_pp_model.association_pp_model --mode Classification --data_source "$ds" --only_colors --model_names PLS Ridge NICON
     done
 fi
 
