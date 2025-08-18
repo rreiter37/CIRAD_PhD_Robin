@@ -191,7 +191,7 @@ if progressive_optim:
 else:
     n_trials_uniform = 90
     epochs_uniform = 10
-epochs, patience = 10000, 1000
+epochs, patience = 1000, 100
 
 # Create a dictionary storing each model
 dict_models = {
@@ -222,8 +222,9 @@ else:
 # Dictionnary to store the optimal n_components of the PLS, per preprocessing
 prior_components = []
 
-# Initialize the best_trials stored for the NICON model
-best_trials = None
+# Initialize the best_trials variables of the NICON and LGBM models
+best_trials_nicon = None
+best_trials_lgbm = None
 
 # Fonction modifiée pour collecter le nombre de composantes optimales
 #@memory.cache
@@ -324,9 +325,8 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
                                            epochs_optuna=epochs_optuna, random_state=rd_seed, device=device, verbose_optuna=True, 
                                            best_trials=best_trials, name_pp=pp_name)
             else:
-                big_dataset = Xcal.shape[0] > 10**3
                 mdl = NiconOptunaClassifier(num_classes=num_classes, n_trials=n_trials, epochs=epochs, patience=patience, epochs_optuna=epochs_optuna, 
-                                            cyclic_learning=True, lr_min=1e-6, lr_max=1e-3, parallelize=big_dataset, random_state=rd_seed, 
+                                            cyclic_learning=True, lr_min=1e-6, lr_max=1e-3, parallelize=False, random_state=rd_seed, 
                                             verbose_optuna=True, device=device, best_trials=best_trials, name_pp=pp_name)
 
         if mdl_name.startswith("LGBM"):
@@ -395,6 +395,9 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
 
     except Exception as e:
         metric = np.nan
+        if mode == "Classification":
+            metric_f1 = np.nan
+            fpr = np.nan
         print(f"[ERROR] {pp_name} + {mdl_name}: {e}")
     
 
@@ -411,7 +414,9 @@ if use_parallelism:
     print("[INFO] Execution of combinations in parallel mode (using joblib).")
     raw_results = Parallel(n_jobs=-1)(
         delayed(evaluate_combination)(
-            pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xval, Yval, mean_metric, progressive_optim, best_trials, rd_seed, scaler_Y
+            pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xval, Yval, mean_metric,
+            progressive_optim, best_trials_nicon if mdl_name.startswith("NICON") else best_trials_lgbm if mdl_name.startswith("LGBM") else None,
+            rd_seed, scaler_Y
         )
         for (pp_name, pp_method, mdl_name, mdl) in tqdm(combinations, desc="Evaluations")
     )
@@ -422,10 +427,13 @@ if use_parallelism:
         results_f1 = [(pp, mdl_name, f1) for pp, mdl_name, _, f1, _, _, _ in raw_results]
         results_fpr = [(pp, mdl_name, fpr) for pp, mdl_name, _, _, fpr, _, _ in raw_results]
     timings = [(mdl_name, combo_time) for _, mdl_name, _, _, _, combo_time in raw_results]
+
+    # Update the right best_trials list
     for _, mdl, _, trials, _ in raw_results:
         if mdl.startswith("NICON") and trials is not None:
-            best_trials = trials
-            break
+            best_trials_nicon = trials
+        elif mdl.startswith("LGBM") and trials is not None:
+            best_trials_lgbm = trials
 
 else:
     print("[INFO] Execution of combinations in sequential mode.")
@@ -434,19 +442,39 @@ else:
     results_fpr = [] if mode == "Classification" else None
     timings = []
     for (pp_name, pp_method, mdl_name, mdl) in tqdm(combinations, desc="Evaluations (sequential)"):
-        if mode == "Regression":
-            pp_name, mdl_name, metric, trials, combo_time = evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xval, Yval, 
-                                                                                 mean_metric, progressive_optim, best_trials, rd_seed, scaler_Y)
-        else:
-            pp_name, mdl_name, metric, f1, fpr, trials, combo_time = evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xval, Yval, 
-                                                                                 mean_metric, progressive_optim, best_trials, rd_seed, scaler_Y)
-        results.append((pp_name, mdl_name, metric))
-        if mode == "Classification":
-            results_f1.append((pp_name, mdl_name, f1))
-            results_fpr.append((pp_name, mdl_name, fpr))
-        timings.append((mdl_name, combo_time))
-        if trials is not None:
-            best_trials = trials
+        try:
+            if mode == "Regression":
+                pp_name, mdl_name, metric, trials, combo_time = evaluate_combination(
+                    pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xval, Yval,
+                    mean_metric, progressive_optim, best_trials_nicon if mdl_name.startswith("NICON") else best_trials_lgbm if mdl_name.startswith("LGBM") else None,
+                    rd_seed, scaler_Y
+                )
+            else:
+                pp_name, mdl_name, metric, f1, fpr, trials, combo_time = evaluate_combination(
+                    pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xval, Yval,
+                    mean_metric, progressive_optim, best_trials_nicon if mdl_name.startswith("NICON") else best_trials_lgbm if mdl_name.startswith("LGBM") else None,
+                    rd_seed, scaler_Y
+                )
+
+            results.append((pp_name, mdl_name, metric))
+            if mode == "Classification":
+                results_f1.append((pp_name, mdl_name, f1))
+                results_fpr.append((pp_name, mdl_name, fpr))
+            timings.append((mdl_name, combo_time))
+
+            # Update the right best_trials list
+            if mdl_name.startswith("NICON") and trials is not None:
+                best_trials_nicon = trials
+            elif mdl_name.startswith("LGBM") and trials is not None:
+                best_trials_lgbm = trials
+
+        except Exception as e:
+            print(f"[ERROR] {pp_name} + {mdl_name} : {e}")
+            results.append((pp_name, mdl_name, np.nan))
+            timings.append((mdl_name, np.nan))
+            if mode == "Classification":
+                results_f1.append((pp_name, mdl_name, np.nan))
+                results_fpr.append((pp_name, mdl_name, np.nan))
 
 # store the results in a DataFrame
 df_scores = pd.DataFrame(results, columns=["Preprocessing", "Model", "Score"])
@@ -750,12 +778,23 @@ df_avg_time.to_csv(timing_models_path, index=False)
 print(f"[INFO] Per-model execution times saved to {timing_models_path}")
 
 # ──────────────────────────────────────────────────────
-# Save best_trials (if it exists) into a JSON file
-if best_trials is not None and progressive_optim:
-    trials_path = os.path.join(output_dir, f"best_trials_{data_source}.json")
+# Save the variable best_trials of the NICON model (if it exists) into a JSON file
+if best_trials_nicon is not None and progressive_optim:
+    trials_path = os.path.join(output_dir, f"best_trials_NICON_{data_source}.json")
     try:
         with open(trials_path, "w") as f:
-            json.dump(make_json_serializable(best_trials), f, indent=2)
-        print(f"[INFO] best_trials saved to path : {trials_path}")
+            json.dump(make_json_serializable(best_trials_nicon), f, indent=2)
+        print(f"[INFO]NICON's best_trials saved to path : {trials_path}")
     except Exception as e:
-        print(f"[WARNING] Error while saving best_trials : {e}")
+        print(f"[WARNING] Error while saving NICON's best_trials : {e}")
+
+# ──────────────────────────────────────────────────────
+# Save the variable best_trials of the NICON model (if it exists) into a JSON file
+if best_trials_lgbm is not None and progressive_optim:
+    trials_path = os.path.join(output_dir, f"best_trials_LGBM_{data_source}.json")
+    try:
+        with open(trials_path, "w") as f:
+            json.dump(make_json_serializable(best_trials_lgbm), f, indent=2)
+        print(f"[INFO]LGBM's best_trials saved to path : {trials_path}")
+    except Exception as e:
+        print(f"[WARNING] Error while saving LGBM's best_trials : {e}")

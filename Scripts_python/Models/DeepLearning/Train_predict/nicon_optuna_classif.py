@@ -76,9 +76,9 @@ class NiconPLClassifier(pl.LightningModule):
         x, y = batch
         model_device = next(self.model.parameters()).device
         if x.device != model_device:
-            self.print(f"[⚠️ DEVICE WARNING] {stage}: Input x is on {x.device}, model is on {model_device}")
+            self.print(f"[DEVICE WARNING] {stage}: Input x is on {x.device}, model is on {model_device}")
         if y.device != model_device:
-            self.print(f"[⚠️ DEVICE WARNING] {stage}: Target y is on {y.device}, model is on {model_device}")
+            self.print(f"[DEVICE WARNING] {stage}: Target y is on {y.device}, model is on {model_device}")
 
     def training_step(self, batch, batch_idx):
         self.check_device_consistency(batch, stage="Training")
@@ -213,9 +213,11 @@ class NiconOptunaClassifier(BaseEstimator, ClassifierMixin):
         X_tensor = torch.tensor(self._reshape(X), dtype=torch.float32, device=self.device)
         y_tensor = torch.tensor(y, dtype=torch.long, device=self.device)
         dataset = TensorDataset(X_tensor, y_tensor)
+        # Split the dataset into training and validation datasets
         train_len = int(0.8 * len(dataset))
         val_len = len(dataset) - train_len
         train_set, val_set = random_split(dataset, [train_len, val_len], generator=torch.Generator().manual_seed(self.random_state))
+        # Build the training and validation datasets
         train_loader = DataLoader(train_set, batch_size=self.batch_size, shuffle=True)
         val_loader = DataLoader(val_set, batch_size=self.batch_size, shuffle=False)
 
@@ -231,15 +233,21 @@ class NiconOptunaClassifier(BaseEstimator, ClassifierMixin):
         )
 
         callbacks = [
-            EarlyStopping(monitor="val_loss", mode="min", patience=self.patience),
+            EarlyStopping(monitor="val_loss", mode="min", patience=self.epochs_optuna//10),
             CustomOptunaPruningCallback(trial, monitor="val_loss"),
         ]
 
+        # --- ADD LOGGER ---
+        logger = TensorBoardLogger(
+            save_dir="lightning_logs", 
+            name=f"optuna_trial_{trial.number}"
+        )
+
         trainer = pl.Trainer(
-            max_epochs=self.epochs,
+            max_epochs=self.epochs_optuna,
             callbacks=callbacks,
             enable_progress_bar=False,
-            logger=False,
+            logger=logger if self.get_logger_optuna else False,
             deterministic=True,
             enable_model_summary=False,
             accelerator="gpu",
@@ -314,7 +322,6 @@ class NiconOptunaClassifier(BaseEstimator, ClassifierMixin):
             self.study_ = optuna.create_study(direction="minimize", sampler=sampler, pruner=pruner)
             self.study_.optimize(objective, n_trials=self.n_trials, timeout=self.timeout)
 
-        self.best_params_ = self.study_.best_trial.user_attrs["best_model_state_dict"]
         best_trial_params = self.study_.best_trial.params.copy()
 
         # Store the best hyperameters for next pp-model associations
@@ -326,7 +333,14 @@ class NiconOptunaClassifier(BaseEstimator, ClassifierMixin):
         X_tensor = torch.tensor(self._reshape(X), dtype=torch.float32, device=self.device)
         y_tensor = torch.tensor(y, dtype=torch.long, device=self.device)
         dataset = TensorDataset(X_tensor, y_tensor)
-        train_loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True, num_workers=4, pin_memory=True)
+        
+        # Split train/val for final training too
+        train_len = int(0.8 * len(dataset))
+        val_len = len(dataset) - train_len
+        train_set, val_set = random_split(dataset, [train_len, val_len], generator=torch.Generator().manual_seed(self.random_state))
+
+        train_loader = DataLoader(train_set, batch_size=self.batch_size, shuffle=True)
+        val_loader = DataLoader(val_set, batch_size=self.batch_size, shuffle=False)
 
         # Train final model
         self.model_ = NiconPLClassifier(
@@ -340,18 +354,30 @@ class NiconOptunaClassifier(BaseEstimator, ClassifierMixin):
             cyclic_learning=self.cyclic_learning
         )
 
+        # --- ADD LOGGER FOR FINAL TRAINING ---
+        logger = TensorBoardLogger(
+            save_dir="lightning_logs", 
+            name=f"final_model_{self.name_pp or 'default'}"
+        )
+
+        # --- ADD EARLY STOPPING FOR FINAL TRAINING ---
+        callbacks = [
+            EarlyStopping(monitor="val_loss", mode="min", patience=self.patience)
+        ]
+
         trainer = pl.Trainer(
             max_epochs=self.epochs,
             accelerator="gpu",
             devices=1,
-            logger=False,
+            logger=logger if self.get_logger else False,
+            callbacks=callbacks,
             enable_progress_bar=self.verbose,
             deterministic=True,
             precision=16,
             profiler="simple",
         )
 
-        trainer.fit(self.model_, train_loader)
+        trainer.fit(self.model_, train_loader, val_loader)
         self.model_.to(self.device)
         self.model_.eval()
         return self

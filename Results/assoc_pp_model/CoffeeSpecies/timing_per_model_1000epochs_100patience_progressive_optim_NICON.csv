@@ -1,0 +1,3 @@
+Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials_first,n_trials_next,epochs_first,epochs_next
+NICON_classif,8.79624643254636,CoffeeSpecies,progressive,1000,100,100,20,30,10
+NICON_classif,9.415210521043237,CoffeeSpecies,progressive,1000,100,100,20,30,10

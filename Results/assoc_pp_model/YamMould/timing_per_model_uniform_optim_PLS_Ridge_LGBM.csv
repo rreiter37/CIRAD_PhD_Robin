@@ -1,0 +1,4 @@
+Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials,epochs_optuna
+LGBM_classif,261.36703373053496,YamMould,uniform,10000,1000,90,10
+PLS_classif,77.89589158927693,YamMould,uniform,10000,1000,90,10
+Ridge_classif,0.8257417223032784,YamMould,uniform,10000,1000,90,10
