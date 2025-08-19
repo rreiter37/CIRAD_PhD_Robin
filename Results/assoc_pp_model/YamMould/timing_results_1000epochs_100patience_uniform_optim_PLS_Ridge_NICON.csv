@@ -1,0 +1,2 @@
+data_source,epochs_final,patience,optimization_type,time,n_trials,epochs_optuna
+YamMould,1000,100,uniform,6886.498173236847,90,10

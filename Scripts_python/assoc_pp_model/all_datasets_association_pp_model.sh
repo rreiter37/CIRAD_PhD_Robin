@@ -3,7 +3,7 @@
 only_type="$1"  # Can be "Classification", "Regression" or empty
 
 # Datasets de classification
-classification_datasets=("CoffeeSpecies" "YamMould" "Malaria2024" "WhiskyConcentration" "mDigest_custom3")
+classification_datasets=("CoffeeSpecies" "YamMould" "WhiskyConcentration" "mDigest_custom3" "Malaria2024")
 
 # Datasets de régression
 regression_datasets=("BeerOriginalExtract" "YamProtein" "Digest_0.8")

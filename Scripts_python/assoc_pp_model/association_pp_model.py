@@ -248,7 +248,7 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
             parallelism = big_dataset
             
             # Hybrid candidate selection
-            max_evals = total_evals // 5 if (len(prior_components) > 0 and progressive_optim) else total_evals
+            max_evals = total_evals // 5 if (len(prior_components) > 0 and progressive_optim and big_dataset) else total_evals
             candidates = None
             if progressive_optim:
                 candidates = get_pls_component_candidates(
@@ -269,14 +269,15 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
                     candidate_components=candidates
                 )
             else:
-                print("Number of trials tested for PLSDA : ", max_evals)
+                print("Candidates tested for PLSDA : ", candidates)
+                print("Number of trials tested for PLSDA : ", len(candidates) if candidates is not None else max_evals)
                 # Define the PLS-DA model with adapted hyperparameters
                 mdl = AutoPLSDAClassifier(
                     cv=cv,
                     scale=True,
                     seed=rd_seed,
                     candidate_components=candidates,
-                    parallelism=parallelism
+                    parallelism=False
                 )
                 # Correct class unbalances before applying PLS-DA
                 #X_train, Y_train = correct_class_unbalances(X_train, Y_train, type_correction="duplicate", random_state=rd_seed)

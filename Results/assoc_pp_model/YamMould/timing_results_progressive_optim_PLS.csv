@@ -1,0 +1,5 @@
+data_source,epochs_final,patience,optimization_type,time,n_trials_first,n_trials_next,epochs_first,epochs_next
+YamMould,1000,100,progressive,87.5320212841034,100,20,30,10
+YamMould,1000,100,progressive,501.5576696395874,100,20,30,10
+YamMould,1000,100,progressive,492.5437190532684,100,20,30,10
+YamMould,1000,100,progressive,885.6550924777985,100,20,30,10
