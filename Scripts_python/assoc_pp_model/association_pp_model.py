@@ -103,6 +103,9 @@ parser.add_argument('--model_names', nargs='+', type=str, default=None,
 parser.add_argument('--progressive_optim', action='store_true', default=False,
                     help="Activate progressive optimization : first combination with a deep hyperparameter search, the next ones using the best_trials. If False, all researches are the same.")
 
+parser.add_argument('--compare_optim_strat', action='store_true', default=False,
+                    help="Compare optimization strategies of a single model on the same heatmap (optional). Required model_names with only one model name.")
+
 parser.add_argument('--only_colors', action='store_true', default=False,
                     help="Display only colors in the heatmap without values (optional)")
 
@@ -110,7 +113,7 @@ parser.add_argument('--random_seed', type=int, default=42,
                     help="Global random seed (default: 42)")
 
 parser.add_argument('--use_parallelism', action='store_true', default=False,
-                    help="Utilise la parallélisation pour évaluer les combinaisons (optionnel)")
+                    help="Use parallelization during the assessment of preprocessing-model combinations (optional)")
 
 # Retrieve the arg values from the parser
 args = parser.parse_args()
@@ -129,6 +132,7 @@ top_n = args.top_n_preprocs
 model_names = args.model_names
 progressive_optim = args.progressive_optim
 print(f"[INFO] {'Progressive' if progressive_optim else 'Uniform'} optimization activated.")
+compare_optim_strat = args.compare_optim_strat
 
 import torch
 torch.manual_seed(rd_seed)
@@ -240,15 +244,16 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
     Y_train, Y_test = np.asarray(Ycal).ravel(), np.asarray(Yval).ravel()
 
     try:
+        # Decide whether it is a big dataset or not, so to adjust the model parameters
         big_dataset = Xcal.shape[0] > 1e3
+
         if mdl_name.startswith('PLS'):
             n_wavelengths = Xcal.shape[1]
             total_evals = max(100, n_wavelengths // 10)
-            cv = 3 if big_dataset else 5
             parallelism = big_dataset
             
             # Hybrid candidate selection
-            max_evals = total_evals // 5 if (len(prior_components) > 0 and progressive_optim and big_dataset) else total_evals
+            max_evals = total_evals // 5 if (len(prior_components) > 0 and progressive_optim) else total_evals
             candidates = None
             if progressive_optim:
                 candidates = get_pls_component_candidates(
@@ -256,34 +261,36 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
                     n_wavelengths=n_wavelengths,
                     prior_components=prior_components,
                     max_evals=max_evals,
-                    cv=cv,
+                    cv=5,
+                    big_dataset=big_dataset,
                     rd_seed=rd_seed
                 )
             
             if mode == "Regression":
                 # Define the PLS model with adapted hyperparameters
                 mdl = AutoPLSRegression(
-                    cv=cv,
+                    cv=5,
                     scale=True,
                     seed=rd_seed,
                     candidate_components=candidates
                 )
             else:
-                print("Candidates tested for PLSDA : ", candidates)
-                print("Number of trials tested for PLSDA : ", len(candidates) if candidates is not None else max_evals)
+                if big_dataset: print("Big dataset: optimal number of components constrained between 1 and 20.")
+                else: print("Number of trials tested for PLSDA : ", len(candidates) if candidates is not None else max_evals)
                 # Define the PLS-DA model with adapted hyperparameters
                 mdl = AutoPLSDAClassifier(
-                    cv=cv,
+                    cv=5,
                     scale=True,
                     seed=rd_seed,
                     candidate_components=candidates,
-                    parallelism=False
+                    parallelism=parallelism
                 )
                 # Correct class unbalances before applying PLS-DA
                 #X_train, Y_train = correct_class_unbalances(X_train, Y_train, type_correction="duplicate", random_state=rd_seed)
         
         elif mdl_name.startswith("LGBM"):
             cv = 3 if big_dataset else 5
+            subsampling_rate = 0.3 if big_dataset else None
 
             if not progressive_optim:
                 best_trials = None
@@ -300,9 +307,10 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
                                 verbose=0, verbose_optuna=True,
                                 best_trials=best_trials, name_pp=pp_name)
             else:
+                if big_dataset: print(f"[INFO] Big dataset: 3-Fold CV activated & {int(subsampling_rate*100)}% data subsampling during Optuna phase")
                 mdl = LGBMOptunaClassifier(cv=cv, n_trials=n_trials, random_state=rd_seed,
                                         verbose=0, verbose_optuna=True, scoring="log_loss",
-                                        best_trials=best_trials, name_pp=pp_name)
+                                        best_trials=best_trials, name_pp=pp_name, subsampling_rate=subsampling_rate)
 
         elif mdl_name.startswith('NICON'):
             if not progressive_optim:

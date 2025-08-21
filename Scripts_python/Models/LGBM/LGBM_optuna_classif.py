@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import random
 from sklearn.base import BaseEstimator, ClassifierMixin
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import StratifiedKFold, train_test_split
 from lightgbm import LGBMClassifier
 from sklearn.metrics import accuracy_score, log_loss
 from optuna.integration import LightGBMPruningCallback
@@ -11,7 +11,7 @@ from optuna.integration import LightGBMPruningCallback
 
 class LGBMOptunaClassifier(BaseEstimator, ClassifierMixin):
     def __init__(self, cv=5, n_trials=50, random_state=42, verbose=0, verbose_optuna=False, timeout=600,
-                 scoring="accuracy", direction_opt="minimize",
+                 scoring="accuracy", direction_opt="minimize", subsampling_rate=None,
                  best_trials=None, name_pp=None):
         self.cv = cv
         self.n_trials = n_trials
@@ -21,6 +21,7 @@ class LGBMOptunaClassifier(BaseEstimator, ClassifierMixin):
         self.timeout = timeout
         self.scoring = scoring
         self.direction_opt = direction_opt
+        self.subsampling_rate = subsampling_rate
         self.best_params_ = None
         self.best_model_ = None
         self.best_trials = best_trials  # previous trials for progressive optimization
@@ -42,6 +43,10 @@ class LGBMOptunaClassifier(BaseEstimator, ClassifierMixin):
             self.scoring = "binary_error" if n_classes==2 else "multi_error"
         elif self.scoring=="log_loss":
             self.scoring = "binary_logloss" if n_classes==2 else "multi_logloss"
+
+        # === Subsample a given proportion of the data for Optuna optimization ===
+        if self.subsampling_rate is not None:
+            X_optuna, _, y_optuna, _ = train_test_split(X, y, train_size=self.subsampling_rate, stratify=y, random_state=self.random_state)
 
         # === If best_trials is provided, narrow the search space ===
         if self.best_trials is not None and len(self.best_trials) > 0:
@@ -73,7 +78,8 @@ class LGBMOptunaClassifier(BaseEstimator, ClassifierMixin):
             if search_space is None:
                 # Full space search
                 params = {
-                    'n_estimators': 1000,
+                    'n_estimators': 50,
+                    'early_stopping_rounds': 50,
                     'learning_rate': trial.suggest_float('learning_rate', 1e-3, 0.3, log=True),
                     'max_depth': trial.suggest_int('max_depth', 3, 12),
                     'num_leaves': trial.suggest_int('num_leaves', 16, 128),
@@ -86,7 +92,8 @@ class LGBMOptunaClassifier(BaseEstimator, ClassifierMixin):
             else:
                 # Narrowed space search
                 params = {
-                    'n_estimators': 1000,
+                    'n_estimators': 50,
+                    'early_stopping_rounds': 50,
                     'learning_rate': trial.suggest_float('learning_rate', *search_space['learning_rate']),
                     'max_depth': trial.suggest_int('max_depth', *search_space['max_depth']),
                     'num_leaves': trial.suggest_int('num_leaves', *search_space['num_leaves']),
@@ -108,9 +115,11 @@ class LGBMOptunaClassifier(BaseEstimator, ClassifierMixin):
             kf = StratifiedKFold(n_splits=self.cv, shuffle=True, random_state=self.random_state)
             scores = []
 
-            for train_idx, valid_idx in kf.split(X, y):
-                X_train, X_valid = X[train_idx], X[valid_idx]
-                y_train, y_valid = y[train_idx], y[valid_idx]
+            X_data, y_data = (X, y) if self.subsampling_rate is None else (X_optuna, y_optuna)
+
+            for train_idx, valid_idx in kf.split(X_data, y_data):
+                X_train, X_valid = X_data[train_idx], X_data[valid_idx]
+                y_train, y_valid = y_data[train_idx], y_data[valid_idx]
 
                 model = LGBMClassifier(**params)
                 model.fit(
@@ -122,14 +131,14 @@ class LGBMOptunaClassifier(BaseEstimator, ClassifierMixin):
                 if self.scoring == "binary_logloss":
                     score = log_loss(y_valid, model.predict_proba(X_valid))
                 else:
-                    score = accuracy_score(y_valid, model.predict(X_valid))
+                    score = 1 - accuracy_score(y_valid, model.predict(X_valid))
                 scores.append(score)
 
             return np.mean(scores)
 
         # === Run Optuna optimization ===
         sampler = optuna.samplers.TPESampler(seed=self.random_state)
-        pruner = optuna.pruners.MedianPruner(n_startup_trials=5, n_warmup_steps=10)
+        pruner = optuna.pruners.HyperbandPruner(min_resource=10, max_resource=1000, reduction_factor=3)
 
         # Define and launch the optuna phase
         study = optuna.create_study(
@@ -151,7 +160,8 @@ class LGBMOptunaClassifier(BaseEstimator, ClassifierMixin):
 
         # Update final model params to complete necessary information
         self.best_params_.update({
-            'n_estimators': 10000,
+            'n_estimators': 2000,
+            'early_stopping_rounds': 100,
             'random_state': self.random_state,
             'n_jobs': 1,
             'force_col_wise': True,

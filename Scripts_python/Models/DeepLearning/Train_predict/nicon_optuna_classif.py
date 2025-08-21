@@ -217,6 +217,7 @@ class NiconOptunaClassifier(BaseEstimator, ClassifierMixin):
         train_len = int(0.8 * len(dataset))
         val_len = len(dataset) - train_len
         train_set, val_set = random_split(dataset, [train_len, val_len], generator=torch.Generator().manual_seed(self.random_state))
+
         # Build the training and validation datasets
         train_loader = DataLoader(train_set, batch_size=self.batch_size, shuffle=True)
         val_loader = DataLoader(val_set, batch_size=self.batch_size, shuffle=False)
@@ -244,6 +245,7 @@ class NiconOptunaClassifier(BaseEstimator, ClassifierMixin):
         )
 
         trainer = pl.Trainer(
+            detect_anomaly=True,
             max_epochs=self.epochs_optuna,
             callbacks=callbacks,
             enable_progress_bar=False,
@@ -252,7 +254,7 @@ class NiconOptunaClassifier(BaseEstimator, ClassifierMixin):
             enable_model_summary=False,
             accelerator="gpu",
             devices=1,
-            precision=16,
+            precision=32,
             profiler="simple"
         )
 
@@ -262,10 +264,18 @@ class NiconOptunaClassifier(BaseEstimator, ClassifierMixin):
 
     def fit(self, X, y):
         set_global_seed(self.random_state)
+
+        # Check if all values from the dataset are valid
+        assert not np.isnan(X).any(), "NaN detected in input features"
+        assert not np.isinf(X).any(), "Inf detected in input features"
+
+        # Find the input shape to suit the architecture of the NICON classifier
         if self.input_shape is None:
             self.input_shape = (X.shape[1], 1) if len(X.shape) == 2 else X.shape[1:]
         
         n_samples = len(X)
+        n_wavelengths = X.shape[-1]
+        print("Number of wavelengths after preprocessing : ", n_wavelengths)
         # Find the maximum batch size accepted by the GPU
         if self.batch_size is None:
             params = {"kernel_size1": 3, "kernel_size2": 3, "kernel_size3": 3, "spatial_dropout": 0.01, "dropout_rate": 0.01}

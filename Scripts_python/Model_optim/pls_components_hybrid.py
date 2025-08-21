@@ -1,7 +1,11 @@
 import numpy as np
 
-def get_pls_component_candidates(n_spectra, n_wavelengths, prior_components, max_evals, cv, rd_seed=42):
+def get_pls_component_candidates(n_spectra, n_wavelengths, prior_components, max_evals, cv, big_dataset=False, rd_seed=42):
     rng = np.random.default_rng(rd_seed)
+
+    # For big datasets, constrain the candidates to 1 to 20 like chemometricians usually do
+    if big_dataset:
+        return np.arange(1, 21)
 
     nb_spectra_cv = int(n_spectra * (cv - 1) / cv)
     max_comp = min(n_wavelengths, nb_spectra_cv)

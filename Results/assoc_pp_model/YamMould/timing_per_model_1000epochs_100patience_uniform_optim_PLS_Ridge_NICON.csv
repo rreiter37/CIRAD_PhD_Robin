@@ -2,3 +2,9 @@ Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials,
 NICON_classif,22.648607299608344,YamMould,uniform,1000,100,90,10
 PLS_classif,77.78436261064866,YamMould,uniform,1000,100,90,10
 Ridge_classif,0.820144839146558,YamMould,uniform,1000,100,90,10
+NICON_classif,29.51937764883041,YamMould,uniform,1000,100,90,10
+PLS_classif,76.69333683743196,YamMould,uniform,1000,100,90,10
+Ridge_classif,0.8145186199861414,YamMould,uniform,1000,100,90,10
+NICON_classif,34.044370731886694,YamMould,uniform,1000,100,90,10
+PLS_classif,79.00617183306638,YamMould,uniform,1000,100,90,10
+Ridge_classif,0.8340879994280198,YamMould,uniform,1000,100,90,10

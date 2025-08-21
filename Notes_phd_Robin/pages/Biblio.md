@@ -434,6 +434,7 @@ collapsed:: true
 							- Fonction de perte finale : $\text{Loss} = ||X - \hat{X}|| - \lambda * KL(\text{Prior}, \text{Series})$
 							- Score d’anomalie final : $AS(X) = \text{SoftMax}(-KL) × ||X - \hat{X}||$
 - ## Stacking models applied to NIRS
+  collapsed:: true
 	- ### Pipeline stacking pour NIRS portable
 	  link:: https://doi.org/10.1016/j.microc.2025.114056
 	  title:: Application of portable near-infrared spectrometer based on stacking in the continuous counter-current extraction process of *Carthamus tinctorius* L.
@@ -475,6 +476,19 @@ collapsed:: true
 		  Et: $$~~\text{SRI}_{ij} = \frac{R_j}{R_i}, ~~i<j$$
 		  
 		  Les résultats sont meilleurs avec ces transformations NDI et SRI.
+- ## Model Optimization
+	- ### PLS models
+		- ### Find the best number of components with MCCV
+		  link:: https://www.sciencedirect.com/science/article/pii/S0169743900001222
+		  title:: Monte Carlo cross validation
+		  author:: Xu & Liang
+		  date:: 2001
+		  journal:: Chemometrics and Intelligent Laboratory Systems, Vol. 56, Issue 1, p1-11
+		  topics:: Monte Carlo, cross validation, PLS, NIRS, ultraviolet spectroscopy
+			- **Résumé rapide:** Plutôt que d'utiliser une méthode de validation croisée leave-one-out pour trouver le nombre optimal de composantes de la PLS, ce qui peut aboutir à de l'overfitting, il est pertinent d'appliquer une validation croisée par méthode de Monte Carlo. L'article le démontre en particulier sur de petites bases de données. 
+			  Cette méthode désignée par l'acronyme MCCV consiste à séparer aléatoirement la base de données d'entraînement en deux pour la calibration et la validation. On répète $N$ fois le procédé pour calculer une métrique d'erreur, et on détermine le nombre de composantes à conserver comme celui qui minimise cette erreur. 
+			  Les expériences effectuées dans l'article on utilise $N=2,5.n$, où $n$ est le nombre de spectres de la base de données. Ici 2 bases de données sont utilisées, avec $n\approx 50$. De plus, il est conclu que prendre une taille de validation entre 40 et 60% donne les meilleurs résultats. Il est même expliqué que pour de plus grandes bases de données, une taille de validation plus grande encore pourrait être plus intéressante. 
+			  Pour la validation croisée leave-one-out, il arrive souvent que le nombre de composantes à garder soit surestimé. De même pour la méthode MCCV si la taille de validation n'est pas suffisamment grande.
 - ## Template for articles
 	- ### Descriptive title
 	  link:: link to the see the article
