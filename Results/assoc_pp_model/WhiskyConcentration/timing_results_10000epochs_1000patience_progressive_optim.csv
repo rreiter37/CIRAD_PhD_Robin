@@ -1,0 +1,2 @@
+data_source,epochs_final,patience,optimization_type,time,n_trials_first,n_trials_next,epochs_first,epochs_next
+WhiskyConcentration,10000,1000,progressive,13634.795832633972,100,20,30,10

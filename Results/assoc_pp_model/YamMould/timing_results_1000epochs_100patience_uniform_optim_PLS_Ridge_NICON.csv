@@ -2,3 +2,4 @@ data_source,epochs_final,patience,optimization_type,time,n_trials,epochs_optuna
 YamMould,1000,100,uniform,6886.498173236847,90,10
 YamMould,1000,100,uniform,7279.12425994873,90,10
 YamMould,1000,100,uniform,7745.48323059082,90,10
+YamMould,1000,100,uniform,8187.947107553482,90,10

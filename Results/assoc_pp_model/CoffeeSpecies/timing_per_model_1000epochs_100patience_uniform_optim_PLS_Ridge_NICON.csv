@@ -2,6 +2,9 @@ Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials,
 NICON_classif,24.29733936466388,CoffeeSpecies,uniform,1000,100,90,10
 PLS_classif,0.1155470399295582,CoffeeSpecies,uniform,1000,100,90,10
 Ridge_classif,0.2090989561641917,CoffeeSpecies,uniform,1000,100,90,10
-NICON_classif,30.263406835385222,CoffeeSpecies,uniform,1000,100,90,10
-PLS_classif,0.10967881188673131,CoffeeSpecies,uniform,1000,100,90,10
-Ridge_classif,0.20051146254819982,CoffeeSpecies,uniform,1000,100,90,10
+NICON_classif,30.263406835385226,CoffeeSpecies,uniform,1000,100,90,10
+PLS_classif,0.1096788118867313,CoffeeSpecies,uniform,1000,100,90,10
+Ridge_classif,0.2005114625481998,CoffeeSpecies,uniform,1000,100,90,10
+NICON_classif,36.82846645810711,CoffeeSpecies,uniform,1000,100,90,10
+PLS_classif,0.10909432523390826,CoffeeSpecies,uniform,1000,100,90,10
+Ridge_classif,0.20120961525860956,CoffeeSpecies,uniform,1000,100,90,10

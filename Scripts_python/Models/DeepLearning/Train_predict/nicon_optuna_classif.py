@@ -370,9 +370,21 @@ class NiconOptunaClassifier(BaseEstimator, ClassifierMixin):
             name=f"final_model_{self.name_pp or 'default'}"
         )
 
+        # --- ADD EARLY STOPPING AND CHECKPOINTING FOR FINAL TRAINING ---
+        checkpoint_callback = ModelCheckpoint(
+        monitor="val_loss", # Monitor validation loss
+        mode="min", # We want the minimum validation loss
+        save_top_k=1, # Save only the best model
+        save_last=True, # Optionally also save the last model
+        dirpath=f"checkpoints/{self.name_pp or 'default'}", # Directory where checkpoints will be saved
+        filename="best_model-{epoch:02d}-{val_loss:.4f}", # Naming convention for checkpoints
+        verbose=True
+        )
+
         # --- ADD EARLY STOPPING FOR FINAL TRAINING ---
         callbacks = [
-            EarlyStopping(monitor="val_loss", mode="min", patience=self.patience)
+            EarlyStopping(monitor="val_loss", mode="min", patience=self.patience),
+            checkpoint_callback
         ]
 
         trainer = pl.Trainer(
@@ -383,11 +395,17 @@ class NiconOptunaClassifier(BaseEstimator, ClassifierMixin):
             callbacks=callbacks,
             enable_progress_bar=self.verbose,
             deterministic=True,
-            precision=16,
+            precision=32,
             profiler="simple",
         )
 
         trainer.fit(self.model_, train_loader, val_loader)
+        
+        # --- LOAD BEST CHECKPOINTED MODEL ---
+        best_path = checkpoint_callback.best_model_path
+        if best_path:
+            self.model_ = NiconPLClassifier.load_from_checkpoint(best_path)
+
         self.model_.to(self.device)
         self.model_.eval()
         return self

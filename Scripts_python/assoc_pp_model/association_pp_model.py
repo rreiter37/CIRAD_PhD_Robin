@@ -195,7 +195,7 @@ if progressive_optim:
 else:
     n_trials_uniform = 90
     epochs_uniform = 10
-epochs, patience = 1000, 100
+epochs, patience = 10000, 1000
 
 # Create a dictionary storing each model
 dict_models = {
