@@ -1,0 +1,5 @@
+Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials_first,n_trials_next,epochs_first,epochs_next
+LGBM_classif,18.743122665321124,mDigest_custom3,progressive,10000,1000,100,20,30,10
+NICON_classif,19.46549337050494,mDigest_custom3,progressive,10000,1000,100,20,30,10
+PLS_classif,2.6956301787320305,mDigest_custom3,progressive,10000,1000,100,20,30,10
+Ridge_classif,0.8566809822531307,mDigest_custom3,progressive,10000,1000,100,20,30,10

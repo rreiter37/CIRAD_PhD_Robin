@@ -3,3 +3,7 @@ LGBM_classif,150.2935928982847,WhiskyConcentration,progressive,10000,1000,100,20
 NICON_classif,34.633414927650904,WhiskyConcentration,progressive,10000,1000,100,20,30,10
 PLS_classif,6.720998045276193,WhiskyConcentration,progressive,10000,1000,100,20,30,10
 Ridge_classif,8.842736934914308,WhiskyConcentration,progressive,10000,1000,100,20,30,10
+LGBM_classif,130.35804921739242,WhiskyConcentration,progressive,10000,1000,100,20,30,10
+NICON_classif,25.508739488966324,WhiskyConcentration,progressive,10000,1000,100,20,30,10
+PLS_classif,6.689223289489746,WhiskyConcentration,progressive,10000,1000,100,20,30,10
+Ridge_classif,8.77453354877584,WhiskyConcentration,progressive,10000,1000,100,20,30,10
