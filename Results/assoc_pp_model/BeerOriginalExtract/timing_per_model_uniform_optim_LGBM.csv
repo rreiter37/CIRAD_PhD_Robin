@@ -1,0 +1,2 @@
+Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials,epochs_optuna
+LGBM_reg,,BeerOriginalExtract,uniform,10000,1000,90,10

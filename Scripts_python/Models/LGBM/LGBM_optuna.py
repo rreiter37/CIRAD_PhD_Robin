@@ -10,13 +10,15 @@ from lightgbm import LGBMRegressor, early_stopping
 
 class LGBMOptuna(BaseEstimator, RegressorMixin):
     def __init__(self, cv=5, n_trials=50, random_state=42,
-                 scoring='neg_mean_squared_error', verbose=0, verbose_optuna=False):
+                 scoring='neg_mean_squared_error', verbose=0, verbose_optuna=False, best_trials=None, name_pp=None):
         self.cv = cv
         self.n_trials = n_trials
         self.random_state = random_state
         self.scoring = scoring
         self.verbose = verbose
         self.verbose_optuna = verbose_optuna
+        self.best_trials = best_trials
+        self.name_pp = name_pp
         self.best_params_ = None
         self.best_model_ = None
 

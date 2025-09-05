@@ -434,7 +434,6 @@ collapsed:: true
 							- Fonction de perte finale : $\text{Loss} = ||X - \hat{X}|| - \lambda * KL(\text{Prior}, \text{Series})$
 							- Score d’anomalie final : $AS(X) = \text{SoftMax}(-KL) × ||X - \hat{X}||$
 - ## Stacking models applied to NIRS
-  collapsed:: true
 	- ### Pipeline stacking pour NIRS portable
 	  link:: https://doi.org/10.1016/j.microc.2025.114056
 	  title:: Application of portable near-infrared spectrometer based on stacking in the continuous counter-current extraction process of *Carthamus tinctorius* L.
@@ -460,7 +459,7 @@ collapsed:: true
 	  journal:: Infrared Physics and Technology, volume 137
 	  topics:: FT-NIR, Stacking models, Particle Swarm Optimization
 		- **Résumé rapide:** Prédiction de la berbérine dans la plante chinoise Coptide (portée médicale et pharmaceutique). Utilisation d'un modèle de Stacking constitué de 3 modèles dans la première couche, sur des données FT-NIR. Plusieurs modèles de stacking ont été comparés en choisissant aléatoirement 3 modèles parmi les suivants: PLS, AdaBoost, GBDT, RF, XGBoost. Pour optimiser les paramètres de chaque modèle, la méthode *adaptative inertia weight particle swarm optimization (AWPSO)* est employée, après comparaison avec la méthode PSO classique. Les données sont splitées par méthode SPXY en 60/18 échantillons. Finalement, le meilleur modèle trouvé est constitué de RF, AdaBoost, XGBoost. Le méta-learner est la régression linéaire multiple. Le modèle de stacking a montré de meilleures performances que les modèles individuels optimisés.
-	- ### Descriptive title
+	- ### Stacking applied to soil datasets with dual-wavelength indices transformations
 	  link:: https://doi.org/10.1016/j.still.2023.105684
 	  title:: Predicting key soil properties from Vis-NIR spectra by applying dual-wavelength indices transformations and stacking machine learning approaches
 	  author:: Tavakoli et al.
@@ -476,7 +475,23 @@ collapsed:: true
 		  Et: $$~~\text{SRI}_{ij} = \frac{R_j}{R_i}, ~~i<j$$
 		  
 		  Les résultats sont meilleurs avec ces transformations NDI et SRI.
+	- ### Shapley values inside a stacking model improves learning space & explainability
+	  link:: https://doi.org/10.1016/j.inffus.2025.103358
+	  title:: XStacking : An effective and inherently explainable framework for stacked ensemble learning
+	  author:: Garouani et al.
+	  date:: 2025
+	  journal:: Informative Fusion, vol. 124
+	  topics:: Stacking models, Explainability, SHAP
+		- **Résumé rapide :**
+	- ### Foundational article demonstrating the relevance of cross validation before calibrating the meta learner
+	  link:: https://doi.org/10.2202/1544-6115.1309
+	  title:: Super Learning
+	  author:: van der Laan et al.
+	  date:: 2007
+	  journal:: Statistical Applications in Genetics and Molecular Biology
+	  topics:: Stacking models, meta-learner, cross validation
 - ## Model Optimization
+  collapsed:: true
 	- ### PLS models
 		- ### Find the best number of components with MCCV
 		  link:: https://www.sciencedirect.com/science/article/pii/S0169743900001222
