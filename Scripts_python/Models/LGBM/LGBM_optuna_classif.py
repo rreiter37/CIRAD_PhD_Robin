@@ -117,21 +117,21 @@ class LGBMOptunaClassifier(BaseEstimator, ClassifierMixin):
 
             X_data, y_data = (X, y) if self.subsampling_rate is None else (X_optuna, y_optuna)
 
-            for train_idx, valid_idx in kf.split(X_data, y_data):
-                X_train, X_valid = X_data[train_idx], X_data[valid_idx]
-                y_train, y_valid = y_data[train_idx], y_data[valid_idx]
+            for train_idx, val_idx in kf.split(X_data, y_data):
+                X_train, X_val = X_data[train_idx], X_data[val_idx]
+                y_train, y_val = y_data[train_idx], y_data[val_idx]
 
                 model = LGBMClassifier(**params)
                 model.fit(
                     X_train, y_train,
-                    eval_set=[(X_valid, y_valid)],
+                    eval_set=[(X_val, y_val)],
                     eval_metric=self.scoring,
                     callbacks=[LightGBMPruningCallback(trial, self.scoring)],
                 )
                 if self.scoring == "binary_logloss":
-                    score = log_loss(y_valid, model.predict_proba(X_valid))
+                    score = log_loss(y_val, model.predict_proba(X_val))
                 else:
-                    score = 1 - accuracy_score(y_valid, model.predict(X_valid))
+                    score = 1 - accuracy_score(y_val, model.predict(X_val))
                 scores.append(score)
 
             return np.mean(scores)
@@ -146,8 +146,7 @@ class LGBMOptunaClassifier(BaseEstimator, ClassifierMixin):
             sampler=sampler,
             pruner=pruner
         )
-        study.optimize(objective, n_trials=self.n_trials, timeout=self.timeout,
-                       show_progress_bar=self.verbose_optuna)
+        study.optimize(objective, n_trials=self.n_trials, timeout=self.timeout, show_progress_bar=self.verbose_optuna)
 
         # Save best params and best trials
         self.best_params_ = study.best_params

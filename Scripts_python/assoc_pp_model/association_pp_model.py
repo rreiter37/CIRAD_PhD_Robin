@@ -304,8 +304,8 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
 
             if mode == "Regression":
                 mdl = LGBMOptuna(cv=cv, n_trials=n_trials, random_state=rd_seed,
-                                verbose=0, verbose_optuna=True,
-                                best_trials=best_trials, name_pp=pp_name)
+                                verbose=0, verbose_optuna=True, scoring="neg_mean_squared_error",
+                                best_trials=best_trials, name_pp=pp_name, subsampling_rate=subsampling_rate)
             else:
                 if big_dataset: print(f"[INFO] Big dataset: 3-Fold CV activated & {int(subsampling_rate*100)}% data subsampling during Optuna phase")
                 mdl = LGBMOptunaClassifier(cv=cv, n_trials=n_trials, random_state=rd_seed,
