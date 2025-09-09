@@ -49,6 +49,12 @@ def set_global_seed(seed):
     os.environ["PYTHONHASHSEED"] = str(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
+    torch.use_deterministic_algorithms(True, warn_only=False)
+
+def seed_worker(worker_id):
+    worker_seed = torch.initial_seed() % 2**32
+    np.random.seed(worker_seed)
+    random.seed(worker_seed)
 
 
 class NiconPLClassifier(pl.LightningModule):
@@ -219,8 +225,10 @@ class NiconOptunaClassifier(BaseEstimator, ClassifierMixin):
         train_set, val_set = random_split(dataset, [train_len, val_len], generator=torch.Generator().manual_seed(self.random_state))
 
         # Build the training and validation datasets
-        train_loader = DataLoader(train_set, batch_size=self.batch_size, shuffle=True)
-        val_loader = DataLoader(val_set, batch_size=self.batch_size, shuffle=False)
+        g = torch.Generator()
+        g.manual_seed(self.random_state)
+        train_loader = DataLoader(train_set, batch_size=self.batch_size, shuffle=True, generator=g, worker_init_fn=seed_worker)
+        val_loader = DataLoader(val_set, batch_size=self.batch_size, shuffle=False, generator=g, worker_init_fn=seed_worker)
 
         model = NiconPLClassifier(
             input_shape=self.input_shape,
@@ -347,10 +355,13 @@ class NiconOptunaClassifier(BaseEstimator, ClassifierMixin):
         # Split train/val for final training too
         train_len = int(0.8 * len(dataset))
         val_len = len(dataset) - train_len
-        train_set, val_set = random_split(dataset, [train_len, val_len], generator=torch.Generator().manual_seed(self.random_state))
 
-        train_loader = DataLoader(train_set, batch_size=self.batch_size, shuffle=True)
-        val_loader = DataLoader(val_set, batch_size=self.batch_size, shuffle=False)
+        g = torch.Generator()
+        g.manual_seed(self.random_state)
+        train_set, val_set = random_split(dataset, [train_len, val_len], generator=g)
+
+        train_loader = DataLoader(train_set, batch_size=self.batch_size, shuffle=True, generator=g, worker_init_fn=seed_worker)
+        val_loader = DataLoader(val_set, batch_size=self.batch_size, shuffle=False, generator=g, worker_init_fn=seed_worker)
 
         # Train final model
         self.model_ = NiconPLClassifier(

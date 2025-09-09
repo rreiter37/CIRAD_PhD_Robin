@@ -49,14 +49,14 @@ class LGBMOptuna(BaseEstimator, RegressorMixin):
                     return float(val * low_factor), float(val * high_factor)
 
             search_space = {
-                'learning_rate': median_range('learning_rate', 0.7, 1.3),
+                #'learning_rate': median_range('learning_rate', 0.7, 1.3),
                 'max_depth': median_range('max_depth', 0.7, 1.3),
-                'num_leaves': median_range('num_leaves', 0.7, 1.3),
+                #'num_leaves': median_range('num_leaves', 0.7, 1.3),
                 'min_child_samples': median_range('min_child_samples', 0.7, 1.3),
-                'subsample': (max(0.5, df['subsample'].median() * 0.8), min(1.0, df['subsample'].median() * 1.2)),
-                'colsample_bytree': (max(0.5, df['colsample_bytree'].median() * 0.8), min(1.0, df['colsample_bytree'].median() * 1.2)),
+                #'subsample': (max(0.5, df['subsample'].median() * 0.8), min(1.0, df['subsample'].median() * 1.2)),
+                #'colsample_bytree': (max(0.5, df['colsample_bytree'].median() * 0.8), min(1.0, df['colsample_bytree'].median() * 1.2)),
                 'reg_alpha': median_range('reg_alpha', 0.5, 2.0),
-                'reg_lambda': median_range('reg_lambda', 0.5, 2.0),
+                #'reg_lambda': median_range('reg_lambda', 0.5, 2.0),
             }
         else:
             search_space = None  # full search
@@ -192,6 +192,9 @@ class LGBMOptuna(BaseEstimator, RegressorMixin):
             'scoring': self.scoring,
             'verbose': self.verbose,
             'verbose_optuna': self.verbose_optuna,
+            'best_trials' : self.best_trials,
+            'name_pp' : self.name_pp,
+            'subsampling_rate' : self.subsampling_rate,
         }
 
     def set_params(self, **params):

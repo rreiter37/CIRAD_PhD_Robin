@@ -74,7 +74,14 @@ def set_global_seed(seed):
     random.seed(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
+    torch.use_deterministic_algorithms(True, warn_only=False)
     os.environ["PYTHONHASHSEED"] = str(seed)
+
+def seed_worker(worker_id):
+    worker_seed = torch.initial_seed() % 2**32
+    np.random.seed(worker_seed)
+    random.seed(worker_seed)
+
 
 class NiconPLModule(pl.LightningModule):
     def __init__(self, input_channels, params, lr_max, lr_min, epochs, t0_steps=None, cyclic_learning=True):
@@ -341,8 +348,10 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
         def objective(trial):
             params = self._suggest_params(trial)
             params["output_dim"] = 1
-            train_loader = DataLoader(train_set, batch_size=self.batch_size, shuffle=True, num_workers=0)
-            val_loader = DataLoader(val_set, batch_size=self.batch_size, num_workers=0)
+            g = torch.Generator()
+            g.manual_seed(self.random_state)
+            train_loader = DataLoader(train_set, batch_size=self.batch_size, shuffle=True, generator=g, worker_init_fn=seed_worker, num_workers=0)
+            val_loader = DataLoader(val_set, batch_size=self.batch_size, generator=g, worker_init_fn=seed_worker, num_workers=0)
             _, val_loss = self._train_model(params, train_loader, val_loader, trial=trial)
             return val_loss
 
@@ -359,9 +368,11 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
             self.best_trials.append(self.best_params_)
 
         # Final training phase
-        train_final, val_final = random_split(dataset, [n_samples - n_val, n_val], generator=torch.Generator().manual_seed(self.random_state))
-        train_loader_final = DataLoader(train_final, batch_size=self.batch_size, shuffle=True, num_workers=0)
-        val_loader_final = DataLoader(val_final, batch_size=self.batch_size, num_workers=0)
+        g = torch.Generator()
+        g.manual_seed(self.random_state)
+        train_final, val_final = random_split(dataset, [n_samples - n_val, n_val], generator=g)
+        train_loader_final = DataLoader(train_final, batch_size=self.batch_size, shuffle=True, generator=g, worker_init_fn=seed_worker, num_workers=0)
+        val_loader_final = DataLoader(val_final, batch_size=self.batch_size, generator=g, worker_init_fn=seed_worker, num_workers=0)
 
         t0_steps = len(train_loader_final) * (self.epochs // 4) or 1
 

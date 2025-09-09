@@ -298,7 +298,7 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
                 print("Number of best trials used to optimize the LGBM model : ", len(best_trials) if best_trials is not None else 0)
 
             if best_trials is None:  # first optimization = large search
-                n_trials = 10
+                n_trials = 100
             else:  # reduced search space from best_trials
                 n_trials = 20
 
