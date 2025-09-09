@@ -1,2 +1,3 @@
 data_source,epochs_final,patience,optimization_type,time,n_trials_first,n_trials_next,epochs_first,epochs_next
-YamProtein,10000,1000,progressive,2630.6016478538513,500,90,30,10
+YamProtein,10000,1000,progressive,2630.601647853852,500,90,30,10
+YamProtein,10000,1000,progressive,30702.11601114273,500,90,30,10

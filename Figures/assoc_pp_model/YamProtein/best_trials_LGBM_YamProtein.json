@@ -1,0 +1,3 @@
+[
+  "FrozenTrial(number=7, state=1, values=[-0.006504165948732122], datetime_start=datetime.datetime(2025, 9, 9, 2, 22, 34, 116210), datetime_complete=datetime.datetime(2025, 9, 9, 2, 22, 56, 673214), params={'max_depth': 225, 'min_child_samples': 3, 'reg_alpha': 0.0067890532716984855}, user_attrs={}, system_attrs={}, intermediate_values={}, distributions={'max_depth': IntDistribution(high=1000, log=False, low=100, step=1), 'min_child_samples': IntDistribution(high=10, log=False, low=1, step=1), 'reg_alpha': FloatDistribution(high=10.0, log=True, low=0.0001, step=None)}, trial_id=7, value=None)"
+]
