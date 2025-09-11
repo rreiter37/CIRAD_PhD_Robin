@@ -2,3 +2,4 @@ data_source,epochs_final,patience,optimization_type,time,n_trials_first,n_trials
 Digest_0.8,10000,1000,progressive,4505.408016443253,500,90,30,10
 Digest_0.8,10000,1000,progressive,20302.389196634293,500,90,30,10
 Digest_0.8,10000,1000,progressive,5311.348876953125,500,90,30,10
+Digest_0.8,10000,1000,progressive,5097.236702442169,500,90,30,10

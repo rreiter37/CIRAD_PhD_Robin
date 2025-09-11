@@ -13,5 +13,9 @@ PLS_reg,0.418621631229625,BeerOriginalExtract,progressive,10000,1000,500,90,30,1
 Ridge_reg,0.1347641699454363,BeerOriginalExtract,progressive,10000,1000,500,90,30,10
 LGBM_reg,18.897122642573187,BeerOriginalExtract,progressive,10000,1000,500,90,30,10
 NICON_reg,23.544065461229923,BeerOriginalExtract,progressive,10000,1000,500,90,30,10
-PLS_reg,0.42398490625269275,BeerOriginalExtract,progressive,10000,1000,500,90,30,10
-Ridge_reg,0.13748743954826803,BeerOriginalExtract,progressive,10000,1000,500,90,30,10
+PLS_reg,0.4239849062526927,BeerOriginalExtract,progressive,10000,1000,500,90,30,10
+Ridge_reg,0.137487439548268,BeerOriginalExtract,progressive,10000,1000,500,90,30,10
+LGBM_reg,17.764625125071582,BeerOriginalExtract,progressive,10000,1000,500,90,30,10
+NICON_reg,23.007890850750368,BeerOriginalExtract,progressive,10000,1000,500,90,30,10
+PLS_reg,0.42749304631177115,BeerOriginalExtract,progressive,10000,1000,500,90,30,10
+Ridge_reg,0.13171627241022446,BeerOriginalExtract,progressive,10000,1000,500,90,30,10
