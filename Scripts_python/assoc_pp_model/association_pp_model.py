@@ -386,6 +386,7 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
                 prior_components.append(optimal_comp)
                 print("Prior components list updated : ", prior_components)
         
+        # if the model is LGBM, store the optimal hyperparameters
         elif mdl_name.startswith("LGBM") and hasattr(trained_model, 'best_trials'):
             best_trials = trained_model.best_trials
 
@@ -476,7 +477,6 @@ else:
                 best_trials_nicon = trials
             elif mdl_name.startswith("LGBM") and trials is not None:
                 best_trials_lgbm = trials
-                print("best_trials_lgbm", best_trials_lgbm)
 
         except Exception as e:
             print(f"[ERROR] {pp_name} + {mdl_name} : {e}")

@@ -5,12 +5,20 @@ shift
 
 # Optional model names (up to 3)
 model_names=()
+dataset_names=()
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --models)
             shift
             while [[ $# -gt 0 && ! "$1" =~ ^-- ]]; do
                 model_names+=("$1")
+                shift
+            done
+            ;;
+        --dataset_names)
+            shift
+            while [[ $# -gt 0 && ! "$1" =~ ^-- ]]; do
+                dataset_names+=("$1")
                 shift
             done
             ;;
@@ -30,40 +38,41 @@ fi
 classification_dir="Data/Classification"
 regression_dir="Data/Regression"
 
-if [[ -z "$only_type" || "$only_type" == "Classification" ]]; then
-    if [[ -d "$classification_dir" ]]; then
-        for ds_path in "$classification_dir"/*; do
-            if [[ -d "$ds_path" ]]; then
-                ds=$(basename "$ds_path")
-                echo "Running on $ds (Classification)"
-                python -m Scripts_python.assoc_pp_model.association_pp_model \
-                    --mode Classification \
-                    --data_source "$ds" \
-                    --only_colors \
-                    --progressive_optim \
-                    $model_arg
-            fi
+# Function to run datasets
+run_datasets() {
+    local mode="$1"
+    local base_dir="$2"
+
+    if [[ -d "$base_dir" ]]; then
+        local datasets=()
+        if [[ ${#dataset_names[@]} -gt 0 ]]; then
+            datasets=("${dataset_names[@]}")
+        else
+            for ds_path in "$base_dir"/*; do
+                if [[ -d "$ds_path" ]]; then
+                    datasets+=("$(basename "$ds_path")")
+                fi
+            done
+        fi
+
+        for ds in "${datasets[@]}"; do
+            echo "Running on $ds ($mode)"
+            python -m Scripts_python.assoc_pp_model.association_pp_model \
+                --mode "$mode" \
+                --data_source "$ds" \
+                --only_colors \
+                --progressive_optim \
+                $model_arg
         done
     else
-        echo "Directory $classification_dir not found!"
+        echo "Directory $base_dir not found!"
     fi
+}
+
+if [[ -z "$only_type" || "$only_type" == "Classification" ]]; then
+    run_datasets "Classification" "$classification_dir"
 fi
 
 if [[ -z "$only_type" || "$only_type" == "Regression" ]]; then
-    if [[ -d "$regression_dir" ]]; then
-        for ds_path in "$regression_dir"/*; do
-            if [[ -d "$ds_path" ]]; then
-                ds=$(basename "$ds_path")
-                echo "Running on $ds (Regression)"
-                python -m Scripts_python.assoc_pp_model.association_pp_model \
-                    --mode Regression \
-                    --data_source "$ds" \
-                    --only_colors \
-                    --progressive_optim \
-                    $model_arg
-            fi
-        done
-    else
-        echo "Directory $regression_dir not found!"
-    fi
+    run_datasets "Regression" "$regression_dir"
 fi
