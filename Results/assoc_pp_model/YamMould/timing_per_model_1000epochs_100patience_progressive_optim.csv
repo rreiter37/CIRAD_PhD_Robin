@@ -1,5 +1,0 @@
-Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials_first,n_trials_next,epochs_first,epochs_next
-LGBM_classif,34.72660801340552,YamMould,progressive,1000,100,100,20,30,10
-NICON_classif,8.523654990336475,YamMould,progressive,1000,100,100,20,30,10
-PLS_classif,7.3041832762606,YamMould,progressive,1000,100,100,20,30,10
-Ridge_classif,0.8373631975230049,YamMould,progressive,1000,100,100,20,30,10

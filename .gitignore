@@ -13,6 +13,9 @@ Outputs/outliers_detection/**/*.pth.tar
 *.pth.tar
 *.pt
 
+# Ignore les importations de nouvelles bases de données dans le dossier Data
+Data/
+
 # Ignore les logs pour tensorboard dans le dossier lightning_logs
 lightning_logs/
 

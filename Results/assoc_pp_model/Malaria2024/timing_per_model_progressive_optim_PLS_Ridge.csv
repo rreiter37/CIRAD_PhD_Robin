@@ -1,5 +1,0 @@
-Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials_first,n_trials_next,epochs_first,epochs_next
-PLS_classif,51.389040869825024,Malaria2024,progressive,10000,10000,500,90,100,10
-Ridge_classif,37.82063693509382,Malaria2024,progressive,10000,10000,500,90,100,10
-PLS_classif,51.279503506772656,Malaria2024,progressive,10000,10000,500,90,100,10
-Ridge_classif,37.71668692897348,Malaria2024,progressive,10000,10000,500,90,100,10

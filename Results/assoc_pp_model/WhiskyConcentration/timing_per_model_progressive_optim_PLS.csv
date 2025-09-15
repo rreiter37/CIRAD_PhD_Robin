@@ -1,2 +1,0 @@
-Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials_first,n_trials_next,epochs_first,epochs_next
-PLS_classif,6.720874621587641,WhiskyConcentration,progressive,1000,100,100,20,30,10

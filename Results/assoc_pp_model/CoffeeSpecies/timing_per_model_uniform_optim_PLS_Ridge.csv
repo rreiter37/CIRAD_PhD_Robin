@@ -1,3 +1,0 @@
-Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials,epochs_optuna
-PLS_classif,0.10794717774671667,CoffeeSpecies,uniform,10000,10000,90,10
-Ridge_classif,0.19462794416091023,CoffeeSpecies,uniform,10000,10000,90,10

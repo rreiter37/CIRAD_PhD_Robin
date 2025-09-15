@@ -1,4 +1,0 @@
-Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials_first,n_trials_next,epochs_first,epochs_next
-NICON_classif,23.96979852984933,WhiskyConcentration,progressive,10000,1000,100,20,30,10
-PLS_classif,6.707977673586677,WhiskyConcentration,progressive,10000,1000,100,20,30,10
-Ridge_classif,8.71447802992428,WhiskyConcentration,progressive,10000,1000,100,20,30,10

@@ -1,3 +1,0 @@
-data_source,epochs_final,patience,optimization_type,time,n_trials_first,n_trials_next,epochs_first,epochs_next
-Malaria2024,10000,10000,progressive,6067.400103807449,500,90,100,10
-Malaria2024,10000,10000,progressive,6053.326517343521,500,90,100,10

@@ -1,2 +1,0 @@
-Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials,epochs_optuna
-Ridge_classif,38.041997958632074,Malaria2024,uniform,10000,10000,90,10

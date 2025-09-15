@@ -1,5 +1,0 @@
-Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials_first,n_trials_next,epochs_first,epochs_next
-LGBM_classif,5.98513181069318,CoffeeSpecies,progressive,1000,100,100,20,30,10
-NICON_classif,7.729452777264723,CoffeeSpecies,progressive,1000,100,100,20,30,10
-PLS_classif,0.11159619864295511,CoffeeSpecies,progressive,1000,100,100,20,30,10
-Ridge_classif,0.21310994905584,CoffeeSpecies,progressive,1000,100,100,20,30,10
