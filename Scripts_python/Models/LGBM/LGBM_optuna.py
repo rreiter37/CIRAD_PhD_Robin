@@ -34,7 +34,7 @@ class LGBMOptuna(BaseEstimator, RegressorMixin):
 
         # === Subsample a given proportion of the data for Optuna optimization ===
         if self.subsampling_rate is not None:
-            X_optuna, _, y_optuna, _ = train_test_split(X, y, train_size=self.subsampling_rate, stratify=y, random_state=self.random_state)
+            X_optuna, _, y_optuna, _ = train_test_split(X, y, train_size=self.subsampling_rate, random_state=self.random_state)
 
         # === If best_trials is provided, narrow the search space ===
         if self.best_trials is not None and len(self.best_trials) > 0:
@@ -109,7 +109,7 @@ class LGBMOptuna(BaseEstimator, RegressorMixin):
             X_data, y_data = (X, y) if self.subsampling_rate is None else (X_optuna, y_optuna)
 
             try:
-                for fold, (train_idx, val_idx) in enumerate(kf.split(X)):
+                for fold, (train_idx, val_idx) in enumerate(kf.split(X_data)):
                     X_train, X_val = X_data[train_idx], X_data[val_idx]
                     y_train, y_val = y_data[train_idx], y_data[val_idx]
 

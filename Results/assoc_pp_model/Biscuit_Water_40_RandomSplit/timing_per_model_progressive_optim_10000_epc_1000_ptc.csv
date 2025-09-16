@@ -1,0 +1,5 @@
+Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials_first,n_trials_next,epochs_first,epochs_next
+LGBM_reg,16.12361108906129,Biscuit_Water_40_RandomSplit,progressive,10000,1000,500,90,30,10
+NICON_reg,27.45055783684574,Biscuit_Water_40_RandomSplit,progressive,10000,1000,500,90,30,10
+PLS_reg,0.2878968961098614,Biscuit_Water_40_RandomSplit,progressive,10000,1000,500,90,30,10
+Ridge_reg,0.1338167295736425,Biscuit_Water_40_RandomSplit,progressive,10000,1000,500,90,30,10

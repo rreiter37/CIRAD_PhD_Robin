@@ -1,2 +1,2 @@
 data_source,epochs_final,patience,optimization_type,time,n_trials_first,n_trials_next,epochs_first,epochs_next
-Biscuit_Sucrose_40_RandomSplit,10000,1000,progressive,1733.0926218032837,500,90,30,10
+LUCAS_SOC_all_26650_NocitaKS,10000,1000,progressive,94083.46589142084,500,90,30,10

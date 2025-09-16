@@ -1,4 +1,0 @@
-Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials_first,n_trials_next,epochs_first,epochs_next
-NICON_reg,25.443901577992225,Biscuit_Sucrose_40_RandomSplit,progressive,10000,1000,500,90,30,10
-PLS_reg,0.27372340945636525,Biscuit_Sucrose_40_RandomSplit,progressive,10000,1000,500,90,30,10
-Ridge_reg,0.13335773874731624,Biscuit_Sucrose_40_RandomSplit,progressive,10000,1000,500,90,30,10
