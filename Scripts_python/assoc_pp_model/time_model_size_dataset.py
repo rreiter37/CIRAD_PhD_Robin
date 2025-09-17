@@ -11,11 +11,15 @@ root_folder = "Results/assoc_pp_model"
 # Dictionary to store results {model: {dataset_size: execution_time}}
 results = {}
 
-datasets_regression = ["BeerOriginalExtract", "Digest_0.8", "YamProtein"]
+regression_datasets = ["BeerOriginalExtract", "Digest_0.8", "YamProtein", 
+                       "ALPINE_C_424_KS", "ALPINE_N_552_KS", "ALPINE_P_291_KS",
+                       "Biscuit_Fat_40_RandomSplit", "Biscuit_Flour_40_RandomSplit", "Biscuit_Sucrose_40_RandomSplit", "Biscuit_Water_40_RandomSplit",
+                       "LUCAS_SOC_all_26650_NocitaKS", "Rice_Amylose_313_YbasedSplit",
+                       ]
 
 # Walk through all dataset folders
 for dataset_name in os.listdir(root_folder):
-    mode = "Regression" if dataset_name in datasets_regression else "Classification"
+    mode = "Regression" if dataset_name in regression_datasets else "Classification"
     Xcal, _, _, _ = split_data(mode, dataset_name, verbose=False)
     dataset_size = Xcal.shape[0]
     dataset_path = os.path.join(root_folder, dataset_name)

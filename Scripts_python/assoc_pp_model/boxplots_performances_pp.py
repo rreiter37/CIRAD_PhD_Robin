@@ -7,7 +7,11 @@ import matplotlib.pyplot as plt
 base_path = "Results/assoc_pp_model"
 
 # Which dataset names are regression (others will be treated as classification)
-regression_datasets = ["BeerOriginalExtract", "Digest_0.8", "YamProtein"]
+regression_datasets = ["BeerOriginalExtract", "Digest_0.8", "YamProtein", 
+                       "ALPINE_C_424_KS", "ALPINE_N_552_KS", "ALPINE_P_291_KS",
+                       "Biscuit_Fat_40_RandomSplit", "Biscuit_Flour_40_RandomSplit", "Biscuit_Sucrose_40_RandomSplit", "Biscuit_Water_40_RandomSplit",
+                       "LUCAS_SOC_all_26650_NocitaKS", "Rice_Amylose_313_YbasedSplit",
+                       ]
 
 # Output directory for figures
 output_dir = "Figures/assoc_pp_model/All_datasets"
