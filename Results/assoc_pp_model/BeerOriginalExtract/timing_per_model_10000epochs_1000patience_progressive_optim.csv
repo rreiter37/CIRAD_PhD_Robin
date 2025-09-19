@@ -1,5 +1,9 @@
 Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials_first,n_trials_next,epochs_first,epochs_next
 LGBM_reg,17.764625125071582,BeerOriginalExtract,progressive,10000,1000,500,90,30,10
 NICON_reg,23.007890850750368,BeerOriginalExtract,progressive,10000,1000,500,90,30,10
-PLS_reg,0.42749304631177115,BeerOriginalExtract,progressive,10000,1000,500,90,30,10
-Ridge_reg,0.13171627241022446,BeerOriginalExtract,progressive,10000,1000,500,90,30,10
+PLS_reg,0.4274930463117711,BeerOriginalExtract,progressive,10000,1000,500,90,30,10
+Ridge_reg,0.1317162724102244,BeerOriginalExtract,progressive,10000,1000,500,90,30,10
+LGBM_reg,18.67449664368349,BeerOriginalExtract,progressive,10000,1000,500,90,30,10
+NICON_reg,29.61285957293724,BeerOriginalExtract,progressive,10000,1000,500,90,30,10
+PLS_reg,0.4244133759947384,BeerOriginalExtract,progressive,10000,1000,500,90,30,10
+Ridge_reg,0.13851112828535192,BeerOriginalExtract,progressive,10000,1000,500,90,30,10

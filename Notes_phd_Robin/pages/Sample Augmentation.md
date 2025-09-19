@@ -1,6 +1,6 @@
 ## Méthodes d'augmentation
 	- ### Ajout de bruit réaliste
-		- **Détails:** Ajout d'un bruit blanc ou coloré à l'intensité du spectre (rapport signal sur bruit proche de l'instrument de mesure). On peut adapter la densité spectral du bruit pour refléter la réalité (hautes et basses fréquences; c.f. perlin/fractal noise).
+		- **Détails:** Ajout d'un bruit blanc ou coloré à l'intensité du spectre (rapport signal sur bruit proche de l'instrument de mesure). On peut adapter la densité spectrale du bruit pour refléter la réalité (hautes et basses fréquences; c.f. perlin/fractal noise).
 		- **Apports:** Utile quand il y a de l'overfitting avec Xcal et que les mesures réelles sont bruitées.
 		- **Références:** 
 		  -> *Ensemble methods and data augmentation by noise addition applied to the analysis of spectroscopic data*, Analytica Chimica Acta [(Sáiz-Abajo et al., 2005)](https://doi.org/10.1016/j.aca.2004.10.086)

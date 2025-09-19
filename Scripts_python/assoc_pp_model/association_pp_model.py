@@ -451,7 +451,7 @@ else:
     results_f1 = [] if mode == "Classification" else None
     results_fpr = [] if mode == "Classification" else None
     timings = []
-    for (pp_name, pp_method, mdl_name, mdl) in tqdm(combinations, desc="Evaluations (sequential)"):
+    for (pp_name, pp_method, mdl_name, mdl) in tqdm(combinations, desc=f"Evaluations (sequential) {data_source}"):
         try:
             if mode == "Regression":
                 pp_name, mdl_name, metric, trials, combo_time = evaluate_combination(
