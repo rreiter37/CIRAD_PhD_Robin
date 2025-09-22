@@ -2,3 +2,4 @@ data_source,epochs_final,patience,optimization_type,time,n_trials_first,n_trials
 YamProtein,10000,1000,progressive,2630.601647853852,500,90,30,10
 YamProtein,10000,1000,progressive,30702.11601114273,500,90,30,10
 YamProtein,10000,1000,progressive,25126.00634789467,500,90,30,10
+YamProtein,10000,1000,progressive,25822.690507650375,500,90,30,10

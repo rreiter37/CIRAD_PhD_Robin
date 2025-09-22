@@ -232,7 +232,7 @@ best_trials_lgbm = None
 
 # Fonction modifiée pour collecter le nombre de composantes optimales
 #@memory.cache
-def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xval, Yval, mean_metric, progressive_optim, best_trials, rd_seed, scaler_Y=None):
+def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xval, Yval, metrics, progressive_optim, best_trials, rd_seed, scaler_Y=None):
 
     combo_start = time.time()  # Start timer for this model-preproc pair
 
@@ -360,7 +360,10 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
             # Inverse transform the predictions and targets to compute RMSE in original scale
             Y_true_original = scaler_Y.inverse_transform(Y_test.reshape(-1, 1)).ravel()
             Y_pred_original = scaler_Y.inverse_transform(y_pred.reshape(-1, 1)).ravel()
-            metric = root_mean_squared_error(Y_true_original, Y_pred_original)
+            # Compute the normalized RMSE (values between 0 and 1)
+            range_y = np.max(Y_true_original) - np.min(Y_true_original)
+            rmse = root_mean_squared_error(Y_true_original, Y_pred_original)
+            metric = rmse/range_y if range_y != 0 else np.nan
         else:
             metric = accuracy_score(Y_test, y_pred.ravel())
             metric_f1 = f1_score(Y_test, y_pred.ravel(), average='weighted')
@@ -371,11 +374,13 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
             tn = cm.sum() - (cm.sum(axis=0) + cm.sum(axis=1) - np.diag(cm))
             fpr = np.mean(fp / (fp + tn))
 
-        if mode == "Regression" and abs(metric) > 1e2 * mean_metric:
+        mean_metric = np.nanmean(metrics) if len(metrics) > 0 else None
+        if mode == "Regression" and mean_metric is not None and abs(metric) > 10 * mean_metric:
             metric = np.nan
         
-        elif mode== "Classification" and metric < 0.4 * mean_metric:
+        elif mode== "Classification" and mean_metric is not None and metric < 0.4 * mean_metric:
             metric = np.nan
+        metrics.append(metric)
 
         trained_model = pipe.named_steps["model"]
 
@@ -401,7 +406,7 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
             return (pp_name, mdl_name, metric, best_trials, combo_time)
         else: # mode="Classification"
             print(f"{pp_name} + {mdl_name} = ACC={metric:.2f} / F1={metric_f1:.2f} / FPR={fpr:.2f} (Time: {combo_time:.2f}s)")
-            return (pp_name, mdl_name, metric, metric_f1, fpr, best_trials, combo_time)
+            return (pp_name, mdl_name, metric, metric_f1, fpr, best_trials, combo_time, metrics)
 
     except Exception as e:
         metric = np.nan
@@ -417,14 +422,14 @@ for (pp_name, pp_method) in preprocessings:
     for (mdl_name, mdl) in models:
         combinations.append((pp_name, pp_method, mdl_name, mdl))
 
-# Initial approximation of the mean score (to filter the extreme outliers in the heatmap)
-mean_metric = 1.0 if mode == 'Regression' else 0.5
+# List storing the metrics during the evaluations
+metrics = []
 
 if use_parallelism:
     print("[INFO] Execution of combinations in parallel mode (using joblib).")
     raw_results = Parallel(n_jobs=-1)(
         delayed(evaluate_combination)(
-            pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xval, Yval, mean_metric,
+            pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xval, Yval, metrics,
             progressive_optim, best_trials_nicon if mdl_name.startswith("NICON") else best_trials_lgbm if mdl_name.startswith("LGBM") else None,
             rd_seed, scaler_Y
         )
@@ -456,13 +461,13 @@ else:
             if mode == "Regression":
                 pp_name, mdl_name, metric, trials, combo_time = evaluate_combination(
                     pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xval, Yval,
-                    mean_metric, progressive_optim, best_trials_nicon if mdl_name.startswith("NICON") else best_trials_lgbm if mdl_name.startswith("LGBM") else None,
+                    metrics, progressive_optim, best_trials_nicon if mdl_name.startswith("NICON") else best_trials_lgbm if mdl_name.startswith("LGBM") else None,
                     rd_seed, scaler_Y
                 )
             else:
                 pp_name, mdl_name, metric, f1, fpr, trials, combo_time = evaluate_combination(
                     pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xval, Yval,
-                    mean_metric, progressive_optim, best_trials_nicon if mdl_name.startswith("NICON") else best_trials_lgbm if mdl_name.startswith("LGBM") else None,
+                    metrics, progressive_optim, best_trials_nicon if mdl_name.startswith("NICON") else best_trials_lgbm if mdl_name.startswith("LGBM") else None,
                     rd_seed, scaler_Y
                 )
 
@@ -523,7 +528,7 @@ if mode == "Classification":
 def format_value(x, classification=False):
     if pd.isnull(x):
         return ""
-    return f"{(x * 100 if classification else x):.2f}"
+    return f"{(x * 100 if classification else x):.3f}"
 
 def bold_best(df, classification=False):
     formatted = df.copy()
@@ -569,7 +574,7 @@ heatmap = sns.heatmap(
     fmt="" if not only_colors else None,
     linewidths=0.5,
     cmap="YlGnBu" if mode == "Classification" else "viridis",
-    cbar_kws={"label": "Accuracy (%)" if mode == "Classification" else "RMSE"},
+    cbar_kws={"label": "Accuracy (%)" if mode == "Classification" else "Relative RMSE"},
     xticklabels=True,
     yticklabels=True,
     ax=ax

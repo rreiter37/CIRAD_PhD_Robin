@@ -1,0 +1,2 @@
+data_source,epochs_final,patience,optimization_type,time,n_trials_first,n_trials_next,epochs_first,epochs_next
+Milk_Urea_1224_KS,10000,1000,progressive,2887.71746468544,500,90,30,10

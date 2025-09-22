@@ -278,6 +278,20 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
         )
         model.to(self.device)
 
+        # --- PRE-FLIGHT SHAPE CHECK ---
+        with torch.no_grad():
+            try:
+                dummy = torch.zeros(2, input_channels, self.input_shape[-1], device=self.device)
+                _ = model.model(dummy)  # forward of the internal architecture (CustomizableNicon)
+            except RuntimeError as e:
+                # If invalid shape (kernel size too big), trial is pruned
+                if trial is not None:
+                    trial.set_user_attr("shape_error", str(e))
+                    raise optuna.TrialPruned()
+                else:
+                    raise
+        # --- END PRE-FLIGHT ---
+
         checkpoint_callback = pl.callbacks.ModelCheckpoint(
             monitor="val_loss",
             save_top_k=1,
@@ -357,7 +371,7 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
 
         self.study_ = optuna.create_study(direction="minimize", sampler=TPESampler(seed=self.random_state), pruner=HyperbandPruner())
         self.study_.optimize(objective, n_trials=self.n_trials, show_progress_bar=self.verbose_optuna)
-
+        
         self.best_params_ = self.study_.best_params
         self.best_params_["output_dim"] = 1
         

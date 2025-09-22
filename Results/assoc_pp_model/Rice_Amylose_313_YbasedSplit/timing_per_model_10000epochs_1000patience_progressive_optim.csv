@@ -1,0 +1,5 @@
+Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials_first,n_trials_next,epochs_first,epochs_next
+LGBM_reg,62.14083903326708,Rice_Amylose_313_YbasedSplit,progressive,10000,1000,500,90,30,10
+NICON_reg,33.592905645939844,Rice_Amylose_313_YbasedSplit,progressive,10000,1000,500,90,30,10
+PLS_reg,3.1174396311535553,Rice_Amylose_313_YbasedSplit,progressive,10000,1000,500,90,30,10
+Ridge_reg,0.35771233194014607,Rice_Amylose_313_YbasedSplit,progressive,10000,1000,500,90,30,10

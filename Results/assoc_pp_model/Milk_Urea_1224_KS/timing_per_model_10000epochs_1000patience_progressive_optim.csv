@@ -1,0 +1,5 @@
+Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials_first,n_trials_next,epochs_first,epochs_next
+LGBM_reg,38.77165050716961,Milk_Urea_1224_KS,progressive,10000,1000,500,90,30,10
+NICON_reg,,Milk_Urea_1224_KS,progressive,10000,1000,500,90,30,10
+PLS_reg,2.9880349671139435,Milk_Urea_1224_KS,progressive,10000,1000,500,90,30,10
+Ridge_reg,0.4590255197356729,Milk_Urea_1224_KS,progressive,10000,1000,500,90,30,10
