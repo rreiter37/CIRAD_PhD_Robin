@@ -2,4 +2,8 @@ Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials_
 LGBM_reg,90.4222798838335,Milk_Protein_1224_KS,progressive,10000,1000,500,90,30,10
 NICON_reg,,Milk_Protein_1224_KS,progressive,10000,1000,500,90,30,10
 PLS_reg,3.1020205652012542,Milk_Protein_1224_KS,progressive,10000,1000,500,90,30,10
-Ridge_reg,0.45369165785172405,Milk_Protein_1224_KS,progressive,10000,1000,500,90,30,10
+Ridge_reg,0.453691657851724,Milk_Protein_1224_KS,progressive,10000,1000,500,90,30,10
+LGBM_reg,91.6214110044872,Milk_Protein_1224_KS,progressive,10000,1000,500,90,30,10
+NICON_reg,46.96399895934498,Milk_Protein_1224_KS,progressive,10000,1000,500,90,30,10
+PLS_reg,3.1365314722061157,Milk_Protein_1224_KS,progressive,10000,1000,500,90,30,10
+Ridge_reg,0.46386655288584094,Milk_Protein_1224_KS,progressive,10000,1000,500,90,30,10

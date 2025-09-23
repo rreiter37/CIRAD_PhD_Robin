@@ -2,4 +2,8 @@ Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials_
 LGBM_reg,61.58941535388722,Milk_Lactose_1224_KS,progressive,10000,1000,500,90,30,10
 NICON_reg,,Milk_Lactose_1224_KS,progressive,10000,1000,500,90,30,10
 PLS_reg,3.112526336136986,Milk_Lactose_1224_KS,progressive,10000,1000,500,90,30,10
-Ridge_reg,0.45527153155382943,Milk_Lactose_1224_KS,progressive,10000,1000,500,90,30,10
+Ridge_reg,0.4552715315538294,Milk_Lactose_1224_KS,progressive,10000,1000,500,90,30,10
+LGBM_reg,62.042751385885126,Milk_Lactose_1224_KS,progressive,10000,1000,500,90,30,10
+NICON_reg,45.52713452717837,Milk_Lactose_1224_KS,progressive,10000,1000,500,90,30,10
+PLS_reg,3.1276770724969754,Milk_Lactose_1224_KS,progressive,10000,1000,500,90,30,10
+Ridge_reg,0.4570065105662626,Milk_Lactose_1224_KS,progressive,10000,1000,500,90,30,10

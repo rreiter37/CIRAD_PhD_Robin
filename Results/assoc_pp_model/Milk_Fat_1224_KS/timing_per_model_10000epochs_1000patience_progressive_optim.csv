@@ -1,5 +1,9 @@
 Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials_first,n_trials_next,epochs_first,epochs_next
-LGBM_reg,101.12957118188633,Milk_Fat_1224_KS,progressive,10000,1000,500,90,30,10
+LGBM_reg,101.12957118188632,Milk_Fat_1224_KS,progressive,10000,1000,500,90,30,10
 NICON_reg,,Milk_Fat_1224_KS,progressive,10000,1000,500,90,30,10
 PLS_reg,2.795258409836713,Milk_Fat_1224_KS,progressive,10000,1000,500,90,30,10
 Ridge_reg,0.4575531973558314,Milk_Fat_1224_KS,progressive,10000,1000,500,90,30,10
+LGBM_reg,101.74058062188766,Milk_Fat_1224_KS,progressive,10000,1000,500,90,30,10
+NICON_reg,53.13384098515791,Milk_Fat_1224_KS,progressive,10000,1000,500,90,30,10
+PLS_reg,2.7824483408647427,Milk_Fat_1224_KS,progressive,10000,1000,500,90,30,10
+Ridge_reg,0.455601246917949,Milk_Fat_1224_KS,progressive,10000,1000,500,90,30,10

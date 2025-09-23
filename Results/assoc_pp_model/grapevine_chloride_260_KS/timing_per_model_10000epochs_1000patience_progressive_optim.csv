@@ -1,5 +1,9 @@
 Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials_first,n_trials_next,epochs_first,epochs_next
 LGBM_reg,18.788822230170755,grapevine_chloride_260_KS,progressive,10000,1000,500,90,30,10
 NICON_reg,,grapevine_chloride_260_KS,progressive,10000,1000,500,90,30,10
-PLS_reg,0.49406228345983166,grapevine_chloride_260_KS,progressive,10000,1000,500,90,30,10
-Ridge_reg,0.17762305456049302,grapevine_chloride_260_KS,progressive,10000,1000,500,90,30,10
+PLS_reg,0.4940622834598316,grapevine_chloride_260_KS,progressive,10000,1000,500,90,30,10
+Ridge_reg,0.177623054560493,grapevine_chloride_260_KS,progressive,10000,1000,500,90,30,10
+LGBM_reg,18.86889072376139,grapevine_chloride_260_KS,progressive,10000,1000,500,90,30,10
+NICON_reg,32.565591040779566,grapevine_chloride_260_KS,progressive,10000,1000,500,90,30,10
+PLS_reg,0.4969451006721048,grapevine_chloride_260_KS,progressive,10000,1000,500,90,30,10
+Ridge_reg,0.1778574971591725,grapevine_chloride_260_KS,progressive,10000,1000,500,90,30,10

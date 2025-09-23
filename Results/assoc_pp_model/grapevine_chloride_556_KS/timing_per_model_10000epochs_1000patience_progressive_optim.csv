@@ -3,3 +3,7 @@ LGBM_reg,60.39525843017242,grapevine_chloride_556_KS,progressive,10000,1000,500,
 NICON_reg,34.86466636586545,grapevine_chloride_556_KS,progressive,10000,1000,500,90,30,10
 PLS_reg,3.018368724514456,grapevine_chloride_556_KS,progressive,10000,1000,500,90,30,10
 Ridge_reg,0.7382359399515039,grapevine_chloride_556_KS,progressive,10000,1000,500,90,30,10
+LGBM_reg,59.80653356103336,grapevine_chloride_556_KS,progressive,10000,1000,500,90,30,10
+NICON_reg,37.78087103717468,grapevine_chloride_556_KS,progressive,10000,1000,500,90,30,10
+PLS_reg,3.0076962919796215,grapevine_chloride_556_KS,progressive,10000,1000,500,90,30,10
+Ridge_reg,0.7380186985520756,grapevine_chloride_556_KS,progressive,10000,1000,500,90,30,10
