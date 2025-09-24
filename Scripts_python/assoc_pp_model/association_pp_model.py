@@ -202,11 +202,11 @@ dict_models = {
     "Ridge_reg": RidgeCVRegressor(alphas=np.logspace(-4, 2, 50), cv=5, random_state=rd_seed),
     "PLS_reg": AutoPLSRegression(cv=3, seed=rd_seed),
     "LGBM_reg": LGBMOptuna(cv=5, n_trials=20, random_state=rd_seed, verbose=1, verbose_optuna=False),
-    "NICON_reg": NiconOptunaRegressor(n_trials=90, epochs=epochs, patience=patience, cyclic_learning=True, lr_min=1e-6, lr_max=1e-3, epochs_optuna=10, random_state=rd_seed, device=device, verbose_optuna=True),
+    "CNN_reg": NiconOptunaRegressor(n_trials=90, epochs=epochs, patience=patience, cyclic_learning=True, lr_min=1e-6, lr_max=1e-3, epochs_optuna=10, random_state=rd_seed, device=device, verbose_optuna=True),
     "Ridge_classif": RidgeCVClassifier(alphas=np.logspace(-4, 2, 50), cv=5, random_state=rd_seed),
     "PLS_classif": AutoPLSDAClassifier(cv=5, seed=rd_seed),
     "LGBM_classif": LGBMOptunaClassifier(cv=5, n_trials=50, random_state=rd_seed, verbose=0),
-    "NICON_classif": NiconOptunaClassifier(num_classes=num_classes, n_trials=50, epochs=10000, patience=10, epochs_optuna=100, random_state=rd_seed),
+    "CNN_classif": NiconOptunaClassifier(num_classes=num_classes, n_trials=50, epochs=10000, patience=10, epochs_optuna=100, random_state=rd_seed),
 }
 
 # Define models
@@ -216,7 +216,7 @@ if model_names is None:
         ("Ridge" + suffixe, dict_models["Ridge" + suffixe]),
         ("PLS" + suffixe, dict_models["PLS" + suffixe]),
         ("LGBM" + suffixe, dict_models["LGBM" + suffixe]),
-        ("NICON" + suffixe, dict_models["NICON" + suffixe]),
+        ("CNN" + suffixe, dict_models["CNN" + suffixe]),
     ]
 else:
     models = [
@@ -312,11 +312,11 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
                                         verbose=0, verbose_optuna=True, scoring="log_loss",
                                         best_trials=best_trials, name_pp=pp_name, subsampling_rate=subsampling_rate)
 
-        elif mdl_name.startswith('NICON'):
+        elif mdl_name.startswith('CNN'):
             if not progressive_optim:
                 best_trials = None
             else:
-                print("Number of best trials used to optimize the NICON model : ", len(best_trials) if best_trials is not None else 0)
+                print("Number of best trials used to optimize the CNN model : ", len(best_trials) if best_trials is not None else 0)
 
             if best_trials is None: # if this is the first optimization, it must be wide and deep
                 if progressive_optim:
@@ -332,7 +332,7 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
             if mode == "Regression":
                 mdl = NiconOptunaRegressor(n_trials=n_trials, epochs=epochs, patience=patience, cyclic_learning=True, lr_min=1e-6, lr_max=1e-3, 
                                            epochs_optuna=epochs_optuna, random_state=rd_seed, device=device, verbose_optuna=True, 
-                                           best_trials=best_trials, name_pp=pp_name)
+                                           best_trials=best_trials, name_pp=pp_name, adaptive_batch_size=True)
             else:
                 mdl = NiconOptunaClassifier(num_classes=num_classes, n_trials=n_trials, epochs=epochs, patience=patience, epochs_optuna=epochs_optuna, 
                                             cyclic_learning=True, lr_min=1e-6, lr_max=1e-3, parallelize=False, random_state=rd_seed, 
@@ -396,7 +396,7 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
             best_trials = trained_model.best_trials
 
         # if the model is NICON, store the optimal hyperparameters
-        elif mdl_name.startswith('NICON') and hasattr(trained_model, 'best_trials'):
+        elif mdl_name.startswith('CNN') and hasattr(trained_model, 'best_trials'):
             best_trials = trained_model.best_trials
         
         # Store timing and performances
@@ -445,7 +445,7 @@ if use_parallelism:
 
     # Update the right best_trials list
     for _, mdl, _, trials, _ in raw_results:
-        if mdl.startswith("NICON") and trials is not None:
+        if mdl.startswith("CNN") and trials is not None:
             best_trials_nicon = trials
         elif mdl.startswith("LGBM") and trials is not None:
             best_trials_lgbm = trials
@@ -461,13 +461,13 @@ else:
             if mode == "Regression":
                 pp_name, mdl_name, metric, trials, combo_time = evaluate_combination(
                     pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xval, Yval,
-                    metrics, progressive_optim, best_trials_nicon if mdl_name.startswith("NICON") else best_trials_lgbm if mdl_name.startswith("LGBM") else None,
+                    metrics, progressive_optim, best_trials_nicon if mdl_name.startswith("CNN") else best_trials_lgbm if mdl_name.startswith("LGBM") else None,
                     rd_seed, scaler_Y
                 )
             else:
                 pp_name, mdl_name, metric, f1, fpr, trials, combo_time = evaluate_combination(
                     pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xval, Yval,
-                    metrics, progressive_optim, best_trials_nicon if mdl_name.startswith("NICON") else best_trials_lgbm if mdl_name.startswith("LGBM") else None,
+                    metrics, progressive_optim, best_trials_nicon if mdl_name.startswith("CNN") else best_trials_lgbm if mdl_name.startswith("LGBM") else None,
                     rd_seed, scaler_Y
                 )
 
@@ -478,7 +478,7 @@ else:
             timings.append((mdl_name, combo_time))
 
             # Update the right best_trials list
-            if mdl_name.startswith("NICON") and trials is not None:
+            if mdl_name.startswith("CNN") and trials is not None:
                 best_trials_nicon = trials
             elif mdl_name.startswith("LGBM") and trials is not None:
                 best_trials_lgbm = trials
@@ -509,7 +509,7 @@ os.makedirs(output_dir, exist_ok=True)
 optim_type = "progressive" if progressive_optim else "uniform"
 if model_names is not None:
     names = "_".join(model_names)
-    if "NICON" in names:
+    if "CNN" in names:
         name_file = f"results_{data_source}_{optim_type}_optim_{epochs}_epc_{patience}_ptc_{names}.csv"
     else:
         name_file = f"results_{data_source}_{optim_type}_optim_{names}.csv"
@@ -602,7 +602,7 @@ for j, col in enumerate(pivoted.columns):
 # Finalize the display
 plt.xticks(rotation=90, ha="center", fontsize=8 if only_colors else 7)
 plt.yticks(rotation=0, fontsize=10 if only_colors else 9)
-plt.title(f"Performance Heatmap ({'Accuracy' if mode == 'Classification' else 'RMSE'}) / {data_source} dataset ({mode})")
+plt.title(f"Performance Heatmap ({'Accuracy' if mode == 'Classification' else 'Relative RMSE'}) / {data_source} dataset ({mode})")
 plt.tight_layout()
 output_dir = os.path.join("Figures", "assoc_pp_model", data_source)
 os.makedirs(output_dir, exist_ok=True)
@@ -612,12 +612,12 @@ optim_type = "progressive" if progressive_optim else "uniform"
 if model_names is not None:
     names = "_".join(model_names)
     if top_n is not None:
-        if "NICON" in names:
+        if "CNN" in names:
             heatmap_filename = f"heatmap_{data_source}_top_{top_n}_{epochs}epochs_{patience}patience_{optim_type}_optim_{names}.png"
         else:
             heatmap_filename = f"heatmap_{data_source}_top_{top_n}_{optim_type}_optim_{names}.png"
     else:
-        if "NICON" in names:
+        if "CNN" in names:
             heatmap_filename = f"heatmap_{data_source}_{epochs}epochs_{patience}patience_{optim_type}_optim_{names}.png"
         else:
             heatmap_filename = f"heatmap_{data_source}_{optim_type}_optim_{names}.png"
@@ -725,7 +725,7 @@ os.makedirs(timing_output_path, exist_ok=True)
 optim_type = "progressive" if progressive_optim else "uniform"
 if model_names is not None:
     names = "_".join(model_names)
-    if "NICON" in names:
+    if "CNN" in names:
           file_name = f"timing_results_{epochs}epochs_{patience}patience_{optim_type}_optim_{names}.csv"
           timing_csv_path = os.path.join(timing_output_path, file_name)
     else:
@@ -795,13 +795,13 @@ print(f"[INFO] Per-model execution times saved to {timing_models_path}")
 # ──────────────────────────────────────────────────────
 # Save the variable best_trials of the NICON model (if it exists) into a JSON file
 if best_trials_nicon is not None and progressive_optim:
-    trials_path = os.path.join(output_dir, f"best_trials_NICON_{data_source}.json")
+    trials_path = os.path.join(output_dir, f"best_trials_CNN_{data_source}.json")
     try:
         with open(trials_path, "w") as f:
             json.dump(make_json_serializable(best_trials_nicon), f, indent=2)
-        print(f"[INFO]NICON's best_trials saved to path : {trials_path}")
+        print(f"[INFO]CNN's best_trials saved to path : {trials_path}")
     except Exception as e:
-        print(f"[WARNING] Error while saving NICON's best_trials : {e}")
+        print(f"[WARNING] Error while saving CNN's best_trials : {e}")
 
 # ──────────────────────────────────────────────────────
 # Save the variable best_trials of the NICON model (if it exists) into a JSON file

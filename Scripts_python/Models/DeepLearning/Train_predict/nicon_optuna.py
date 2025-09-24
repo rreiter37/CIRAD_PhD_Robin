@@ -193,7 +193,13 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
     def __init__(self, input_shape=None, n_trials=20, batch_size=None, epochs=100, patience=10,
                  lr_min=1e-6, lr_max=1e-3, epochs_optuna=100, verbose=0, verbose_optuna=False,
                  random_state=42, device=None, get_logger=True, get_logger_optuna=False,
-                 cyclic_learning=True, best_trials=None, name_pp=None):
+                 cyclic_learning=True, best_trials=None, name_pp=None,
+                 adaptive_batch_size=False, adaptive_factor=2.0, probe_batches=5):
+        """
+        adaptive_batch_size : if True, estimate batch size using gradient noise scale
+        adaptive_factor : scaling factor applied to noise scale for safety margin
+        probe_batches : number of probing batches used to estimate noise scale
+        """
         self.input_shape = input_shape
         self.n_trials = n_trials
         self.batch_size = batch_size
@@ -214,6 +220,9 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
         self.cyclic_learning = cyclic_learning
         self.best_trials = best_trials
         self.name_pp = name_pp
+        self.adaptive_batch_size = adaptive_batch_size
+        self.adaptive_factor = adaptive_factor
+        self.probe_batches = probe_batches
 
     def _reshape(self, X):
         X = np.array(X)
@@ -328,6 +337,51 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
 
         val_loss = trainer.callback_metrics.get("val_loss")
         return model, val_loss.item() if isinstance(val_loss, torch.Tensor) else val_loss
+    
+    def _estimate_noise_scale(self, dataset, input_channels):
+        """
+        Estimate gradient noise scale (McCandlish et al., 2018) using small probe batches.
+        """
+        # Use small probing batch size (default 32)
+        probe_batch = min(32, len(dataset))
+        loader = DataLoader(dataset, batch_size=probe_batch, shuffle=True)
+        params = {"kernel_size1": 3, "kernel_size2": 3, "kernel_size3": 3,
+                  "spatial_dropout": 0.01, "dropout_rate": 0.01, "output_dim": 1}
+        model = NiconPLModule(
+            input_channels=input_channels,
+            params=params,
+            lr_max=self.lr_max,
+            lr_min=self.lr_min,
+            epochs=1
+        ).to(self.device)
+        optimizer = torch.optim.SGD(model.parameters(), lr=1e-3)
+
+        grads = []
+        # Collect gradients on a few probe batches
+        for i, (x, y) in enumerate(loader):
+            if i >= self.probe_batches:
+                break
+            x, y = x.to(self.device), y.to(self.device)
+            optimizer.zero_grad()
+            y_pred = model(x)
+            loss = nn.MSELoss()(y_pred, y)
+            loss.backward()
+            grad_vector = torch.cat([p.grad.flatten() for p in model.parameters() if p.grad is not None])
+            grads.append(grad_vector.detach().cpu())
+
+        if len(grads) < 2:
+            return None  # Not enough data
+
+        grads = torch.stack(grads)
+        g_mean = grads.mean(dim=0)
+        var = grads.var(dim=0, unbiased=True).mean()  # mean variance across params
+        norm_sq = g_mean.pow(2).sum()
+
+        # Gradient noise scale S ≈ variance / ||g||^2
+        if norm_sq.item() == 0:
+            return None
+        S = var.item() / norm_sq.item()
+        return S
 
     def fit(self, X, y):
         X = self._reshape(X)
@@ -342,22 +396,59 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
         dataset = TensorDataset(X, y)
         n_val = max(1, int(n_samples * 0.2))
         n_train = n_samples - n_val
-        train_set, val_set = random_split(dataset, [n_train, n_val], generator=torch.Generator().manual_seed(self.random_state))
+        train_set, val_set = random_split(dataset, [n_train, n_val],
+                                          generator=torch.Generator().manual_seed(self.random_state))
 
+        # --- Adaptive batch size estimation ---
         if self.batch_size is None:
-            params = {"kernel_size1": 3, "kernel_size2": 3, "kernel_size3": 3, "spatial_dropout": 0.01, "dropout_rate": 0.01}
-            params["output_dim"] = 1
-            model = NiconPLModule(
-                input_channels=self.input_shape if isinstance(self.input_shape, int) else self.input_shape[0],
-                params=params,
-                lr_max=self.lr_max,
-                lr_min=self.lr_min,
-                epochs=1,
-                t0_steps=n_samples,
-                cyclic_learning=self.cyclic_learning
-            )
-            self.batch_size = find_max_batch_size(model=model, input_shape=self.input_shape, device=self.device, max_batch=X.shape[-1], min_batch=1)
-            print("Maximum batch size found : ", self.batch_size)
+            if self.adaptive_batch_size:
+                try:
+                    input_channels = self.input_shape if isinstance(self.input_shape, int) else self.input_shape[0]
+                    S = self._estimate_noise_scale(train_set, input_channels)
+                    if S is not None and S > 0:
+                        # Use heuristic: batch ≈ S / factor, bounded by GPU max
+                        max_hw_batch = find_max_batch_size(
+                            model=CustomizableNicon(input_channels, {"kernel_size1": 3, "kernel_size2": 3,
+                                                                    "kernel_size3": 3, "spatial_dropout": 0.01,
+                                                                    "dropout_rate": 0.01, "output_dim": 1}),
+                            input_shape=self.input_shape, device=self.device,
+                            max_batch=X.shape[-1], min_batch=1
+                        )
+                        self.batch_size = int(min(max_hw_batch, max(32, S / self.adaptive_factor)))
+                        if self.verbose:
+                            print(f"[Adaptive] Gradient noise scale={S:.4e}, chosen batch size={self.batch_size}")
+                    else:
+                        # Fallback if noise scale fails
+                        raise RuntimeError("Noise scale estimation failed")
+                except Exception as e:
+                    if self.verbose:
+                        print(f"[Adaptive] Fallback to max batch size due to error: {e}")
+                    params = {"kernel_size1": 3, "kernel_size2": 3, "kernel_size3": 3,
+                              "spatial_dropout": 0.01, "dropout_rate": 0.01, "output_dim": 1}
+                    model = NiconPLModule(
+                        input_channels=self.input_shape[0],
+                        params=params,
+                        lr_max=self.lr_max,
+                        lr_min=self.lr_min,
+                        epochs=1
+                    )
+                    self.batch_size = find_max_batch_size(model=model, input_shape=self.input_shape,
+                                                          device=self.device, max_batch=X.shape[-1], min_batch=1)
+                    print("Maximum batch size found : ", self.batch_size)
+            else:
+                # Original max batch size strategy
+                params = {"kernel_size1": 3, "kernel_size2": 3, "kernel_size3": 3,
+                          "spatial_dropout": 0.01, "dropout_rate": 0.01, "output_dim": 1}
+                model = NiconPLModule(
+                    input_channels=self.input_shape[0],
+                    params=params,
+                    lr_max=self.lr_max,
+                    lr_min=self.lr_min,
+                    epochs=1
+                )
+                self.batch_size = find_max_batch_size(model=model, input_shape=self.input_shape,
+                                                      device=self.device, max_batch=X.shape[-1], min_batch=1)
+                print("Maximum batch size found : ", self.batch_size)
 
         def objective(trial):
             params = self._suggest_params(trial)
