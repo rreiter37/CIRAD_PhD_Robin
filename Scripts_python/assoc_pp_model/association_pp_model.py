@@ -50,6 +50,7 @@ import nirs4all.transformations as pp
 
 from Scripts_python.utils.ensure_dataframe import EnsureDataFrame
 from Scripts_python.utils.utils_bdd import split_data
+from Scripts_python.utils.build_filename import build_filename
 from Scripts_python.utils.make_serializable import make_json_serializable
 from Scripts_python.Model_optim.pls_components_hybrid import get_pls_component_candidates
 from Scripts_python.utils.correct_class_unbalances import correct_class_unbalances
@@ -511,14 +512,18 @@ if mode == "Classification":
 output_dir = os.path.join("Results", "assoc_pp_model", data_source)
 os.makedirs(output_dir, exist_ok=True)
 optim_type = "progressive" if progressive_optim else "uniform"
-if model_names is not None:
-    names = "_".join(model_names)
-    if "CNN" in names:
-        name_file = f"results_{data_source}_{optim_type}_optim_{epochs}_epc_{patience}_ptc_{names}.csv"
-    else:
-        name_file = f"results_{data_source}_{optim_type}_optim_{names}.csv"
-else:
-    name_file = f"results_{data_source}_{optim_type}_optim_{epochs}_epc_{patience}_ptc.csv"
+
+name_file = build_filename(
+    prefix="results",
+    data_source=data_source,
+    top_n=top_n,
+    epochs=epochs,
+    patience=patience,
+    optim_type=optim_type,
+    model_names=model_names,
+    adaptive_batch_size=adaptive_batch_size,
+    extension="csv"
+)
 output_path = os.path.join(output_dir, name_file)
 pivoted.to_csv(output_path)
 
@@ -613,23 +618,17 @@ os.makedirs(output_dir, exist_ok=True)
 
 # Name of the heatmap file
 optim_type = "progressive" if progressive_optim else "uniform"
-if model_names is not None:
-    names = "_".join(model_names)
-    if top_n is not None:
-        if "CNN" in names:
-            heatmap_filename = f"heatmap_{data_source}_top_{top_n}_{epochs}epochs_{patience}patience_{optim_type}_optim_{names}.png"
-        else:
-            heatmap_filename = f"heatmap_{data_source}_top_{top_n}_{optim_type}_optim_{names}.png"
-    else:
-        if "CNN" in names:
-            heatmap_filename = f"heatmap_{data_source}_{epochs}epochs_{patience}patience_{optim_type}_optim_{names}.png"
-        else:
-            heatmap_filename = f"heatmap_{data_source}_{optim_type}_optim_{names}.png"
-else:
-    if top_n is not None:
-        heatmap_filename = f"heatmap_{data_source}_top_{top_n}_{epochs}epochs_{patience}patience_{optim_type}_optim.png"
-    else:
-        heatmap_filename = f"heatmap_{data_source}_{epochs}epochs_{patience}patience_{optim_type}_optim.png"
+heatmap_filename = build_filename(
+    prefix="heatmap",
+    data_source=data_source,
+    top_n=top_n,
+    epochs=epochs,
+    patience=patience,
+    optim_type=optim_type,
+    model_names=model_names,
+    adaptive_batch_size=adaptive_batch_size,
+    extension="png"
+)
 
 output_path = os.path.join(output_dir, heatmap_filename)
 plt.savefig(output_path, dpi=300)
@@ -727,17 +726,19 @@ elapsed_time = time.time() - start_time
 timing_output_path = os.path.join("Results", "assoc_pp_model", data_source)
 os.makedirs(timing_output_path, exist_ok=True)
 optim_type = "progressive" if progressive_optim else "uniform"
-if model_names is not None:
-    names = "_".join(model_names)
-    if "CNN" in names:
-          file_name = f"timing_results_{epochs}epochs_{patience}patience_{optim_type}_optim_{names}.csv"
-          timing_csv_path = os.path.join(timing_output_path, file_name)
-    else:
-        file_name = f"timing_results_{optim_type}_optim_{names}.csv"
-        timing_csv_path = os.path.join(timing_output_path, file_name)
-else:
-    file_name = f"timing_results_{epochs}epochs_{patience}patience_{optim_type}_optim.csv"
-    timing_csv_path = os.path.join(timing_output_path, file_name)
+file_name = build_filename(
+        prefix="timing_results",
+        data_source=data_source,
+        top_n=top_n,
+        epochs=epochs,
+        patience=patience,
+        optim_type=optim_type,
+        model_names=model_names,
+        adaptive_batch_size=adaptive_batch_size,
+        extension="csv"
+    )
+
+timing_csv_path = os.path.join(timing_output_path, file_name)
 
 timing_data = {
     "data_source": data_source,

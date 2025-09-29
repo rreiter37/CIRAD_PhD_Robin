@@ -6,6 +6,8 @@ shift
 # Optional model names (up to 3)
 model_names=()
 dataset_names=()
+adaptative_batch_flag=""
+
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --models)
@@ -21,6 +23,10 @@ while [[ $# -gt 0 ]]; do
                 dataset_names+=("$1")
                 shift
             done
+            ;;
+        --adaptative_batch_size)
+            adaptative_batch_flag="--adaptative_batch_size"
+            shift
             ;;
         *)
             shift
@@ -62,7 +68,8 @@ run_datasets() {
                 --data_source "$ds" \
                 --only_colors \
                 --progressive_optim \
-                $model_arg
+                $model_arg \
+                $adaptative_batch_flag
         done
     else
         echo "Directory $base_dir not found!"
