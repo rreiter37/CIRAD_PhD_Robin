@@ -434,7 +434,7 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
                     )
                     self.batch_size = find_max_batch_size(model=model, input_shape=self.input_shape,
                                                           device=self.device, max_batch=X.shape[-1], min_batch=1)
-                    print("Maximum batch size found : ", self.batch_size)
+                    print("Maximum batch size found (adaptive): ", self.batch_size)
             else:
                 # Original max batch size strategy
                 params = {"kernel_size1": 3, "kernel_size2": 3, "kernel_size3": 3,
@@ -448,7 +448,7 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
                 )
                 self.batch_size = find_max_batch_size(model=model, input_shape=self.input_shape,
                                                       device=self.device, max_batch=X.shape[-1], min_batch=1)
-                print("Maximum batch size found : ", self.batch_size)
+                print("Maximum batch size found (GPU-oriented): ", self.batch_size)
 
         def objective(trial):
             params = self._suggest_params(trial)

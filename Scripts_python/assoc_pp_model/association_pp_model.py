@@ -115,6 +115,9 @@ parser.add_argument('--random_seed', type=int, default=42,
 parser.add_argument('--use_parallelism', action='store_true', default=False,
                     help="Use parallelization during the assessment of preprocessing-model combinations (optional)")
 
+parser.add_argument('--adaptive_batch_size', action='store_true', default=False,
+                    help="Use the approach of adaptive batch size during the calibration phase of deep learning models (optional).")
+
 # Retrieve the arg values from the parser
 args = parser.parse_args()
 mode = args.mode
@@ -133,6 +136,7 @@ model_names = args.model_names
 progressive_optim = args.progressive_optim
 print(f"[INFO] {'Progressive' if progressive_optim else 'Uniform'} optimization activated.")
 compare_optim_strat = args.compare_optim_strat
+adaptive_batch_size = args.adaptive_batch_size
 
 import torch
 torch.manual_seed(rd_seed)
@@ -332,7 +336,7 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
             if mode == "Regression":
                 mdl = NiconOptunaRegressor(n_trials=n_trials, epochs=epochs, patience=patience, cyclic_learning=True, lr_min=1e-6, lr_max=1e-3, 
                                            epochs_optuna=epochs_optuna, random_state=rd_seed, device=device, verbose_optuna=True, 
-                                           best_trials=best_trials, name_pp=pp_name, adaptive_batch_size=True)
+                                           best_trials=best_trials, name_pp=pp_name, adaptive_batch_size=adaptive_batch_size)
             else:
                 mdl = NiconOptunaClassifier(num_classes=num_classes, n_trials=n_trials, epochs=epochs, patience=patience, epochs_optuna=epochs_optuna, 
                                             cyclic_learning=True, lr_min=1e-6, lr_max=1e-3, parallelize=False, random_state=rd_seed, 
