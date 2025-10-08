@@ -1,0 +1,36 @@
+### Apport de diversité dans le stacking
+	- Des preprocessings qui ne produisent pas forcément les meilleurs résultats pris individuellement avec un modèle peuvent tout de même être importants à utiliser, dès lors qu'ils apportent une diversité utile à la stack. On peut alors essayer de sélectionner les couples (modèle, preprocessing) via des critères de "performance x diversité".
+	  
+	  Voici quelques approches envisageables pour mettre en place ce type de sélection:
+		- #### Profils de performance & dissimilarité
+			- **Détails:**
+			- **Référence:**
+		- #### Sélection relevance-diversity façon MMR (greedy, simple, efficace)
+			- **Détails:**
+			- **Référence:**
+		- #### Sélection diverse par DPP (déterminantal point processes)
+			- **Détails:**
+			- **Référence:**
+		- #### "Portfolio" sur profils RRMSE (variance minimization à la Bates-Granger)
+			- **Détails:**
+			- **Référence:**
+		- #### Clustering des profils & "medoids"
+			- **Détails:**
+			- **Référence:**
+		- #### Profil de Pareto "perf vs similarité au noyau"
+			- **Détails:**
+		- #### Tests "où le noyau est faible"
+			- **Détails:**
+			- **Référence:**
+	- ### Recette possible pour sélection de preprocessings
+		- **FIltrage des perfs** doux: non-inferiorité vs meilleur par dataset&prep, FDR
+		- Construction des profils *l_j* normalisés
+		- **Score MMR** (ou DPP) pour choisir N couples *relevance x diversity*
+		- Optionnel: **Portfolio** pour pondérer (poids $\omega$)
+		- **Sanity check:** test "où S est faible" pour justifier les couples "divers mais moins bons en moyenne".
+		- **Pareto** final (perf/diversité) pour communiquer la sélection
+	- ### Hyperparamètres possibles
+		- Normalisation intra-dataset: ratio vs meilleur du dataset (ou baseline) pour stabiliser
+		- MMR: $\lambda \in [0,5; 0,8]$
+		- DPP : \beta \in [1; 3], \gamma \in [5; 15] (à ajuster pour l’échelle)
+		- Portfolio : \lambda \in [0,1; 1] pour obtenir 2–6 couples avec des poids non nuls (mettre une L1 sur \omega force la parcimonie)

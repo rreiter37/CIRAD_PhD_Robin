@@ -1,0 +1,2 @@
+data_source,epochs_final,patience,optimization_type,time,n_trials_first,n_trials_next,epochs_first,epochs_next
+Corn_Starch_80_WangStyle_mp5spec,10000,1000,progressive,3628.9686267375946,500,90,30,10

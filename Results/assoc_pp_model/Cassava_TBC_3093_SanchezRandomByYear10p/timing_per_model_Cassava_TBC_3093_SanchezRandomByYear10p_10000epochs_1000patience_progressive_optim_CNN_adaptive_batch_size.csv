@@ -1,0 +1,2 @@
+Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials_first,n_trials_next,epochs_first,epochs_next
+CNN_reg,336.99331960607975,Cassava_TBC_3093_SanchezRandomByYear10p,progressive,10000,1000,500,90,30,10

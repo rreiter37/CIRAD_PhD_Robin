@@ -1,0 +1,3 @@
+data_source,epochs_final,patience,optimization_type,time,n_trials_first,n_trials_next,epochs_first,epochs_next
+Cassava_DM_3357_SanchezRandomByYear10p,10000,1000,progressive,24537.062515497208,500,90,30,10
+Cassava_DM_3357_SanchezRandomByYear10p,10000,1000,progressive,24454.68235516548,500,90,30,10

@@ -1,0 +1,2 @@
+Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials_first,n_trials_next,epochs_first,epochs_next
+CNN_reg,603.022138865555,Cassava_DM_5578_DavrieuxRobustness2014,progressive,10000,1000,500,90,30,10

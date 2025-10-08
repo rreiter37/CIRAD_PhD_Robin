@@ -1,0 +1,2 @@
+Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials_first,n_trials_next,epochs_first,epochs_next
+CNN_reg,95.67533179591683,DIESEL_FREEZE_395_ZhengYbase,progressive,10000,1000,500,90,30,10

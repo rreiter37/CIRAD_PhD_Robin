@@ -1,0 +1,22 @@
+### Tests statistiques
+	- Certains datasets partagent les mêmes spectres mais différent uniquement sur l'analyte. L'hypothèse d'indépendance requise par la plupart des tests statistiques classiques n'est donc pas respectée.
+	- Il y a plusieurs options envisageables pour éviter ou atténuer ce biais:
+		- #### Regroupement des datasets en clusters hiérarchiques
+			- **Détails:** On peut traiter les datasets provenant d'une même source spectrale comme des blocs, via notamment des tests statistiques à mesures répétées. 
+			  -> ANOVA à mesures répétées / Friedman test par blocs (non paramétrique)
+			- **Référence:** 
+			  -> *Statistical Comparisons of Classifiers over Multiple Data Sets*, Journal of Machine Learning Research, 7, 1-30, [Demsar, 2006](https://www.jmlr.org/papers/volume7/demsar06a/demsar06a.pdf)
+		- #### Modèle mixtes
+			- **Détails:** Utiliser un linear mixed-effects model (LMM) ou un generalized linear mixed model (GLMM) qui prend en compte la structure hiérarchique des données. L'effet fixe est le modèle ou le preprocessing, l'effet aléatoire est la source spectrale. Ces modèles permettent de gérer explicitement la dépendance et évitent d'avoir à "purifier" les datasets artificiellement.
+			  -> On aura une équation du type: 
+			  $$\text{Performance}_{ijk} = \mu + \alpha_i \text{(modèle)}+ \beta_j \text{(preprocessing)} + (1|\text{source spectrale}_k) + \epsilon$$
+			- **Référence:**
+			  -> *lmerTest Package: Tests in Linear Mixed Effects Models*, Journal of Statistic Software, 82(13), 1-26, [Kuznetsova et al., 2017](https://doi.org/10.18637/jss.v082.i13)
+		- #### Test paramétriques avec permutation stratifiée
+			- **Détails:** Les tests de permutation bien construits sont robustes. On peut définir des groupes de permutation pour que la réaffectation aléatoire respecte la dépendance des datasets. Cela préserve la structure de corrélation et évite le biais d'indépendance.
+			- **Référence:** 
+			  -> *Permutation Tests: A Practical Guide to Resampling Methods for Testing Hypotheses*, Springer, [Good, 2000](https://doi.org/10.1007/978-1-4757-3235-1)
+		- #### Validation croisée hiérarchique
+			- **Détails:** On peut adopter une validation croisée groupée dans l'évaluation des modèles eux-mêmes. Il faut alors garder les analytes issus des mêmes spectres dans le même fold, pour éviter d'évaluer le modèle sur des spectres qu'il a déjà vus via un autre analyte. Cela garantit que les scores initiaux ne sont pas biaisés.
+		- #### Aggrégation au niveau des sources spectrales
+			- **Détails:** Une approche plus radicale consiste à agréger les résultats par source spectrale avant analyse. On calcule une performance moyenne/robuste par (modèle, preproessing, source). On perd en granularité (information), mais on gagne en validité statistique.

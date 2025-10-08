@@ -1,0 +1,2 @@
+data_source,epochs_final,patience,optimization_type,time,n_trials_first,n_trials_next,epochs_first,epochs_next
+Cassava_DM_5578_SanchezRobustness2012,10000,1000,progressive,17128.14946126938,500,90,30,10

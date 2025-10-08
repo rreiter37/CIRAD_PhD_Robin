@@ -235,6 +235,9 @@ prior_components = []
 best_trials_nicon = None
 best_trials_lgbm = None
 
+# Dictionary to store final batch sizes for each CNN model per preprocessing
+cnn_batch_sizes = {}
+
 # Fonction modifiée pour collecter le nombre de composantes optimales
 #@memory.cache
 def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xval, Yval, metrics, progressive_optim, best_trials, rd_seed, scaler_Y=None):
@@ -400,9 +403,13 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
         elif mdl_name.startswith("LGBM") and hasattr(trained_model, 'best_trials'):
             best_trials = trained_model.best_trials
 
-        # if the model is NICON, store the optimal hyperparameters
-        elif mdl_name.startswith('CNN') and hasattr(trained_model, 'best_trials'):
-            best_trials = trained_model.best_trials
+        # if the model is CNN, store the batch size and the optimal hyperparameters
+        elif mdl_name.startswith('CNN'): 
+            batch_size = trained_model.batch_size
+            if hasattr(trained_model, 'best_trials'):
+                best_trials = trained_model.best_trials
+            # Save batch size for this preprocessing
+            cnn_batch_sizes[pp_name] = batch_size
         
         # Store timing and performances
         combo_time = time.time() - combo_start  # Time for this combination
@@ -798,7 +805,7 @@ df_avg_time.to_csv(timing_models_path, index=False)
 print(f"[INFO] Per-model execution times saved to {timing_models_path}")
 
 # ──────────────────────────────────────────────────────
-# Save the variable best_trials of the NICON model (if it exists) into a JSON file
+# Save the variable best_trials of the CNN model (if it exists) into a JSON file
 if best_trials_nicon is not None and progressive_optim:
     trials_path = os.path.join(output_dir, f"best_trials_CNN_{data_source}.json")
     try:
@@ -809,7 +816,7 @@ if best_trials_nicon is not None and progressive_optim:
         print(f"[WARNING] Error while saving CNN's best_trials : {e}")
 
 # ──────────────────────────────────────────────────────
-# Save the variable best_trials of the NICON model (if it exists) into a JSON file
+# Save the variable best_trials of the LGBM model (if it exists) into a JSON file
 if best_trials_lgbm is not None and progressive_optim:
     trials_path = os.path.join(output_dir, f"best_trials_LGBM_{data_source}.json")
     try:
@@ -818,3 +825,14 @@ if best_trials_lgbm is not None and progressive_optim:
         print(f"[INFO]LGBM's best_trials saved to path : {trials_path}")
     except Exception as e:
         print(f"[WARNING] Error while saving LGBM's best_trials : {e}")
+
+# ──────────────────────────────────────────────────────
+# Save the batch sizes used to calibrate the CNN model per preprocessing
+if len(cnn_batch_sizes) > 0:
+    trials_path = os.path.join(output_dir, f"batch_sizes_CNN_{data_source}.json")
+    try:
+        with open(trials_path, "w") as f:
+            json.dump(make_json_serializable(cnn_batch_sizes), f, indent=2)
+        print(f"[INFO] CNN's batch sizes saved to path : {trials_path}")
+    except Exception as e:
+        print(f"[WARNING] Error while saving CNN's batch sizes : {e}")
