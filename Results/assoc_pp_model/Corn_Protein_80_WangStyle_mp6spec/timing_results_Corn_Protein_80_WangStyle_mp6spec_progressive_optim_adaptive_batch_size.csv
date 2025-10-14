@@ -1,0 +1,2 @@
+data_source,epochs_final,patience,optimization_type,time,n_trials_first,n_trials_next,epochs_first,epochs_next
+Corn_Protein_80_WangStyle_mp6spec,10000,1000,progressive,6028.531509637833,500,90,30,10

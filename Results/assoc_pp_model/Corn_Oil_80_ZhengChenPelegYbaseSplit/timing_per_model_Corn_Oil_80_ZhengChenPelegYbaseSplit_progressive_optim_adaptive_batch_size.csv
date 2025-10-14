@@ -1,0 +1,5 @@
+Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials_first,n_trials_next,epochs_first,epochs_next
+CNN_reg,73.87938594818115,Corn_Oil_80_ZhengChenPelegYbaseSplit,progressive,10000,1000,500,90,30,10
+LGBM_reg,24.51608327557059,Corn_Oil_80_ZhengChenPelegYbaseSplit,progressive,10000,1000,500,90,30,10
+PLS_reg,0.5015416671248043,Corn_Oil_80_ZhengChenPelegYbaseSplit,progressive,10000,1000,500,90,30,10
+Ridge_reg,0.15061050653457642,Corn_Oil_80_ZhengChenPelegYbaseSplit,progressive,10000,1000,500,90,30,10

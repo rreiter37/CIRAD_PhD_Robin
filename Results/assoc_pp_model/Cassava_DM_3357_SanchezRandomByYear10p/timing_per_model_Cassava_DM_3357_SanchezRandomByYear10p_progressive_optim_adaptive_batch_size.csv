@@ -1,0 +1,5 @@
+Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials_first,n_trials_next,epochs_first,epochs_next
+CNN_reg,388.90373320439284,Cassava_DM_3357_SanchezRandomByYear10p,progressive,10000,1000,500,90,30,10
+LGBM_reg,252.18340526959474,Cassava_DM_3357_SanchezRandomByYear10p,progressive,10000,1000,500,90,30,10
+PLS_reg,8.798265176660875,Cassava_DM_3357_SanchezRandomByYear10p,progressive,10000,1000,500,90,30,10
+Ridge_reg,14.080033859785866,Cassava_DM_3357_SanchezRandomByYear10p,progressive,10000,1000,500,90,30,10

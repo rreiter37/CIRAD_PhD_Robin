@@ -65,6 +65,5 @@
   "simplescale_gaussian": 32,
   "SNV_haar": 32,
   "SNV_gaussian": 32,
-  "haar_gaussian": 32,
-  "PCA": 32
+  "haar_gaussian": 32
 }
