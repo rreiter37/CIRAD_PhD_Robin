@@ -1,0 +1,5 @@
+Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials_first,n_trials_next,epochs_first,epochs_next
+CNN_reg,95.76522984574822,DIESEL_CN_381_ZhengYbase,progressive,10000,1000,500,90,30,10
+LGBM_reg,70.44007174057118,DIESEL_CN_381_ZhengYbase,progressive,10000,1000,500,90,30,10
+PLS_reg,0.5882675928228042,DIESEL_CN_381_ZhengYbase,progressive,10000,1000,500,90,30,10
+Ridge_reg,0.3176627965534435,DIESEL_CN_381_ZhengYbase,progressive,10000,1000,500,90,30,10

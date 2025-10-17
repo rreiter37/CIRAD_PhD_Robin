@@ -69,7 +69,8 @@ collapsed:: true
 	  
 	  La solution retenue est alors de fixer la taille de batch comme étant la plus grande acceptée par le GPU. Mais comme on vient de le démontrer, il est parfois meilleur d'utiliser de petites tailles de batch. Une méthode avec une taille de batch adaptative en fonction des données serait de rigueur.
 	- #### Estimer le "gradient noise scale" et choisir la taille critique
-		- **Principe:** Mesurer l'échelle du bruit du gradient (variance relative) permet d'estimer la plus grande taille de batch utile, au-delà les gains sont marginaux ou il y a même une dégradation. Cette notion de noise scale permet de prédire la plus grande taille de batch utile dans de nombreux domaines.
+		- **Principe:** Mesurer l'échelle du bruit du gradient (variance relative) permet d'estimer la plus grande taille de batch utile, au-delà les gains sont marginaux ou il y a même une dégradation. Cette notion de noise scale permet de prédire la plus grande taille de batch utile dans de nombreux domaines. De manière analytique, une formule est donnée pour calculer la plus grande taille de batch qui contrôle le rapport signal sur bruit. #[[Signal to noise ratio]]
+		  On peut aussi calculer de façon dynamique, toutes les k itérations, la taille de batch utile au cours de l'entraînement en adaptant dans le même temps le learning rate.
 		- **Référence:** 
 		  -> *An Empirical Model of Large-Batch Training*, arxiv.org, [McCandlish et al., 2018](https://doi.org/10.48550/arXiv.1812.06162)
 	- #### Croissance adaptative du batch pendant l'entraînement (schedules)

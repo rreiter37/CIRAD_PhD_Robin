@@ -1,0 +1,5 @@
+Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials_first,n_trials_next,epochs_first,epochs_next
+CNN_reg,83.76926137769924,ALPINE_N_552_KS,progressive,10000,1000,500,90,30,10
+LGBM_reg,319.7804155560101,ALPINE_N_552_KS,progressive,10000,1000,500,90,30,10
+PLS_reg,12.476119037936716,ALPINE_N_552_KS,progressive,10000,1000,500,90,30,10
+Ridge_reg,1.8581237056676079,ALPINE_N_552_KS,progressive,10000,1000,500,90,30,10

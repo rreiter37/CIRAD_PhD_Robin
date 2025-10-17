@@ -1,0 +1,2 @@
+data_source,epochs_final,patience,optimization_type,time,n_trials_first,n_trials_next,epochs_first,epochs_next
+DIESEL_d_263_hlb-a,10000,1000,progressive,7723.871757745743,500,90,30,10

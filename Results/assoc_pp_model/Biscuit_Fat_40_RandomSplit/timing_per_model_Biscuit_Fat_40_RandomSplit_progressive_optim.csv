@@ -1,0 +1,5 @@
+Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials_first,n_trials_next,epochs_first,epochs_next
+CNN_reg,78.28970460749385,Biscuit_Fat_40_RandomSplit,progressive,10000,1000,500,90,30,10
+LGBM_reg,16.130327168632956,Biscuit_Fat_40_RandomSplit,progressive,10000,1000,500,90,30,10
+PLS_reg,0.48097775964175954,Biscuit_Fat_40_RandomSplit,progressive,10000,1000,500,90,30,10
+Ridge_reg,0.1346263605005601,Biscuit_Fat_40_RandomSplit,progressive,10000,1000,500,90,30,10

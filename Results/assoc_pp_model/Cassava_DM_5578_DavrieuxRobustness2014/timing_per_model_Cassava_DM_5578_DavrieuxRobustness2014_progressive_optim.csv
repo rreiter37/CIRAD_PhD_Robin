@@ -1,0 +1,5 @@
+Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials_first,n_trials_next,epochs_first,epochs_next
+CNN_reg,154.1345547332483,Cassava_DM_5578_DavrieuxRobustness2014,progressive,10000,1000,500,90,30,10
+LGBM_reg,362.20836552101025,Cassava_DM_5578_DavrieuxRobustness2014,progressive,10000,1000,500,90,30,10
+PLS_reg,12.384056494516486,Cassava_DM_5578_DavrieuxRobustness2014,progressive,10000,1000,500,90,30,10
+Ridge_reg,22.131140733466427,Cassava_DM_5578_DavrieuxRobustness2014,progressive,10000,1000,500,90,30,10
