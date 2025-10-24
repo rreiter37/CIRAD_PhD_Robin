@@ -1,0 +1,5 @@
+Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials_first,n_trials_next,epochs_first,epochs_next
+CNN_reg,87.27521704204047,Corn_Moisture_80_WangStyle_mp5spec,progressive,10000,1000,500,90,30,10
+LGBM_reg,22.974988891797906,Corn_Moisture_80_WangStyle_mp5spec,progressive,10000,1000,500,90,30,10
+PLS_reg,0.49451960535610423,Corn_Moisture_80_WangStyle_mp5spec,progressive,10000,1000,500,90,30,10
+Ridge_reg,0.14579320655149572,Corn_Moisture_80_WangStyle_mp5spec,progressive,10000,1000,500,90,30,10

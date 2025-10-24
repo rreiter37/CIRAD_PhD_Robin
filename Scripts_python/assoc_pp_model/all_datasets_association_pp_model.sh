@@ -3,9 +3,10 @@
 only_type="$1"  # Can be "Classification", "Regression" or empty
 shift
 
-# Optional model names (up to 3)
+# Optional model names and dataset range
 model_names=()
 dataset_names=()
+between_datasets=()
 adaptive_batch_flag=""
 
 while [[ $# -gt 0 ]]; do
@@ -23,6 +24,16 @@ while [[ $# -gt 0 ]]; do
                 dataset_names+=("$1")
                 shift
             done
+            ;;
+        --between_datasets)
+            shift
+            if [[ $# -ge 2 ]]; then
+                between_datasets=("$1" "$2")
+                shift 2
+            else
+                echo "Error: --between_datasets requires two dataset names."
+                exit 1
+            fi
             ;;
         --adaptive_batch_size)
             adaptive_batch_flag="--adaptive_batch_size"
@@ -52,8 +63,10 @@ run_datasets() {
     if [[ -d "$base_dir" ]]; then
         local datasets=()
         if [[ ${#dataset_names[@]} -gt 0 ]]; then
+            # Use explicitly provided dataset names
             datasets=("${dataset_names[@]}")
         else
+            # Collect all datasets in alphabetical order
             for ds_path in "$base_dir"/*; do
                 if [[ -d "$ds_path" ]]; then
                     datasets+=("$(basename "$ds_path")")
@@ -61,6 +74,33 @@ run_datasets() {
             done
         fi
 
+        # Sort datasets to ensure consistent ordering
+        IFS=$'\n' datasets=($(sort <<<"${datasets[*]}"))
+        unset IFS
+
+        # If between_datasets is specified, limit the range
+        if [[ ${#between_datasets[@]} -eq 2 ]]; then
+            local start="${between_datasets[0]}"
+            local end="${between_datasets[1]}"
+            local in_range=false
+            local filtered_datasets=()
+
+            for ds in "${datasets[@]}"; do
+                if [[ "$ds" == "$start" ]]; then
+                    in_range=true
+                fi
+                if [[ "$in_range" == true ]]; then
+                    filtered_datasets+=("$ds")
+                fi
+                if [[ "$ds" == "$end" ]]; then
+                    break
+                fi
+            done
+
+            datasets=("${filtered_datasets[@]}")
+        fi
+
+        # Run the Python script for each dataset
         for ds in "${datasets[@]}"; do
             echo "Running on $ds ($mode)"
             python -m Scripts_python.assoc_pp_model.association_pp_model \

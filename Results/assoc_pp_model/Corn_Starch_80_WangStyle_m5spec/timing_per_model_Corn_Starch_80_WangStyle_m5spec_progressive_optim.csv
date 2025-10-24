@@ -1,0 +1,5 @@
+Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials_first,n_trials_next,epochs_first,epochs_next
+CNN_reg,85.74486638538873,Corn_Starch_80_WangStyle_m5spec,progressive,10000,1000,500,90,30,10
+LGBM_reg,27.33563152481528,Corn_Starch_80_WangStyle_m5spec,progressive,10000,1000,500,90,30,10
+PLS_reg,0.4902435015229618,Corn_Starch_80_WangStyle_m5spec,progressive,10000,1000,500,90,30,10
+Ridge_reg,0.1447643707780277,Corn_Starch_80_WangStyle_m5spec,progressive,10000,1000,500,90,30,10

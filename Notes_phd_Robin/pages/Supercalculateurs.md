@@ -1,4 +1,5 @@
 ## Adastra
+collapsed:: true
 	- ### Administratif
 		- **numéro de dossier** : AD011017070
 		- Heures attribuées initialement CINES Adastra Genoa : 200 000 (heures cœurs)
@@ -172,3 +173,6 @@
 							- Exemple de script de batch:
 							- ![Screenshot from 2025-10-17 16-21-14.png](../assets/Screenshot_from_2025-10-17_16-21-14_1760710881829_0.png)
 							- Exemples de scripts de batch dans la documentation
+- ## JeanZay
+	- ### Admin
+		- mdp première connexion: Zà^)ir+/

@@ -83,6 +83,91 @@ def seed_worker(worker_id):
     random.seed(worker_seed)
 
 
+# ==========================================
+# Dynamic Batch and LR Scaling
+# ==========================================
+class DynamicBatchScalingCallback(Callback):
+    """
+    Dynamically adjust batch size and learning rate based on gradient noise scale
+    following McCandlish et al. (2018). Also records and logs batch size history.
+    """
+    def __init__(self, model_ref, dataset, adaptive_factor=2.0, probe_batches=5, min_batch=16, max_batch=8192):
+        super().__init__()
+        self.model_ref = model_ref  # Reference to NiconOptunaRegressor
+        self.dataset = dataset
+        self.adaptive_factor = adaptive_factor
+        self.probe_batches = probe_batches
+        self.min_batch = min_batch
+        self.max_batch = max_batch
+        self.current_batch = model_ref.batch_size
+        self.prev_noise_scale = None
+
+        # Initialize batch size history
+        if not hasattr(self.model_ref, "batch_size_history"):
+            self.model_ref.batch_size_history = [self.current_batch]
+
+    def on_train_epoch_end(self, trainer, pl_module):
+        """
+        Called at the end of each training epoch to adapt batch size and LR dynamically,
+        record history, and log everything to TensorBoard.
+        """
+        # Estimate gradient noise scale using current model state
+        S = self.model_ref._estimate_noise_scale(self.dataset, pl_module.hparams.input_channels)
+        if S is None or S <= 0:
+            if self.model_ref.verbose:
+                print(f"[Dynamic] Epoch {pl_module.current_epoch}: failed to estimate noise scale.")
+            # Still append last known batch to maintain alignment
+            self.model_ref.batch_size_history.append(self.current_batch)
+            return
+
+        # Compute new batch size using the square-root heuristic
+        new_batch = int(np.clip(np.sqrt(self.adaptive_factor * S), self.min_batch, self.max_batch))
+
+        # Adjust learning rate to maintain constant noise ratio (η/B ≈ const)
+        optimizer = trainer.optimizers[0]
+        old_lr = optimizer.param_groups[0]["lr"]
+        new_lr = old_lr * np.sqrt(new_batch / max(1, self.current_batch))
+
+        # Apply updates
+        self.current_batch = new_batch
+        optimizer.param_groups[0]["lr"] = new_lr
+
+        # ✅ Record batch size into the model's history
+        self.model_ref.batch_size_history.append(new_batch)
+
+        if self.model_ref.verbose:
+            print(f"[Dynamic] Epoch {pl_module.current_epoch}: "
+                  f"S={S:.4e}, batch={new_batch}, lr={new_lr:.2e}")
+
+        # Update DataLoader for next epoch
+        train_loader = trainer.train_dataloader
+        if hasattr(train_loader, "batch_sampler"):
+            train_loader.batch_sampler.batch_size = new_batch
+        else:
+            trainer.fit_loop._data_loader = DataLoader(
+                self.dataset, batch_size=new_batch, shuffle=True, num_workers=0
+            )
+
+        # ──────────────────────────────
+        # 🔵 TensorBoard logging
+        # ──────────────────────────────
+        if isinstance(trainer.logger, pl.loggers.TensorBoardLogger):
+            writer = trainer.logger.experiment
+            epoch = pl_module.current_epoch
+
+            # Scalar metrics for this epoch
+            writer.add_scalar("adaptive/S_noise", S, epoch)
+            writer.add_scalar("adaptive/batch_size", new_batch, epoch)
+            writer.add_scalar("adaptive/lr", new_lr, epoch)
+
+            # Full batch history (for visualization curve)
+            batch_hist = np.array(self.model_ref.batch_size_history, dtype=float)
+            writer.add_scalars("adaptive/batch_history", {"batch_size": batch_hist[-1]}, epoch)
+
+
+
+
+
 class NiconPLModule(pl.LightningModule):
     def __init__(self, input_channels, params, lr_max, lr_min, epochs, t0_steps=None, cyclic_learning=True):
         super().__init__()
@@ -223,6 +308,8 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
         self.adaptive_batch_size = adaptive_batch_size
         self.adaptive_factor = adaptive_factor
         self.probe_batches = probe_batches
+        self.batch_size_history = []  # Stores list of batch sizes when dynamic mode is active
+
 
     def _reshape(self, X):
         X = np.array(X)
@@ -401,7 +488,7 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
 
         # --- Adaptive batch size estimation ---
         if self.batch_size is None:
-            if self.adaptive_batch_size:
+            if self.adaptive_batch_size in [True, "static"]:
                 try:
                     input_channels = self.input_shape if isinstance(self.input_shape, int) else self.input_shape[0]
                     S = self._estimate_noise_scale(train_set, input_channels)
@@ -416,7 +503,7 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
                         )
                         self.batch_size = int(min(max_hw_batch, max(32, S / self.adaptive_factor)))
                         if self.verbose:
-                            print(f"[Adaptive] Gradient noise scale={S:.4e}, chosen batch size={self.batch_size}")
+                            print(f"[Static] Gradient noise scale={S:.4e}, chosen batch size={self.batch_size}")
                     else:
                         # Fallback if noise scale fails
                         raise RuntimeError("Noise scale estimation failed")
@@ -435,6 +522,11 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
                     self.batch_size = find_max_batch_size(model=model, input_shape=self.input_shape,
                                                           device=self.device, max_batch=X.shape[-1], min_batch=1)
                     print("Maximum batch size found (adaptive): ", self.batch_size)
+            elif self.adaptive_batch_size == "dynamic":
+                # Initialize batch size using small probe, then dynamically adapt
+                self.batch_size = min(max(n_train // 10, 8), 32)
+                if self.verbose:
+                    print("[Dynamic] Starting with small batch (8 < B < 32) and adaptive scaling per epoch.")
             else:
                 # Original max batch size strategy
                 params = {"kernel_size1": 3, "kernel_size2": 3, "kernel_size3": 3,
@@ -504,6 +596,17 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
 
         callbacks = [checkpoint_callback, early_stopping, CheckpointLoggerCallback()]
 
+        # Add dynamic adaptation callback if requested
+        if self.adaptive_batch_size == "dynamic":
+            dyn_callback = DynamicBatchScalingCallback(
+                model_ref=self,
+                dataset=train_final,
+                adaptive_factor=self.adaptive_factor,
+                probe_batches=self.probe_batches,
+                max_batch=self.batch_size * 64  # safety cap
+            )
+            callbacks.append(dyn_callback)
+
         if self.name_pp is None:
             name = "nicon_final"
         else:
@@ -527,6 +630,20 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
             final_model = NiconPLModule.load_from_checkpoint(checkpoint_callback.best_model_path)
 
         self.model_ = final_model
+
+        # If dynamic mode was active but no history recorded, fallback to single batch value
+        if self.adaptive_batch_size == "dynamic" and not hasattr(self, "batch_size_history"):
+            self.batch_size_history = [self.batch_size]
+
+        if self.get_logger and hasattr(self, "batch_size_history"):
+            try:
+                if isinstance(self.model_.logger, pl.loggers.TensorBoardLogger):
+                    writer = self.model_.logger.experiment
+                    for epoch, bsize in enumerate(self.batch_size_history):
+                        writer.add_scalar("adaptive/batch_history_final", bsize, epoch)
+            except Exception:
+                pass
+
         return self
 
     def predict(self, X):

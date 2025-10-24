@@ -1,546 +1,546 @@
 [
   {
-    "kernel_size1": 9,
-    "kernel_size2": 17,
-    "kernel_size3": 5,
-    "spatial_dropout": 0.2725895780605361,
-    "dropout_rate": 0.4218485076208588,
+    "kernel_size1": 3,
+    "kernel_size2": 3,
+    "kernel_size3": 7,
+    "spatial_dropout": 0.30279814924211323,
+    "dropout_rate": 0.20822422209957786,
     "output_dim": 1
   },
   {
     "kernel_size1": 6,
-    "kernel_size2": 13,
-    "kernel_size3": 7,
-    "spatial_dropout": 0.26450347868961943,
-    "dropout_rate": 0.44736738725680264,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 4,
-    "kernel_size2": 12,
+    "kernel_size2": 5,
     "kernel_size3": 8,
-    "spatial_dropout": 0.2783960944196809,
-    "dropout_rate": 0.4039409659478445,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 9,
-    "kernel_size2": 10,
-    "kernel_size3": 7,
-    "spatial_dropout": 0.2816462058090162,
-    "dropout_rate": 0.3774006480674186,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 7,
-    "kernel_size2": 13,
-    "kernel_size3": 7,
-    "spatial_dropout": 0.2853698203340856,
-    "dropout_rate": 0.37039448414233006,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 7,
-    "kernel_size2": 9,
-    "kernel_size3": 9,
-    "spatial_dropout": 0.2530259701175861,
-    "dropout_rate": 0.4093247943310292,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 10,
-    "kernel_size2": 10,
-    "kernel_size3": 8,
-    "spatial_dropout": 0.25639302231680017,
-    "dropout_rate": 0.40444893789242387,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 4,
-    "kernel_size2": 10,
-    "kernel_size3": 7,
-    "spatial_dropout": 0.2659201898874634,
-    "dropout_rate": 0.383989393631832,
+    "spatial_dropout": 0.28717784306946,
+    "dropout_rate": 0.20457140426464765,
     "output_dim": 1
   },
   {
     "kernel_size1": 3,
-    "kernel_size2": 10,
+    "kernel_size2": 4,
     "kernel_size3": 9,
-    "spatial_dropout": 0.24833492723389056,
-    "dropout_rate": 0.3945699179249952,
+    "spatial_dropout": 0.29947902071541277,
+    "dropout_rate": 0.24260604915879286,
     "output_dim": 1
   },
   {
-    "kernel_size1": 7,
-    "kernel_size2": 10,
+    "kernel_size1": 4,
+    "kernel_size2": 7,
+    "kernel_size3": 9,
+    "spatial_dropout": 0.2818200905297361,
+    "dropout_rate": 0.16598612014111314,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 6,
+    "kernel_size2": 5,
     "kernel_size3": 8,
-    "spatial_dropout": 0.29235672185154055,
-    "dropout_rate": 0.4245328860574169,
+    "spatial_dropout": 0.27643931166743707,
+    "dropout_rate": 0.23341682837381464,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 8,
+    "kernel_size2": 8,
+    "kernel_size3": 6,
+    "spatial_dropout": 0.2509816639536684,
+    "dropout_rate": 0.19329229828824296,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 6,
+    "kernel_size2": 7,
+    "kernel_size3": 10,
+    "spatial_dropout": 0.26108131387327094,
+    "dropout_rate": 0.19544807965905342,
     "output_dim": 1
   },
   {
     "kernel_size1": 10,
     "kernel_size2": 6,
-    "kernel_size3": 5,
-    "spatial_dropout": 0.3127259619371112,
-    "dropout_rate": 0.4276592749070872,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 3,
-    "kernel_size2": 10,
-    "kernel_size3": 7,
-    "spatial_dropout": 0.23425744045565547,
-    "dropout_rate": 0.42648527975985495,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 10,
-    "kernel_size2": 7,
     "kernel_size3": 9,
-    "spatial_dropout": 0.272794824606487,
-    "dropout_rate": 0.3925966588225587,
+    "spatial_dropout": 0.2560679433136115,
+    "dropout_rate": 0.1614601676665398,
     "output_dim": 1
   },
   {
-    "kernel_size1": 9,
-    "kernel_size2": 7,
-    "kernel_size3": 9,
-    "spatial_dropout": 0.29241450569038374,
-    "dropout_rate": 0.4214528400548342,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 4,
-    "kernel_size2": 6,
-    "kernel_size3": 8,
-    "spatial_dropout": 0.2565021286033887,
-    "dropout_rate": 0.42188976855177085,
+    "kernel_size1": 7,
+    "kernel_size2": 5,
+    "kernel_size3": 10,
+    "spatial_dropout": 0.2745505076685849,
+    "dropout_rate": 0.1572545440850713,
     "output_dim": 1
   },
   {
     "kernel_size1": 5,
-    "kernel_size2": 12,
-    "kernel_size3": 8,
-    "spatial_dropout": 0.29241990133474854,
-    "dropout_rate": 0.3609786369446938,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 11,
-    "kernel_size2": 11,
-    "kernel_size3": 8,
-    "spatial_dropout": 0.2668327016678763,
-    "dropout_rate": 0.3711633156514519,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 11,
-    "kernel_size2": 7,
-    "kernel_size3": 8,
-    "spatial_dropout": 0.27399060763225797,
-    "dropout_rate": 0.36428668224759786,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 10,
-    "kernel_size2": 12,
-    "kernel_size3": 8,
-    "spatial_dropout": 0.25321689260752134,
-    "dropout_rate": 0.41221014270938705,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 10,
-    "kernel_size2": 8,
-    "kernel_size3": 7,
-    "spatial_dropout": 0.3090229347367946,
-    "dropout_rate": 0.37575599151443984,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 11,
-    "kernel_size2": 7,
-    "kernel_size3": 8,
-    "spatial_dropout": 0.2817488290819917,
-    "dropout_rate": 0.359747092366694,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 11,
-    "kernel_size2": 8,
-    "kernel_size3": 6,
-    "spatial_dropout": 0.30402061444167666,
-    "dropout_rate": 0.3810643029736457,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 9,
-    "kernel_size2": 8,
-    "kernel_size3": 8,
-    "spatial_dropout": 0.2913231354259728,
-    "dropout_rate": 0.36042440841977635,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 8,
     "kernel_size2": 6,
-    "kernel_size3": 5,
-    "spatial_dropout": 0.30189789210005247,
-    "dropout_rate": 0.3682384178655198,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 6,
-    "kernel_size2": 8,
-    "kernel_size3": 8,
-    "spatial_dropout": 0.26952396285289676,
-    "dropout_rate": 0.37312374411318505,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 11,
-    "kernel_size2": 13,
     "kernel_size3": 10,
-    "spatial_dropout": 0.29042258847040764,
-    "dropout_rate": 0.4224137583298071,
+    "spatial_dropout": 0.2702715574723361,
+    "dropout_rate": 0.16047933422942595,
     "output_dim": 1
   },
   {
-    "kernel_size1": 13,
-    "kernel_size2": 13,
-    "kernel_size3": 5,
-    "spatial_dropout": 0.27927254724392775,
-    "dropout_rate": 0.3599554820118461,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 8,
-    "kernel_size2": 11,
-    "kernel_size3": 11,
-    "spatial_dropout": 0.28117533605721384,
-    "dropout_rate": 0.4104394716106689,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 9,
-    "kernel_size2": 9,
-    "kernel_size3": 7,
-    "spatial_dropout": 0.2973715914843208,
-    "dropout_rate": 0.35487946408222476,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 9,
-    "kernel_size2": 8,
-    "kernel_size3": 8,
-    "spatial_dropout": 0.23378014560831864,
-    "dropout_rate": 0.41860840102307717,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 13,
-    "kernel_size2": 7,
-    "kernel_size3": 8,
-    "spatial_dropout": 0.2979174513229099,
-    "dropout_rate": 0.3898271118480368,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 11,
-    "kernel_size2": 7,
-    "kernel_size3": 9,
-    "spatial_dropout": 0.23625598228287464,
-    "dropout_rate": 0.41431051192180635,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 6,
-    "kernel_size2": 5,
-    "kernel_size3": 11,
-    "spatial_dropout": 0.28874359198263877,
-    "dropout_rate": 0.41397440099778937,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 10,
-    "kernel_size2": 7,
-    "kernel_size3": 10,
-    "spatial_dropout": 0.2497440313402055,
-    "dropout_rate": 0.3789642276789011,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 10,
+    "kernel_size1": 4,
     "kernel_size2": 5,
     "kernel_size3": 12,
-    "spatial_dropout": 0.2873867238059877,
-    "dropout_rate": 0.3741761319467238,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 10,
-    "kernel_size2": 10,
-    "kernel_size3": 10,
-    "spatial_dropout": 0.24205881174549265,
-    "dropout_rate": 0.3498326996804637,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 6,
-    "kernel_size2": 10,
-    "kernel_size3": 9,
-    "spatial_dropout": 0.25959953351510484,
-    "dropout_rate": 0.38581292986617644,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 11,
-    "kernel_size2": 7,
-    "kernel_size3": 9,
-    "spatial_dropout": 0.2339044715877978,
-    "dropout_rate": 0.39626157279894236,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 8,
-    "kernel_size2": 7,
-    "kernel_size3": 9,
-    "spatial_dropout": 0.23901919182979572,
-    "dropout_rate": 0.42361503060671696,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 10,
-    "kernel_size2": 12,
-    "kernel_size3": 11,
-    "spatial_dropout": 0.26080239116404,
-    "dropout_rate": 0.3710463224256797,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 12,
-    "kernel_size2": 10,
-    "kernel_size3": 8,
-    "spatial_dropout": 0.2861342070139565,
-    "dropout_rate": 0.3501266844754627,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 10,
-    "kernel_size2": 6,
-    "kernel_size3": 9,
-    "spatial_dropout": 0.32067799401478575,
-    "dropout_rate": 0.36334117067380417,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 10,
-    "kernel_size2": 6,
-    "kernel_size3": 8,
-    "spatial_dropout": 0.26319652721984643,
-    "dropout_rate": 0.3985652078429212,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 12,
-    "kernel_size2": 10,
-    "kernel_size3": 8,
-    "spatial_dropout": 0.2299342836927767,
-    "dropout_rate": 0.3473582013859282,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 11,
-    "kernel_size2": 9,
-    "kernel_size3": 6,
-    "spatial_dropout": 0.26648482475699137,
-    "dropout_rate": 0.38645169112132666,
+    "spatial_dropout": 0.243897349200479,
+    "dropout_rate": 0.21399354209444754,
     "output_dim": 1
   },
   {
     "kernel_size1": 7,
-    "kernel_size2": 7,
-    "kernel_size3": 9,
-    "spatial_dropout": 0.26685451468271193,
-    "dropout_rate": 0.3676625516824438,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 8,
-    "kernel_size2": 7,
-    "kernel_size3": 10,
-    "spatial_dropout": 0.2361390238193994,
-    "dropout_rate": 0.40568377348024254,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 12,
-    "kernel_size2": 7,
-    "kernel_size3": 4,
-    "spatial_dropout": 0.2906444146587275,
-    "dropout_rate": 0.3805866355078076,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 10,
     "kernel_size2": 6,
-    "kernel_size3": 8,
-    "spatial_dropout": 0.27726980870915297,
-    "dropout_rate": 0.35524804713525315,
+    "kernel_size3": 10,
+    "spatial_dropout": 0.23038696009787943,
+    "dropout_rate": 0.22116759947146905,
     "output_dim": 1
   },
   {
-    "kernel_size1": 10,
+    "kernel_size1": 7,
+    "kernel_size2": 6,
+    "kernel_size3": 10,
+    "spatial_dropout": 0.26538764278709626,
+    "dropout_rate": 0.22563845353386497,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 6,
     "kernel_size2": 5,
-    "kernel_size3": 9,
-    "spatial_dropout": 0.2677646984139184,
-    "dropout_rate": 0.34995369718059555,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 11,
-    "kernel_size2": 6,
     "kernel_size3": 8,
-    "spatial_dropout": 0.27726980870915297,
-    "dropout_rate": 0.3540168983905059,
+    "spatial_dropout": 0.2759267739707461,
+    "dropout_rate": 0.19475676129200925,
     "output_dim": 1
   },
   {
-    "kernel_size1": 14,
-    "kernel_size2": 12,
-    "kernel_size3": 10,
-    "spatial_dropout": 0.28675336849745875,
-    "dropout_rate": 0.38394084796802214,
+    "kernel_size1": 6,
+    "kernel_size2": 5,
+    "kernel_size3": 8,
+    "spatial_dropout": 0.3094433927849615,
+    "dropout_rate": 0.1942408811109428,
     "output_dim": 1
   },
   {
-    "kernel_size1": 10,
-    "kernel_size2": 4,
-    "kernel_size3": 10,
-    "spatial_dropout": 0.23521275827349847,
-    "dropout_rate": 0.41841152948981036,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 10,
-    "kernel_size2": 8,
+    "kernel_size1": 5,
+    "kernel_size2": 9,
     "kernel_size3": 9,
-    "spatial_dropout": 0.26118606659592664,
-    "dropout_rate": 0.4123588120783031,
+    "spatial_dropout": 0.2747616017067925,
+    "dropout_rate": 0.189117766080364,
     "output_dim": 1
   },
   {
-    "kernel_size1": 10,
-    "kernel_size2": 7,
-    "kernel_size3": 10,
-    "spatial_dropout": 0.27175558079896145,
-    "dropout_rate": 0.36157390605733375,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 14,
-    "kernel_size2": 11,
-    "kernel_size3": 9,
-    "spatial_dropout": 0.28313329017240146,
-    "dropout_rate": 0.3596034383545296,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 14,
+    "kernel_size1": 6,
     "kernel_size2": 8,
     "kernel_size3": 11,
-    "spatial_dropout": 0.22925490160704068,
-    "dropout_rate": 0.36600956864965006,
+    "spatial_dropout": 0.29016231952448635,
+    "dropout_rate": 0.15757768793611482,
     "output_dim": 1
   },
   {
-    "kernel_size1": 14,
-    "kernel_size2": 5,
-    "kernel_size3": 9,
-    "spatial_dropout": 0.28478378161467965,
-    "dropout_rate": 0.33675276000015897,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 10,
-    "kernel_size2": 7,
-    "kernel_size3": 10,
-    "spatial_dropout": 0.2730849844608689,
-    "dropout_rate": 0.3982089335116285,
+    "kernel_size1": 5,
+    "kernel_size2": 9,
+    "kernel_size3": 12,
+    "spatial_dropout": 0.23219990337836563,
+    "dropout_rate": 0.1462817500246093,
     "output_dim": 1
   },
   {
     "kernel_size1": 8,
-    "kernel_size2": 7,
-    "kernel_size3": 9,
-    "spatial_dropout": 0.3029478197627436,
-    "dropout_rate": 0.39031613522116765,
+    "kernel_size2": 10,
+    "kernel_size3": 12,
+    "spatial_dropout": 0.22762348686341277,
+    "dropout_rate": 0.1509689351484946,
     "output_dim": 1
   },
   {
     "kernel_size1": 6,
     "kernel_size2": 7,
-    "kernel_size3": 9,
-    "spatial_dropout": 0.3039603607987105,
-    "dropout_rate": 0.374057026180909,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 9,
-    "kernel_size2": 6,
-    "kernel_size3": 8,
-    "spatial_dropout": 0.24493485264528644,
-    "dropout_rate": 0.3617649122641133,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 11,
-    "kernel_size2": 6,
-    "kernel_size3": 8,
-    "spatial_dropout": 0.27751751190931934,
-    "dropout_rate": 0.3516183121123355,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 12,
-    "kernel_size2": 7,
     "kernel_size3": 10,
-    "spatial_dropout": 0.2741223769244382,
-    "dropout_rate": 0.36718224293965385,
+    "spatial_dropout": 0.22640863604028783,
+    "dropout_rate": 0.1971916603694376,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 3,
+    "kernel_size2": 5,
+    "kernel_size3": 8,
+    "spatial_dropout": 0.3034462922103355,
+    "dropout_rate": 0.18837300201083315,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 8,
+    "kernel_size2": 8,
+    "kernel_size3": 6,
+    "spatial_dropout": 0.3057226715048388,
+    "dropout_rate": 0.1562125068951458,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 6,
+    "kernel_size2": 5,
+    "kernel_size3": 8,
+    "spatial_dropout": 0.27746837103440725,
+    "dropout_rate": 0.20168768087132186,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 7,
+    "kernel_size2": 4,
+    "kernel_size3": 13,
+    "spatial_dropout": 0.2715689675386075,
+    "dropout_rate": 0.16713926527073725,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 7,
+    "kernel_size2": 3,
+    "kernel_size3": 13,
+    "spatial_dropout": 0.24177588307348113,
+    "dropout_rate": 0.18778003750730082,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 8,
+    "kernel_size2": 5,
+    "kernel_size3": 13,
+    "spatial_dropout": 0.24444906464691096,
+    "dropout_rate": 0.2023306821609226,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 6,
+    "kernel_size2": 5,
+    "kernel_size3": 8,
+    "spatial_dropout": 0.29338254706903366,
+    "dropout_rate": 0.1642418574234692,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 6,
+    "kernel_size2": 8,
+    "kernel_size3": 8,
+    "spatial_dropout": 0.23215630773673535,
+    "dropout_rate": 0.17807574533258208,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 6,
+    "kernel_size2": 5,
+    "kernel_size3": 13,
+    "spatial_dropout": 0.22460445999419096,
+    "dropout_rate": 0.14636746489914843,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 6,
+    "kernel_size2": 5,
+    "kernel_size3": 8,
+    "spatial_dropout": 0.32037412908864416,
+    "dropout_rate": 0.22900386045398896,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 3,
+    "kernel_size2": 5,
+    "kernel_size3": 8,
+    "spatial_dropout": 0.2668385385464961,
+    "dropout_rate": 0.19482314657066876,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 8,
+    "kernel_size2": 6,
+    "kernel_size3": 9,
+    "spatial_dropout": 0.2776100605248074,
+    "dropout_rate": 0.15953822188147457,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 5,
+    "kernel_size2": 3,
+    "kernel_size3": 12,
+    "spatial_dropout": 0.2838742265739038,
+    "dropout_rate": 0.1558838559470223,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 8,
+    "kernel_size2": 8,
+    "kernel_size3": 13,
+    "spatial_dropout": 0.32248570937083415,
+    "dropout_rate": 0.19422270642820155,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 7,
+    "kernel_size2": 9,
+    "kernel_size3": 6,
+    "spatial_dropout": 0.2878112117617242,
+    "dropout_rate": 0.21427560248824343,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 4,
+    "kernel_size2": 7,
+    "kernel_size3": 13,
+    "spatial_dropout": 0.2371603690917694,
+    "dropout_rate": 0.21735020386622017,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 8,
+    "kernel_size2": 8,
+    "kernel_size3": 13,
+    "spatial_dropout": 0.27248935495894977,
+    "dropout_rate": 0.18869340886675456,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 7,
+    "kernel_size2": 6,
+    "kernel_size3": 10,
+    "spatial_dropout": 0.2936671346537556,
+    "dropout_rate": 0.22612980078977704,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 4,
+    "kernel_size2": 6,
+    "kernel_size3": 10,
+    "spatial_dropout": 0.311138574456675,
+    "dropout_rate": 0.15953398110984116,
     "output_dim": 1
   },
   {
     "kernel_size1": 10,
-    "kernel_size2": 11,
-    "kernel_size3": 11,
-    "spatial_dropout": 0.2458447694543642,
-    "dropout_rate": 0.3527488520229087,
-    "output_dim": 1
-  },
-  {
-    "kernel_size1": 14,
-    "kernel_size2": 11,
+    "kernel_size2": 6,
     "kernel_size3": 12,
-    "spatial_dropout": 0.25124353703043234,
-    "dropout_rate": 0.3672983631370085,
+    "spatial_dropout": 0.2439655833879002,
+    "dropout_rate": 0.19653197732769703,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 4,
+    "kernel_size2": 7,
+    "kernel_size3": 13,
+    "spatial_dropout": 0.2880089319849176,
+    "dropout_rate": 0.19429201259587486,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 6,
+    "kernel_size2": 9,
+    "kernel_size3": 6,
+    "spatial_dropout": 0.23522650503772718,
+    "dropout_rate": 0.1734502372850923,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 10,
+    "kernel_size2": 7,
+    "kernel_size3": 14,
+    "spatial_dropout": 0.2709433010109993,
+    "dropout_rate": 0.2053584164660851,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 8,
+    "kernel_size2": 8,
+    "kernel_size3": 8,
+    "spatial_dropout": 0.23063865005852827,
+    "dropout_rate": 0.21129211055931177,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 5,
+    "kernel_size2": 10,
+    "kernel_size3": 9,
+    "spatial_dropout": 0.2339751586805314,
+    "dropout_rate": 0.20542293259013214,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 4,
+    "kernel_size2": 4,
+    "kernel_size3": 9,
+    "spatial_dropout": 0.2642984045356886,
+    "dropout_rate": 0.15309559346040244,
     "output_dim": 1
   },
   {
     "kernel_size1": 9,
-    "kernel_size2": 12,
+    "kernel_size2": 7,
     "kernel_size3": 10,
-    "spatial_dropout": 0.2826084359849875,
-    "dropout_rate": 0.34606525835671315,
+    "spatial_dropout": 0.2703690669724996,
+    "dropout_rate": 0.2218152992048047,
     "output_dim": 1
   },
   {
-    "kernel_size1": 9,
+    "kernel_size1": 5,
+    "kernel_size2": 9,
+    "kernel_size3": 12,
+    "spatial_dropout": 0.26826099240643897,
+    "dropout_rate": 0.15697262586749974,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 8,
+    "kernel_size2": 9,
+    "kernel_size3": 14,
+    "spatial_dropout": 0.2985456924603004,
+    "dropout_rate": 0.17929986995823727,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 5,
+    "kernel_size2": 6,
+    "kernel_size3": 10,
+    "spatial_dropout": 0.2291115127644379,
+    "dropout_rate": 0.2032574771250143,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 3,
+    "kernel_size2": 10,
+    "kernel_size3": 14,
+    "spatial_dropout": 0.2985478188700385,
+    "dropout_rate": 0.21857397160247455,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 4,
+    "kernel_size2": 7,
+    "kernel_size3": 9,
+    "spatial_dropout": 0.2708000760245548,
+    "dropout_rate": 0.19827029215648473,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 5,
+    "kernel_size2": 10,
+    "kernel_size3": 13,
+    "spatial_dropout": 0.27339965296992574,
+    "dropout_rate": 0.14950122957565148,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 10,
+    "kernel_size2": 7,
+    "kernel_size3": 14,
+    "spatial_dropout": 0.22626091310642504,
+    "dropout_rate": 0.18900958345443136,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 10,
+    "kernel_size2": 7,
+    "kernel_size3": 10,
+    "spatial_dropout": 0.249674123463714,
+    "dropout_rate": 0.1554538096870405,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 6,
+    "kernel_size2": 10,
+    "kernel_size3": 12,
+    "spatial_dropout": 0.25724308476120694,
+    "dropout_rate": 0.1608766199714039,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 3,
+    "kernel_size2": 8,
+    "kernel_size3": 13,
+    "spatial_dropout": 0.2605872034263025,
+    "dropout_rate": 0.15328558907468956,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 3,
+    "kernel_size2": 11,
+    "kernel_size3": 14,
+    "spatial_dropout": 0.22517140045818398,
+    "dropout_rate": 0.19848408577775556,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 5,
+    "kernel_size2": 10,
+    "kernel_size3": 13,
+    "spatial_dropout": 0.28875318148761814,
+    "dropout_rate": 0.16356440404043765,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 8,
+    "kernel_size2": 10,
+    "kernel_size3": 9,
+    "spatial_dropout": 0.22577740683031186,
+    "dropout_rate": 0.17489132200861035,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 8,
+    "kernel_size2": 3,
+    "kernel_size3": 7,
+    "spatial_dropout": 0.2271663671494235,
+    "dropout_rate": 0.16153295826781866,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 5,
+    "kernel_size2": 8,
+    "kernel_size3": 10,
+    "spatial_dropout": 0.28158221563210667,
+    "dropout_rate": 0.18760280019158723,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 10,
+    "kernel_size2": 8,
+    "kernel_size3": 11,
+    "spatial_dropout": 0.3190261603152661,
+    "dropout_rate": 0.21015170622922147,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 3,
+    "kernel_size2": 5,
+    "kernel_size3": 8,
+    "spatial_dropout": 0.2635515287837929,
+    "dropout_rate": 0.15731400024201514,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 7,
+    "kernel_size2": 4,
+    "kernel_size3": 13,
+    "spatial_dropout": 0.2516623000768077,
+    "dropout_rate": 0.22106898082374243,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 3,
+    "kernel_size2": 8,
+    "kernel_size3": 13,
+    "spatial_dropout": 0.24243467446279166,
+    "dropout_rate": 0.1994324523263368,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 4,
+    "kernel_size2": 7,
+    "kernel_size3": 9,
+    "spatial_dropout": 0.2791653091905675,
+    "dropout_rate": 0.2187252642558289,
+    "output_dim": 1
+  },
+  {
+    "kernel_size1": 6,
     "kernel_size2": 6,
     "kernel_size3": 6,
-    "spatial_dropout": 0.2860306264586604,
-    "dropout_rate": 0.3618150399426489,
+    "spatial_dropout": 0.28927569268474923,
+    "dropout_rate": 0.14820155160514537,
     "output_dim": 1
   }
 ]

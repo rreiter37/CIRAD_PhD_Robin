@@ -116,8 +116,8 @@ parser.add_argument('--random_seed', type=int, default=42,
 parser.add_argument('--use_parallelism', action='store_true', default=False,
                     help="Use parallelization during the assessment of preprocessing-model combinations (optional)")
 
-parser.add_argument('--adaptive_batch_size', action='store_true', default=False,
-                    help="Use the approach of adaptive batch size during the calibration phase of deep learning models (optional).")
+parser.add_argument('--adaptive_batch_size', type=str, choices=["False", "static", "dynamic"], default="False",
+                    help="Set batch size adaptation strategy: 'False' (none), 'static' (single estimation), or 'dynamic' (adaptive per epoch).")
 
 # Retrieve the arg values from the parser
 args = parser.parse_args()
@@ -138,6 +138,9 @@ progressive_optim = args.progressive_optim
 print(f"[INFO] {'Progressive' if progressive_optim else 'Uniform'} optimization activated.")
 compare_optim_strat = args.compare_optim_strat
 adaptive_batch_size = args.adaptive_batch_size
+if adaptive_batch_size not in ["False", "static", "dynamic"]:
+    adaptive_batch_size = "False"
+
 
 import torch
 torch.manual_seed(rd_seed)
@@ -404,11 +407,18 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
             best_trials = trained_model.best_trials
 
         # if the model is CNN, store the batch size and the optimal hyperparameters
-        elif mdl_name.startswith('CNN'): 
-            batch_size = trained_model.batch_size
+        elif mdl_name.startswith('CNN'):
+            # Retrieve batch size information (single or dynamic)
+            if adaptive_batch_size == "dynamic" and hasattr(trained_model, 'batch_size_history'):
+                # In dynamic mode, we expect the model to store a list of batch sizes per epoch
+                batch_size = trained_model.batch_size_history  # should be a list of ints
+            else:
+                batch_size = trained_model.batch_size  # single integer value
+
             if hasattr(trained_model, 'best_trials'):
                 best_trials = trained_model.best_trials
-            # Save batch size for this preprocessing
+
+            # Save batch size (list if dynamic, int otherwise)
             cnn_batch_sizes[pp_name] = batch_size
         
         # Store timing and performances
@@ -520,8 +530,17 @@ output_dir = os.path.join("Results", "assoc_pp_model", data_source)
 os.makedirs(output_dir, exist_ok=True)
 optim_type = "progressive" if progressive_optim else "uniform"
 
+# Define adaptive suffix for filenames
+if adaptive_batch_size == "dynamic":
+    adaptive_suffix = "_dynamic_batch_size"
+elif adaptive_batch_size in [True, "static"]:
+    adaptive_suffix = "_adaptive_batch_size"
+else:
+    adaptive_suffix = ""
+
+
 name_file = build_filename(
-    prefix="results",
+    prefix=f"results{adaptive_suffix}",
     data_source=data_source,
     top_n=top_n,
     epochs=epochs,
@@ -626,7 +645,7 @@ os.makedirs(output_dir, exist_ok=True)
 # Name of the heatmap file
 optim_type = "progressive" if progressive_optim else "uniform"
 heatmap_filename = build_filename(
-    prefix="heatmap",
+    prefix=f"heatmap{adaptive_suffix}",
     data_source=data_source,
     top_n=top_n,
     epochs=epochs,
@@ -734,7 +753,7 @@ timing_output_path = os.path.join("Results", "assoc_pp_model", data_source)
 os.makedirs(timing_output_path, exist_ok=True)
 optim_type = "progressive" if progressive_optim else "uniform"
 file_name = build_filename(
-        prefix="timing_results",
+        prefix=f"timing_results{adaptive_suffix}",
         data_source=data_source,
         top_n=top_n,
         epochs=epochs,
@@ -807,7 +826,7 @@ print(f"[INFO] Per-model execution times saved to {timing_models_path}")
 # ──────────────────────────────────────────────────────
 # Save the variable best_trials of the CNN model (if it exists) into a JSON file
 if best_trials_nicon is not None and progressive_optim:
-    trials_path = os.path.join(output_dir, f"best_trials_CNN_{data_source}.json")
+    trials_path = os.path.join(output_dir, f"best_trials_CNN_{data_source}{adaptive_suffix}.json")
     try:
         with open(trials_path, "w") as f:
             json.dump(make_json_serializable(best_trials_nicon), f, indent=2)
@@ -818,7 +837,7 @@ if best_trials_nicon is not None and progressive_optim:
 # ──────────────────────────────────────────────────────
 # Save the variable best_trials of the LGBM model (if it exists) into a JSON file
 if best_trials_lgbm is not None and progressive_optim:
-    trials_path = os.path.join(output_dir, f"best_trials_LGBM_{data_source}.json")
+    trials_path = os.path.join(output_dir, f"best_trials_LGBM_{data_source}{adaptive_suffix}.json")
     try:
         with open(trials_path, "w") as f:
             json.dump(make_json_serializable(best_trials_lgbm), f, indent=2)
@@ -829,7 +848,7 @@ if best_trials_lgbm is not None and progressive_optim:
 # ──────────────────────────────────────────────────────
 # Save the batch sizes used to calibrate the CNN model per preprocessing
 if len(cnn_batch_sizes) > 0:
-    trials_path = os.path.join(output_dir, f"batch_sizes_CNN_{data_source}.json")
+    trials_path = os.path.join(output_dir, f"batch_sizes_CNN_{data_source}{adaptive_suffix}.json")
     try:
         with open(trials_path, "w") as f:
             json.dump(make_json_serializable(cnn_batch_sizes), f, indent=2)

@@ -1,0 +1,5 @@
+Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials_first,n_trials_next,epochs_first,epochs_next
+CNN_reg,108.77369272708893,Cassava_TCC_4930_SanchezRobustness2012,progressive,10000,1000,500,90,30,10
+LGBM_reg,110.64836056442822,Cassava_TCC_4930_SanchezRobustness2012,progressive,10000,1000,500,90,30,10
+PLS_reg,5.0275159933987785,Cassava_TCC_4930_SanchezRobustness2012,progressive,10000,1000,500,90,30,10
+Ridge_reg,10.137278886402354,Cassava_TCC_4930_SanchezRobustness2012,progressive,10000,1000,500,90,30,10
