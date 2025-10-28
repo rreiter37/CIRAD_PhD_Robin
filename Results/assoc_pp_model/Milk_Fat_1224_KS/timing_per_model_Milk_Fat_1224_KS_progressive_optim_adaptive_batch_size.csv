@@ -1,0 +1,5 @@
+Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials_first,n_trials_next,epochs_first,epochs_next
+CNN_reg,117.94249948683907,Milk_Fat_1224_KS,progressive,10000,1000,500,90,30,10
+LGBM_reg,102.33006239989224,Milk_Fat_1224_KS,progressive,10000,1000,500,90,30,10
+PLS_reg,2.7579404150738434,Milk_Fat_1224_KS,progressive,10000,1000,500,90,30,10
+Ridge_reg,0.45956674042870016,Milk_Fat_1224_KS,progressive,10000,1000,500,90,30,10

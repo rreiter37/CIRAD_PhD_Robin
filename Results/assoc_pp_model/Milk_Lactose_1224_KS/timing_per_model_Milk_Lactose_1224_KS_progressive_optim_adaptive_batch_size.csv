@@ -1,0 +1,5 @@
+Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials_first,n_trials_next,epochs_first,epochs_next
+CNN_reg,107.7989797206486,Milk_Lactose_1224_KS,progressive,10000,1000,500,90,30,10
+LGBM_reg,61.9087178847369,Milk_Lactose_1224_KS,progressive,10000,1000,500,90,30,10
+PLS_reg,3.0937201976776123,Milk_Lactose_1224_KS,progressive,10000,1000,500,90,30,10
+Ridge_reg,0.45690570508732514,Milk_Lactose_1224_KS,progressive,10000,1000,500,90,30,10

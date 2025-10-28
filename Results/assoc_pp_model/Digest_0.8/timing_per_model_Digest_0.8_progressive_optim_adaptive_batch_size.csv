@@ -1,0 +1,5 @@
+Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials_first,n_trials_next,epochs_first,epochs_next
+CNN_reg,131.41289262911852,Digest_0.8,progressive,10000,1000,500,90,30,10
+LGBM_reg,73.24514048940995,Digest_0.8,progressive,10000,1000,500,90,30,10
+PLS_reg,3.9537036664345684,Digest_0.8,progressive,10000,1000,500,90,30,10
+Ridge_reg,6.851958586889155,Digest_0.8,progressive,10000,1000,500,90,30,10

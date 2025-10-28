@@ -1,0 +1,5 @@
+Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials_first,n_trials_next,epochs_first,epochs_next
+CNN_reg,109.43065943788079,YamProtein,progressive,10000,1000,500,90,30,10
+LGBM_reg,327.6895931082613,YamProtein,progressive,10000,1000,500,90,30,10
+PLS_reg,7.290793352267322,YamProtein,progressive,10000,1000,500,90,30,10
+Ridge_reg,2.503057869041667,YamProtein,progressive,10000,1000,500,90,30,10

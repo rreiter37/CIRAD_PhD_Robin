@@ -1,0 +1,2 @@
+data_source,epochs_final,patience,optimization_type,time,n_trials_first,n_trials_next,epochs_first,epochs_next
+grapevine_chloride_556_KS,10000,1000,progressive,11118.790607452393,500,90,30,10

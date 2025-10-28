@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# This script iterates over datasets and launches a Python pipeline.
+# Update: --adaptive_batch_size now requires an explicit value: "dynamic" or "static".
+# - If omitted entirely, no adaptive batch argument is forwarded to Python.
+# - If provided, it must be followed by either "dynamic" or "static".
+# - Any other usage results in an error and exit.
+
 only_type="$1"  # Can be "Classification", "Regression" or empty
 shift
 
@@ -7,7 +13,9 @@ shift
 model_names=()
 dataset_names=()
 between_datasets=()
-adaptive_batch_flag=""
+
+# Will store "dynamic" or "static" if provided (empty means: not set)
+adaptive_batch_value=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -36,10 +44,23 @@ while [[ $# -gt 0 ]]; do
             fi
             ;;
         --adaptive_batch_size)
-            adaptive_batch_flag="--adaptive_batch_size"
+            # Expect a value: "dynamic" or "static"
             shift
+            if [[ $# -gt 0 && ! "$1" =~ ^-- ]]; then
+                if [[ "$1" == "dynamic" || "$1" == "static" ]]; then
+                    adaptive_batch_value="$1"
+                    shift
+                else
+                    echo "Error: --adaptive_batch_size must be 'dynamic' or 'static'."
+                    exit 1
+                fi
+            else
+                echo "Error: --adaptive_batch_size requires a value: 'dynamic' or 'static'."
+                exit 1
+            fi
             ;;
         *)
+            # Ignore unknown tokens or move on
             shift
             ;;
     esac
@@ -49,6 +70,12 @@ done
 model_arg=""
 if [[ ${#model_names[@]} -gt 0 ]]; then
     model_arg="--model_names ${model_names[*]}"
+fi
+
+# Build adaptive argument for Python (only if set)
+adaptive_arg=""
+if [[ -n "$adaptive_batch_value" ]]; then
+    adaptive_arg="--adaptive_batch_size $adaptive_batch_value"
 fi
 
 # Base directories
@@ -109,7 +136,7 @@ run_datasets() {
                 --only_colors \
                 --progressive_optim \
                 $model_arg \
-                $adaptive_batch_flag
+                $adaptive_arg
         done
     else
         echo "Directory $base_dir not found!"

@@ -1,0 +1,5 @@
+Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials_first,n_trials_next,epochs_first,epochs_next
+CNN_reg,99.94910947014304,grapevine_chloride_556_KS,progressive,10000,1000,500,90,30,10
+LGBM_reg,59.86471875274883,grapevine_chloride_556_KS,progressive,10000,1000,500,90,30,10
+PLS_reg,2.9503196723320904,grapevine_chloride_556_KS,progressive,10000,1000,500,90,30,10
+Ridge_reg,0.7394573408014634,grapevine_chloride_556_KS,progressive,10000,1000,500,90,30,10
