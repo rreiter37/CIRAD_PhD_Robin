@@ -46,7 +46,7 @@ import time
 
 import argparse
 
-import nirs4all.transformations as pp
+import nirs4all.operators.transformations as pp
 
 from Scripts_python.utils.ensure_dataframe import EnsureDataFrame
 from Scripts_python.utils.utils_bdd import split_data
@@ -173,7 +173,7 @@ simple_preprocs = [
     ('detrend', pp.Detrend()),
     ('MSC', pp.MultiplicativeScatterCorrection()),
     ('normalize', pp.Normalize()),
-    ('RNV', pp.RobustNormalVariate()),
+    ('RNV', pp.RobustStandardNormalVariate()),
     ('savgol', pp.SavitzkyGolay()),
     ('simplescale', pp.SimpleScale()),
     ('SNV', pp.StandardNormalVariate()),

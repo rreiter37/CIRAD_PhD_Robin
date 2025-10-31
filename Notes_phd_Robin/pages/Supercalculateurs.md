@@ -23,7 +23,7 @@ collapsed:: true
 			  -> Stockage des jeux de données, env python/conda
 		- Transfert de fichiers entre les espaces de stockage:
 			- un noeud de transfert inter-centres TGCC-IDRIS-CINES (noeud CCFR)
-			- par exemple: si on a compte au TGCC et on veut transférer des données sur adastra ou inversement, on peut se connecter au noeud CCFR d'adastra depuis les machines JeanZay et Irene en faisant un ssh sur adastra-ccfr.cines.fr
+			- par exemple: si on a un compte au TGCC et qu'on veut transférer des données sur adastra ou inversement, on peut se connecter au noeud CCFR d'adastra depuis les machines JeanZay et Irene en faisant un ssh sur adastra-ccfr.cines.fr
 	- ### Accès et connexion
 		- 2 modes de connexion: ssh et visu:
 			- connexion ssh -> depuis un terminal: ssh mylogin@adastra.cines.fr
@@ -76,7 +76,7 @@ collapsed:: true
 				- "srun -N 1 -n 132 -t 00:01:00 -C GENOA -A dci ./hello_world_mpi" -> on exécute le programme avec srun en utilisant 1 noeud ("-N 1") et tous les coeurs du noeud (192 processus MPI, "-n 192") sur les noeuds de type Genoa. 
 				  Option additionnelle "-craype-verbose" -> affiche la ligne de commande exacte générée par le wrapper cray. Ça aide à mieux comprendre son fonctionnement et son rôle
 		- #### Pile logicielle CINES
-			- On a vu la pile logicielle Cray/HPE ("opt/cray/"): environnement Cray vu précédemment
+			- On a vu la pile logicielle Cray/HPE ("/opt/cray/"): environnement Cray vu précédemment
 			- Il y a aussi la pile logicielle CINES ("/opt/software/")
 			- Évolue au cours du temps, avec maj système et maj logiciel (1 à 2 fois par an)
 			- 3 catégories:

@@ -552,7 +552,8 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
             _, val_loss = self._train_model(params, train_loader, val_loader, trial=trial)
             return val_loss
 
-        self.study_ = optuna.create_study(direction="minimize", sampler=TPESampler(seed=self.random_state), pruner=HyperbandPruner())
+        study_name=f"optuna_{self.pp}" if self.pp is not None else "optuna"
+        self.study_ = optuna.create_study(direction="minimize", sampler=TPESampler(seed=self.random_state), pruner=HyperbandPruner(), study_name=study_name)
         self.study_.optimize(objective, n_trials=self.n_trials, show_progress_bar=self.verbose_optuna)
         
         self.best_params_ = self.study_.best_params
@@ -608,9 +609,9 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
             callbacks.append(dyn_callback)
 
         if self.name_pp is None:
-            name = "nicon_final"
+            name = "cnn_final"
         else:
-            name = "nicon_final_%s"%self.name_pp
+            name = "cnn_final_%s"%self.name_pp
         logger = TensorBoardLogger("lightning_logs", name=name, default_hp_metric=False) if self.get_logger else False
 
         trainer = pl.Trainer(
