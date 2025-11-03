@@ -18,6 +18,7 @@ import argparse
 import numpy as np
 import pandas as pd
 import warnings
+import random
 from scipy.stats import ConstantInputWarning
 warnings.filterwarnings("ignore", category=ConstantInputWarning)
 from scipy.stats import spearmanr, binomtest
@@ -33,7 +34,7 @@ DEFAULT_INPUT_CLF = "Results/assoc_pp_model"
 DEFAULT_OUTPUT_PREFIX = "Results/assoc_pp_model/All_datasets/Pipeline_weakness_coverage/weakness_coverage"
 
 DEFAULT_DELTA_MARGIN = 0.01
-DEFAULT_ALPHA = 0.01
+DEFAULT_ALPHA = 0.05
 DEFAULT_PERMUTATIONS = 100
 DEFAULT_FDR = True
 DEFAULT_RANDOM_SEED = 42
@@ -59,9 +60,43 @@ def normalize_within_dataset(df: pd.DataFrame, metric_col: str = "delta_value") 
     return df
 
 
-def permutation_test_corr(x, y, n_perm=5000, alternative="two-sided", seed=42):
+
+# ----------------------- Determinism setup -----------------------
+
+def set_global_determinism(seed: int = 42):
+    """Set full deterministic behavior across all libraries."""
+    import os
+    import numpy as np
+    import random
+
+    # Environment variables to limit parallelism
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    os.environ["OMP_NUM_THREADS"] = "1"
+    os.environ["OPENBLAS_NUM_THREADS"] = "1"
+    os.environ["MKL_NUM_THREADS"] = "1"
+    os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
+    os.environ["NUMEXPR_NUM_THREADS"] = "1"
+    os.environ["BLIS_NUM_THREADS"] = "1"
+
+    # Python and numpy random seeds
+    random.seed(seed)
+    np.random.seed(seed)
+
+    # Ensure deterministic hash ordering
+    import sys
+    if hasattr(sys, "set_int_max_str_digits"):
+        sys.set_int_max_str_digits(1000000)
+
+# Call determinism setup early
+set_global_determinism(DEFAULT_RANDOM_SEED)
+
+
+
+# ----------------------- Statistical functions -----------------------
+
+def permutation_test_corr(x, y, n_perm=5000, alternative="two-sided", seed=42, use_resid=True):
     """
-    Permutation test for Spearman correlation significance.
+    Deterministic permutation test for Spearman correlation.
 
     Parameters
     ----------
@@ -70,34 +105,160 @@ def permutation_test_corr(x, y, n_perm=5000, alternative="two-sided", seed=42):
     n_perm : int, default=5000
         Number of permutations.
     alternative : {'two-sided', 'greater', 'less'}, default='two-sided'
-        Type of test.
+        Direction of the test.
     seed : int, default=42
-        Random generator seed for reproducibility.
+        Random seed for reproducibility.
+    use_resid : bool, default=True
+        Whether to mean-center data before computing correlation.
 
     Returns
     -------
     rho_obs : float
         Observed Spearman correlation.
     p_val : float
-        Exact (Monte Carlo) p-value.
+        Exact Monte Carlo p-value (Phipson–Smyth corrected).
+    """
+    # Convert to numpy arrays
+    x = np.asarray(x)
+    y = np.asarray(y)
+    assert x.shape == y.shape, "x and y must have the same length"
+    n = len(x)
+    if n < 3:
+        return np.nan, np.nan
+
+    rng = np.random.default_rng(seed)
+
+    # Optionally mean-center the data (residualization)
+    if use_resid:
+        x = x - np.mean(x)
+        y = y - np.mean(y)
+
+    # Observed Spearman correlation
+    rho_obs, _ = spearmanr(x, y)
+    if np.isnan(rho_obs):
+        return np.nan, np.nan
+
+    # Vectorized permutation test
+    perm_indices = np.array([rng.permutation(n) for _ in range(n_perm)])
+    x_perm = x[perm_indices]  # shape: (n_perm, n)
+
+    # Rank-transform for Spearman correlation
+    rx = np.argsort(np.argsort(x))
+    ry = np.argsort(np.argsort(y))
+    ry_centered = ry - ry.mean()
+    x_perm_rank = np.argsort(np.argsort(x_perm, axis=1), axis=1)
+    x_perm_rank_centered = x_perm_rank - x_perm_rank.mean(axis=1, keepdims=True)
+
+    # Compute all permuted correlations at once
+    cov = np.sum(x_perm_rank_centered * ry_centered, axis=1)
+    denom = np.sqrt(np.sum(x_perm_rank_centered**2, axis=1) * np.sum(ry_centered**2))
+    rho_perm = cov / denom
+
+    # Compute permutation p-value according to test direction
+    if alternative == "greater":
+        exceed = np.sum(rho_perm >= rho_obs)
+    elif alternative == "less":
+        exceed = np.sum(rho_perm <= rho_obs)
+    else:  # two-sided
+        exceed = np.sum(np.abs(rho_perm) >= abs(rho_obs))
+
+    # Phipson–Smyth correction (avoids zero p-values)
+    p_val = (exceed + 1) / (n_perm + 1)
+    return float(rho_obs), float(p_val)
+
+
+def maxT_corr_pvalue(vec_j, selected, pivot, permutations=2000, seed=42, use_resid=True):
+    """
+    Vectorized Westfall-Young maxT correlation test for redundancy detection.
+
+    Parameters
+    ----------
+    vec_j : pd.Series
+        Candidate performance vector.
+    selected : list of tuples
+        Already selected (model, prep) pairs.
+    pivot : pd.DataFrame
+        Performance matrix (pairs x datasets).
+    permutations : int, default=2000
+        Number of random permutations for null distribution.
+    seed : int, default=42
+        Random seed for reproducibility.
+    use_resid : bool, default=True
+        Whether to center vectors before computing correlation.
+
+    Returns
+    -------
+    T_obs : float
+        Observed maximum Spearman correlation with selected set.
+    p_maxT : float
+        Westfall-Young p-value controlling FWER.
+    ok : bool
+        Whether computation was successful.
     """
     rng = np.random.default_rng(seed)
-    rho_obs, _ = spearmanr(x, y)
-    count = 0
+    pairs = []
 
-    # tqdm wrapper for progress visualization
-    for _ in range(n_perm):
-        y_perm = rng.permutation(y)
-        rho_perm, _ = spearmanr(x, y_perm)
-        if alternative == "greater" and rho_perm >= rho_obs:
-            count += 1
-        elif alternative == "less" and rho_perm <= rho_obs:
-            count += 1
-        elif alternative == "two-sided" and abs(rho_perm) >= abs(rho_obs):
-            count += 1
+    # --- Gather all valid correlations between candidate and selected pairs ---
+    for s in selected:
+        vec_s = pivot.loc[s].dropna()
+        common_idx = vec_j.index.intersection(vec_s.index)
+        if len(common_idx) >= 3:
+            x = vec_j.loc[common_idx].to_numpy()
+            y = vec_s.loc[common_idx].to_numpy()
+            if use_resid:
+                x = x - x.mean()
+                y = y - y.mean()
+            rho, _ = spearmanr(x, y)
+            pairs.append((x, y, rho))
 
-    p_val = (count + 1) / (n_perm + 1)
-    return rho_obs, p_val
+    if not pairs:
+        return np.nan, np.nan, False
+
+    rho_obs_list = [r for (_, _, r) in pairs if not np.isnan(r)]
+    if len(rho_obs_list) == 0:
+        return np.nan, np.nan, False
+    T_obs = np.nanmax(rho_obs_list)
+
+    # --- Handle the single-correlation case via standard permutation test ---
+    if len(pairs) == 1:
+        x, y, rho = pairs[0]
+        p = permutation_test_corr(x, y, n_perm=permutations, alternative="greater", seed=seed)[1]
+        return rho, p, True
+
+    # --- Vectorized permutation computation ---
+    # Each pair has its own number of overlapping datasets, so we handle them separately
+    max_T_perm = np.empty(permutations)
+    max_T_perm.fill(-np.inf)
+
+    for (x, y, _) in pairs:
+        n = len(x)
+        if n < 3:
+            continue
+
+        # Generate all permutations at once (matrix shape = [permutations, n])
+        perm_indices = np.array([rng.permutation(n) for _ in range(permutations)])
+
+        # Rank-transform for Spearman (faster and equivalent)
+        rx = np.argsort(np.argsort(x))
+        ry = np.argsort(np.argsort(y))
+
+        # Compute correlation for all permutations using vectorized operations
+        x_perm_rank = rx[perm_indices]  # shape: [permutations, n]
+        x_perm_rank_centered = x_perm_rank - x_perm_rank.mean(axis=1, keepdims=True)
+        ry_centered = ry - ry.mean()
+
+        # Compute Pearson correlation on ranks = Spearman correlation
+        cov = np.sum(x_perm_rank_centered * ry_centered, axis=1)
+        denom = np.sqrt(np.sum(x_perm_rank_centered**2, axis=1) * np.sum(ry_centered**2))
+        rhos_perm = cov / denom
+
+        # Update the running maximum across all selected correlations
+        max_T_perm = np.maximum(max_T_perm, rhos_perm)
+
+    # --- Compute permutation-based p-value ---
+    exceed = np.sum(max_T_perm >= T_obs)
+    p_maxT = (exceed + 1) / (permutations + 1)
+    return T_obs, p_maxT, True
 
 
 def benjamini_hochberg(pvals):
@@ -141,122 +302,92 @@ def adaptive_diverse_selection(df: pd.DataFrame,
                                seed: int):
     """
     Adaptive selection by coverage of weaknesses and conditional correlation.
-    Returns:
-        - DataFrame with all iteration results
-        - final list of selected pairs
-        - progression of the number of selected pairs per iteration
-
-    Strategy:
-        1. Iteratively select (model, preprocessing) pairs that:
-           - significantly improve performance on the "hardest" datasets, OR
-           - are not significantly correlated with the already selected set.
-        2. Uses exact permutation test for correlation when n_datasets <= 30,
-           otherwise falls back to asymptotic approximation.
-        3. Controls multiplicity on correlations via Benjamini-Hochberg FDR.
+    Now also computes the *median gain on hard datasets* for visualization.
     """
     rng = np.random.default_rng(seed)
     results = []
     selected = set()
-    remaining = set(df.set_index(["candidate_model", "prep"]).index)
+    # Force a deterministic ordering of the pairs
+    remaining = sorted(set(df.set_index(["candidate_model", "prep"]).index))
+
     progression = []  # track how the number of selected pairs evolves
 
     # Pivot table: each (model, prep) has a vector of normalized performances across datasets
     pivot = df.pivot_table(index=["candidate_model", "prep"],
                            columns="dataset", values="norm_perf", aggfunc="mean")
 
-    mean_perf = pivot.mean(axis=1)  # global mean performance (for visualization)
+    mean_perf = pivot.mean(axis=1)  # global mean performance (for info only)
 
     iteration = 0
     while remaining:
         iteration += 1
         progress = False
 
-        for pair in list(remaining):
+        for pair in list(sorted(remaining)):  # ensure deterministic traversal
             vec_j = pivot.loc[pair].dropna()
             if len(vec_j) < 3:
-                # Too few datasets to evaluate meaningfully
                 remaining.remove(pair)
                 continue
 
-            sig_corr = False       # when S is empty, there is no significant correlation by definition
-            max_rho  = np.nan      # diagnostic-only
+            sig_corr = False
+            max_rho = np.nan
+            median_gain_hard = np.nan  # <-- NEW metric for visualization
 
             # ---------------------------
             # (1) Performance improvement on "hard" datasets
             # ---------------------------
             if selected:
                 current_best = pivot.loc[list(selected)].min(axis=0)
-                # Take top 25% hardest datasets (highest error values)
-                hard_dsets = current_best.nlargest(int(0.25 * len(current_best))).index
-                # Only keep datasets that the current candidate covers
+                # Take top 25% hardest datasets (highest normalized error)
+                k = max(1, int(np.ceil(0.25 * len(current_best))))
+                hard_dsets = current_best.nlargest(k).index
                 valid_hard = [d for d in hard_dsets if d in vec_j.index]
                 if len(valid_hard) < 3:
                     p_perf = None
                 else:
                     diff = vec_j[valid_hard] - current_best[valid_hard]
                     p_perf = exact_sign_test(diff.values, delta_margin)
+                    # Compute median gain (negative = improvement)
+                    median_gain_hard = float(np.median(diff.values))
             else:
-                # Always keep the first one (seed of the ensemble)
                 p_perf = 0.0
+                median_gain_hard = 0.0  # baseline
 
             # ---------------------------
-            # (2) Redundancy via correlation with selected set
+            # (2) Redundancy via global correlation (maxT test + effect threshold)
             # ---------------------------
             if selected:
-                corrs, p_corrs = [], []
-                for s in selected:
-                    vec_s = pivot.loc[s].dropna()
-                    common_idx = vec_j.index.intersection(vec_s.index)
-                    if len(common_idx) < 3:
-                        continue
+                # Run Westfall–Young maxT global permutation test
+                T_obs, p_maxT, ok = maxT_corr_pvalue(
+                    vec_j, selected, pivot,
+                    permutations=permutations,
+                    seed=seed,
+                    use_resid=True
+                )
 
-                    # Adaptive: use permutation test for small n, asymptotic for large n
-                    if len(common_idx) <= 30:
-                        rho, p = permutation_test_corr(
-                            vec_j[common_idx],
-                            vec_s[common_idx],
-                            n_perm=permutations,
-                            alternative="greater",
-                            seed=seed
-                        )
-                    else:
-                        # Asymptotic Spearman correlation p-value (t approximation)
-                        rho, _ = spearmanr(vec_j[common_idx], vec_s[common_idx])
-                        if np.isnan(rho):
-                            continue
-
-                        n = len(common_idx)
-                        # Avoid division by zero when |rho| ≈ 1
-                        if abs(rho) >= 0.999999:
-                            p = 0.0  # perfect correlation -> definitely significant
-                        else:
-                            from scipy.stats import t
-                            t_stat = rho * np.sqrt((n - 2) / (1 - rho**2))
-                            p = 1 - t.cdf(t_stat, df=n - 2)  # one-sided "greater"
-                    corrs.append(rho)
-                    p_corrs.append(p)
-
-                # FDR correction on correlation tests
-                if len(p_corrs) > 0 and fdr:
-                    q_corrs = benjamini_hochberg(p_corrs)
-                    sig_corr = np.any(q_corrs < alpha)
-
+                if ok:
+                    max_rho = float(T_obs)
+                    # Candidate considered redundant if correlation is both statistically and practically significant
+                    sig_corr = (p_maxT < alpha) and (abs(max_rho) >= args.corr_threshold)
                 else:
-                    sig_corr = np.any(np.array(p_corrs) < alpha)
-
-                max_rho  = float(np.nanmax(corrs)) if corrs else np.nan
-
+                    sig_corr = False
+                    max_rho = np.nan
+            else:
+                sig_corr = False
+                max_rho = np.nan
 
             # ---------------------------
             # (3) Decision rule
             # ---------------------------
-            keep = (p_perf is not None and p_perf < alpha) or (not sig_corr)
+            keep = (p_perf is None or p_perf > alpha) or (not sig_corr)
+
 
             results.append({
                 "iteration": iteration,
                 "candidate_model": pair[0],
                 "prep": pair[1],
                 "mean_perf": mean_perf[pair],
+                "median_gain_hard": median_gain_hard,  # <-- Added here
                 "p_perf": p_perf,
                 "sig_corr_FDR": sig_corr,
                 "max_corr_to_S": max_rho,
@@ -268,14 +399,15 @@ def adaptive_diverse_selection(df: pd.DataFrame,
                 remaining.remove(pair)
                 progress = True
 
-        # Track ensemble growth
-        progression.append(len(selected))
+         # Always sort selected deterministically to preserve order across runs
+        selected = set(sorted(selected))
 
-        # Stop if no new additions
+        progression.append(len(selected))
         if not progress:
             break
 
     return pd.DataFrame(results), list(selected), progression
+
 
 
 def discover_dataset_csvs(root_dir="Results/assoc_pp_model",
@@ -395,7 +527,7 @@ def visualize_global(results: pd.DataFrame, progression: list, output_prefix: st
     sns.scatterplot(
         data=results,
         x="max_corr_to_S",
-        y="mean_perf",
+        y="median_gain_hard",  # <-- Use median gain on hard datasets instead of mean_perf
         hue="keep",
         style="sig_corr_FDR",
         sizes=(20, 120),
@@ -403,35 +535,31 @@ def visualize_global(results: pd.DataFrame, progression: list, output_prefix: st
         alpha=0.85
     )
     plt.xlabel("Max correlation to S (worst-case)")
-    plt.ylabel("Mean normalized performance (lower = better)")
+    plt.ylabel("Median gain on hard datasets (negative = improvement)")
     plt.title(f"Global selection overview - {task_label}")
+    plt.axhline(0, color="gray", linestyle="--", alpha=0.5)  # visual reference line
     plt.tight_layout()
     plt.savefig(f"{output_prefix}_{task_label}_scatter.png", dpi=300)
     plt.close()
 
-
     # -------------------- Heatmap --------------------
-    # Keep the *last known state* of each (model, prep)
     results_sorted = results.sort_values(["candidate_model", "prep", "iteration"])
     results_unique = (
         results_sorted.groupby(["candidate_model", "prep"], as_index=False)
-        .agg({"keep": "last"})  # take the final decision
+        .agg({"keep": "last"})
     )
 
-    # Ensure all models/preps appear in the matrix even if missing later
     pivot_heat = results_unique.pivot(index="candidate_model", columns="prep", values="keep").fillna(False)
-
     cmap = {True: 1, False: 0, None: np.nan}
     mat = pivot_heat.apply(lambda col: col.map(lambda v: cmap.get(v, np.nan)))
 
-    # Define figure size dynamically based on number of preprocessings
     fig_width = max(12, 0.3 * len(mat.columns))
     fig_height = max(6, 0.5 * len(mat))
     plt.figure(figsize=(fig_width, fig_height))
 
     sns.heatmap(
         mat,
-        cmap=sns.color_palette(["red","green"]),
+        cmap=sns.color_palette(["red", "green"]),
         cbar=False,
         linewidths=0.5,
         linecolor="gray"
@@ -439,15 +567,10 @@ def visualize_global(results: pd.DataFrame, progression: list, output_prefix: st
     plt.title(f"Heatmap of kept/rejected (adaptive selection) - {task_label}")
     plt.xlabel("Preprocessing")
     plt.ylabel("Model")
-
-    # Rotate x-tick labels for readability
     plt.xticks(rotation=45, ha="right", fontsize=9)
     plt.yticks(fontsize=9)
-
-    # Adjust layout to avoid cutoff and crowding
     plt.tight_layout(rect=[0, 0.05, 1, 1])
     plt.subplots_adjust(bottom=0.2)
-
     plt.savefig(f"{output_prefix}_{task_label}_heatmap.png", dpi=300)
     plt.close()
 
@@ -475,6 +598,8 @@ parser.add_argument("--permutations", type=int, default=DEFAULT_PERMUTATIONS, he
 parser.add_argument("--seed", type=int, default=DEFAULT_RANDOM_SEED, help="Random seed.")
 parser.add_argument("--no_fdr", action="store_true", help="Disable FDR correction on correlations.")
 parser.add_argument( "--task_only", type=str, choices=["regression", "classification"], default=None, help="If specified, only run adaptive selection for the chosen task (regression or classification).")
+parser.add_argument("--corr_threshold", type=float, default=0.7, help="Absolute correlation threshold (|rho|) to consider redundancy practically significant.")
+
 
 args = parser.parse_args()
 
@@ -506,6 +631,7 @@ else:
             permutations=args.permutations, fdr=(not args.no_fdr), seed=args.seed
         )
 
+        results["random_seed"] = args.seed  # trace seed used
         output_path = f"{args.output_prefix}_{task_label}.csv"
         results.to_csv(output_path, index=False)
         print(f"[INFO] Saved selection results for {task_label} to: {output_path}")
