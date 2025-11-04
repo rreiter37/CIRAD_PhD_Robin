@@ -359,7 +359,7 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
             pipe = Pipeline([
                 ("prep", pp_method),
                 ("model", clone(mdl))
-            ], memory=memory)
+            ], memory=None if mdl_name.startswith("CNN") else memory)
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
@@ -431,12 +431,13 @@ def evaluate_combination(pp_name, pp_method, mdl_name, mdl, mode, Xcal, Ycal, Xv
             return (pp_name, mdl_name, metric, metric_f1, fpr, best_trials, combo_time, metrics)
 
     except Exception as e:
-        metric = np.nan
-        if mode == "Classification":
-            metric_f1 = np.nan
-            fpr = np.nan
         print(f"[ERROR] {pp_name} + {mdl_name}: {e}")
-    
+        combo_time = time.time() - combo_start
+        if mode == "Regression":
+            return (pp_name, mdl_name, np.nan, None, combo_time)
+        else:
+            return (pp_name, mdl_name, np.nan, np.nan, np.nan, None, combo_time, metrics)
+
 
 # Construction of the combinations (pp, model)
 combinations = []

@@ -298,6 +298,7 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
         self.random_state = random_state
         self.study_ = None
         self.model_ = None
+        self.pp = None
         self.best_params_ = None
         self.device = device if device else ("cuda" if torch.cuda.is_available() else "cpu")
         self.get_logger = get_logger
