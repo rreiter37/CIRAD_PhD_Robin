@@ -526,21 +526,13 @@ if mode == "Classification":
     pivoted_fpr = df_scores_fpr.pivot(index="Model", columns="Preprocessing", values="Score")
 
 # save the results to a CSV file
-output_dir = os.path.join("Results", "assoc_pp_model", data_source)
+output_dir = os.path.join("Results", "assoc_pp_model", "per_dataset", data_source)
 os.makedirs(output_dir, exist_ok=True)
 optim_type = "progressive" if progressive_optim else "uniform"
 
-# Define adaptive suffix for filenames
-if adaptive_batch_size == "dynamic":
-    adaptive_suffix = "_dynamic_batch_size"
-elif adaptive_batch_size in [True, "static"]:
-    adaptive_suffix = "_adaptive_batch_size"
-else:
-    adaptive_suffix = ""
-
 
 name_file = build_filename(
-    prefix=f"results{adaptive_suffix}",
+    prefix="results",
     data_source=data_source,
     top_n=top_n,
     epochs=epochs,
@@ -645,7 +637,7 @@ os.makedirs(output_dir, exist_ok=True)
 # Name of the heatmap file
 optim_type = "progressive" if progressive_optim else "uniform"
 heatmap_filename = build_filename(
-    prefix=f"heatmap{adaptive_suffix}",
+    prefix="heatmap",
     data_source=data_source,
     top_n=top_n,
     epochs=epochs,
@@ -749,11 +741,11 @@ elapsed_time = time.time() - start_time
 
 ### Save the total execution time
 
-timing_output_path = os.path.join("Results", "assoc_pp_model", data_source)
+timing_output_path = os.path.join("Results", "assoc_pp_model", "per_dataset", data_source)
 os.makedirs(timing_output_path, exist_ok=True)
 optim_type = "progressive" if progressive_optim else "uniform"
 file_name = build_filename(
-        prefix=f"timing_results{adaptive_suffix}",
+        prefix="timing_results",
         data_source=data_source,
         top_n=top_n,
         epochs=epochs,
@@ -825,6 +817,10 @@ print(f"[INFO] Per-model execution times saved to {timing_models_path}")
 
 # ──────────────────────────────────────────────────────
 # Save the variable best_trials of the CNN model (if it exists) into a JSON file
+if adaptive_batch_size == "static": adaptive_suffix = "_static_batchs_size"
+elif adaptive_batch_size == "dynamic": adaptive_suffix = "_dynamic_batch_size"
+else: adaptive_batch_size = ""
+
 if best_trials_nicon is not None and progressive_optim:
     trials_path = os.path.join(output_dir, f"best_trials_CNN_{data_source}{adaptive_suffix}.json")
     try:

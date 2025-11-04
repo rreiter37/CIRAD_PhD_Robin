@@ -29,8 +29,6 @@ from tqdm import tqdm
 
 # ----------------------- Parameters -----------------------
 
-DEFAULT_INPUT_REG = "Results/assoc_pp_model"
-DEFAULT_INPUT_CLF = "Results/assoc_pp_model"
 DEFAULT_OUTPUT_PREFIX = "Results/assoc_pp_model/All_datasets/Pipeline_weakness_coverage/weakness_coverage"
 
 DEFAULT_DELTA_MARGIN = 0.01
@@ -589,8 +587,6 @@ def visualize_global(results: pd.DataFrame, progression: list, output_prefix: st
 # ----------------------- Main -----------------------
 
 parser = argparse.ArgumentParser(description="Adaptive selection based on coverage and correlation significance.")
-parser.add_argument("--input_reg", type=str, default=DEFAULT_INPUT_REG, help="Regression results CSV path.")
-parser.add_argument("--input_clf", type=str, default=DEFAULT_INPUT_CLF, help="Classification results CSV path.")
 parser.add_argument("--output_prefix", type=str, default=DEFAULT_OUTPUT_PREFIX, help="Output prefix.")
 parser.add_argument("--delta", type=float, default=DEFAULT_DELTA_MARGIN, help="Non-inferiority margin δ.")
 parser.add_argument("--alpha", type=float, default=DEFAULT_ALPHA, help="Significance level.")
@@ -604,7 +600,7 @@ parser.add_argument("--corr_threshold", type=float, default=0.7, help="Absolute 
 args = parser.parse_args()
 
 # Discover and merge results
-dataset_csvs = discover_dataset_csvs("Results/assoc_pp_model")
+dataset_csvs = discover_dataset_csvs("Results/assoc_pp_model/per_dataset")
 merged_df = collect_and_merge_results(dataset_csvs)
 
 if merged_df.empty:

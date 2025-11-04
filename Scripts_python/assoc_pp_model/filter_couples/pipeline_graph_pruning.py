@@ -53,7 +53,7 @@ except Exception:
 
 # ----------------------- Parameters -----------------------
 
-DEFAULT_INPUT_DIR = "Results/assoc_pp_model"
+DEFAULT_INPUT_DIR = "Results/assoc_pp_model/per_dataset"
 DEFAULT_OUTPUT_PREFIX = "Results/assoc_pp_model/All_datasets/Pipeline_graph/adaptive_diverse_selection"
 DEFAULT_ALPHA = 0.05
 DEFAULT_PERMUTATIONS = 10000

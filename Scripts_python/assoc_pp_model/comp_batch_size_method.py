@@ -3,8 +3,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # Root directory where all dataset subfolders are located
-root_dir = "Results/assoc_pp_model"
-fig_dir = "Figures/assoc_pp_model"
+root_dir = "Results/assoc_pp_model/per_dataset"
+fig_dir = "Figures/assoc_pp_model/per_dataset"
 
 # Lists to accumulate results across datasets
 global_results = []
@@ -107,9 +107,10 @@ if global_results:
     plt.title("Global RRMSE Comparison Across Datasets")
     plt.legend()
     plt.tight_layout()
-    plt.savefig(os.path.join(fig_dir, "All_datasets", "Global_RRMSE_scatter.png"))
+    fig_path = os.path.join("Figures", "assoc_pp_model", "All_datasets", "adaptive_batch_size", "Global_RRMSE_scatter.png")
+    plt.savefig(fig_path)
     plt.close()
     
-    print("Global comparison saved as Global_RRMSE_scatter.png")
+    print("[INFO] Global comparison saved as Global_RRMSE_scatter.png with path : ", fig_path)
 else:
     print("No valid results found for comparison.")

@@ -11,7 +11,7 @@ def build_filename(prefix, data_source, top_n=None, epochs=None, patience=None,
     - epochs/patience: included only for CNN models
     - optim_type: "uniform" or "progressive"
     - model_names: list of model names or None
-    - adaptive_batch_size: add "_adaptive_batch_size" if True
+    - adaptive_batch_size: add "_static_batch_size" if True or "static"; "_dynamic_batch_size" if "dynamic"
     - extension: file extension (e.g., "csv", "png")
     - replace_str: if not None, replace "results" in the name with another string
     """
@@ -37,8 +37,10 @@ def build_filename(prefix, data_source, top_n=None, epochs=None, patience=None,
         name_parts.append("_".join(model_names))
 
     # Add adaptive batch size if activated
-    if adaptive_batch_size:
-        name_parts.append("adaptive_batch_size")
+    if adaptive_batch_size == "static":
+        name_parts.append("static_batch_size")
+    elif adaptive_batch_size == "dynamic":
+        name_parts.append("dynamic_batch_size")
 
     # Join parts with underscores
     filename = "_".join(map(str, name_parts))

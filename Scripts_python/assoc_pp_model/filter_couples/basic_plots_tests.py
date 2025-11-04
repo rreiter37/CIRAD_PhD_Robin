@@ -54,7 +54,7 @@ import matplotlib.pyplot as plt
 
 # ------------------------- Configuration (defaults; can be overridden by CLI) -------------------------
 
-DEFAULT_RESULTS_ROOT = "Results/assoc_pp_model"
+DEFAULT_RESULTS_ROOT = "Results/assoc_pp_model/per_dataset"
 MODEL_COL = "Model"
 
 FILENAME_PREFIX = "results_"
@@ -558,12 +558,12 @@ def main():
     summary_clf = run_tests_model_by_model(diffs_clf, args.delta, args.alpha, args.ci, args.bootstrap, DEFAULT_RANDOM_SEED, apply_fdr=args.fdr)
 
     # Save reports and raw diffs
-    out_reg = f"Results/assoc_pp_model/All_datasets/{args.output_prefix}_reg.csv"
-    out_clf = f"Results/assoc_pp_model/All_datasets/{args.output_prefix}_classif.csv"
+    out_reg = f"Results/assoc_pp_model/All_datasets/Global_tests/{args.output_prefix}_reg.csv"
+    out_clf = f"Results/assoc_pp_model/All_datasets/Global_tests/{args.output_prefix}_classif.csv"
     summary_reg.to_csv(out_reg, index=False)
     summary_clf.to_csv(out_clf, index=False)
-    diffs_reg.to_csv(f"Results/assoc_pp_model/All_datasets/{args.output_prefix}_reg_diffs.csv", index=False)
-    diffs_clf.to_csv(f"Results/assoc_pp_model/All_datasets/{args.output_prefix}_classif_diffs.csv", index=False)
+    diffs_reg.to_csv(f"Results/assoc_pp_model/All_datasets/Global_tests/{args.output_prefix}_reg_diffs.csv", index=False)
+    diffs_clf.to_csv(f"Results/assoc_pp_model/All_datasets/Global_tests/{args.output_prefix}_classif_diffs.csv", index=False)
     print(f"[INFO] Saved regression report: {out_reg} (and *_reg_diffs.csv)")
     print(f"[INFO] Saved classification report: {out_clf} (and *_classif_diffs.csv)")
 

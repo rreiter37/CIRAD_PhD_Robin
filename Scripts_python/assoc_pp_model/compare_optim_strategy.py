@@ -26,7 +26,7 @@ data_source = args.data_source
 timing_data = []
 performance_data = []
 
-file_dir = os.path.join("Results", "assoc_pp_model", data_source)
+file_dir = os.path.join("Results", "assoc_pp_model", "per_dataset", data_source)
 
 # Essayer de trouver les fichiers de performances correspondants
 for fname in os.listdir(file_dir):
@@ -78,6 +78,8 @@ summary = df_merge.groupby("optimization_type").agg({
 print("\nRésumé des performances et des temps selon l'optimisation :\n")
 print(summary)
 
+fig_path = f"Figures/assoc_pp_model/per_dataset/{data_source}/"
+
 # ──────────────────────────────
 # Plotting the execution time
 plt.figure(figsize=(10, 5))
@@ -87,8 +89,7 @@ plt.title("Temps d'exécution par stratégie d'optimisation")
 plt.ylabel("Temps (secondes)")
 plt.xlabel("Type d'optimisation")
 plt.tight_layout()
-fig_path = "Figures"
-plt.savefig("comparaison_temps_execution.png", dpi=300)
+plt.savefig(fig_path + "comparaison_temps_execution.png", dpi=300)
 
 # ──────────────────────────────
 # Plotting the performance (mean_score)
@@ -100,7 +101,7 @@ plt.ylabel("Score moyen (plus bas = mieux)" if "RMSE" in df_merge_clean["filenam
 plt.gca().invert_yaxis()
 plt.xlabel("Type d'optimisation")
 plt.tight_layout()
-plt.savefig("comparaison_performance_score.png", dpi=300)
+plt.savefig(fig_path + "comparaison_performance_score.png", dpi=300)
 
 # ──────────────────────────────
 # Scatter plot: compromis performance vs. temps
@@ -129,9 +130,10 @@ plt.tight_layout()
 # Save the figure
 output_dir = os.path.join("Figures", "assoc_pp_model", data_source)
 os.makedirs(output_dir, exist_ok=True)
-plt.savefig("scatter_temps_vs_performance.png", dpi=300)
+plt.savefig(fig_path + "scatter_temps_vs_performance.png", dpi=300)
 
 # ------------------------------
 # Export csv file
-df_merge.to_csv("comparaison_optimisation.csv", index=False)
+res_path = fig_path.replace("Figures", "Results")
+df_merge.to_csv(res_path + "comparaison_optimisation.csv", index=False)
 print("\n[INFO] Fichier exporté : comparaison_optimisation.csv")

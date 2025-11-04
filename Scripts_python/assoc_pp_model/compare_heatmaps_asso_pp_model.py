@@ -20,7 +20,7 @@ mode = args.mode
 data_source = args.data_source
 
 # Folder containing all files to compare
-results_dir = f"Results/assoc_pp_model/{data_source}"
+results_dir = f"Results/assoc_pp_model/per_dataset/{data_source}"
 
 # List of files to compare
 files_to_compare = [
@@ -78,7 +78,7 @@ for tick, label in zip(ax.get_xticks(), ax.get_xticklabels()):
                 fontsize=8,
                 color='black')
 
-fig_path = f"Figures/assoc_pp_model/{data_source}/"
+fig_path = f"Figures/assoc_pp_model/per_dataset/{data_source}/"
 total_path = fig_path + "boxplot_comparison_heatmaps.png"
 plt.savefig(total_path, dpi=300)
 print(f"[INFO] Saving the boxplot to path : {total_path}")

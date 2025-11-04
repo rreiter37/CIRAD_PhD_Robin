@@ -6,7 +6,7 @@ import seaborn as sns
 from Scripts_python.utils.utils_bdd import split_data
 
 # Root folder containing the datasets
-root_folder = "Results/assoc_pp_model"
+root_folder = "Results/assoc_pp_model/per_dataset"
 
 # Dictionary to store results {model: {dataset_size: execution_time}}
 results = {}
@@ -66,7 +66,7 @@ plt.grid(True)
 plt.tight_layout()
 
 # Save the figure
-output_dir = "Figures/assoc_pp_model/All_datasets"
+output_dir = "Figures/assoc_pp_model/All_datasets/Heatmap_exploitation"
 file_name = "scatter_time_model_size.png"
 output_path = os.path.join(output_dir, file_name)
 plt.savefig(output_path, dpi=300)
@@ -89,7 +89,7 @@ plt.xticks(rotation=45)
 plt.tight_layout()
 
 # Save the figure
-output_dir = "Figures/assoc_pp_model/All_datasets"
+output_dir = "Figures/assoc_pp_model/All_datasets/Heatmap_exploitation"
 file_name = "boxplots_time_model_size.png"
 output_path = os.path.join(output_dir, file_name)
 plt.savefig(output_path, dpi=300)

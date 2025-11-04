@@ -14,7 +14,7 @@ regression_datasets = ["BeerOriginalExtract", "Digest_0.8", "YamProtein",
                        ]
 
 # Output directory for figures
-output_dir = "Figures/assoc_pp_model/All_datasets"
+output_dir = "Figures/assoc_pp_model/All_datasets/Heatmap_exploitation"
 os.makedirs(output_dir, exist_ok=True)
 
 # ------------------------------------------------------------------

@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Base directory containing per-dataset subfolders with results*.csv files
-base_path = "Results/assoc_pp_model"
+base_path = "Results/assoc_pp_model/per_dataset"
 
 # Which dataset names are regression (others will be treated as classification)
 regression_datasets = ["BeerOriginalExtract", "Digest_0.8", "YamProtein", 
@@ -15,7 +15,7 @@ regression_datasets = ["BeerOriginalExtract", "Digest_0.8", "YamProtein",
                        ]
 
 # Output directory for figures
-output_dir = "Figures/assoc_pp_model/All_datasets"
+output_dir = "Figures/assoc_pp_model/All_datasets/Heatmap_exploitation"
 os.makedirs(output_dir, exist_ok=True)
 
 # ------------------------------------------------------------------
