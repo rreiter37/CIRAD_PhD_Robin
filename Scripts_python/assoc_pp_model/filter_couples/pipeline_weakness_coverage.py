@@ -635,4 +635,63 @@ else:
         output_fig = args.output_prefix.replace("Results", "Figures")
         visualize_global(results, progression, output_fig, task_label)
 
+    # ----------------------- Final summary export -----------------------
+    summary_records = []
+
+    # Collect results for all tasks
+    if 'results' in locals():
+        all_results = [results]
+    else:
+        all_results = []
+
+    # If we processed multiple tasks, results are redefined per loop; let's reload all saved outputs
+    output_dir = os.path.dirname(DEFAULT_OUTPUT_PREFIX)
+    for fname in os.listdir(output_dir):
+        if fname.endswith(".csv") and "weakness_coverage" in fname:
+            df_task = pd.read_csv(os.path.join(output_dir, fname))
+            all_results.append(df_task)
+
+    if all_results:
+        merged_results = pd.concat(all_results, ignore_index=True)
+
+        # Compute mean and std of metric (based on normalized performance)
+        # We'll merge with the selection info to mark selected pairs
+        perf_stats = (
+            merged_results
+            .groupby(["candidate_model", "prep"], as_index=False)
+            .agg(metric_mean=("mean_perf", "mean"),
+                metric_std=("mean_perf", "std"))
+        )
+
+        # Identify selected pairs
+        selected_pairs = (
+            merged_results.groupby(["candidate_model", "prep"], as_index=False)
+            .agg(selected=("keep", "last"))
+        )
+
+        # Merge both tables
+        summary_df = pd.merge(perf_stats, selected_pairs, on=["candidate_model", "prep"], how="outer")
+
+        # Rename columns for clarity
+        summary_df.rename(columns={
+            "candidate_model": "model_name",
+            "prep": "preprocessing_name"
+        }, inplace=True)
+
+        # Optional: add dataset_name column if you want it explicit (empty for global summary)
+        summary_df["dataset_name"] = None
+
+        # Ensure correct column order
+        summary_df = summary_df[[
+            "model_name", "preprocessing_name", "dataset_name",
+            "metric_mean", "metric_std", "selected"
+        ]]
+
+        # Output path
+        output_gate_path = os.path.join(output_dir, "pipeline_gatekeeping_selected.csv")
+        summary_df.to_csv(output_gate_path, index=False)
+        print(f"[INFO] Global gatekeeping summary saved to: {output_gate_path}")
+    else:
+        print("[WARN] No results found to aggregate for gatekeeping summary.")
+
     print("[INFO] All tasks processed.")

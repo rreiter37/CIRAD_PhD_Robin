@@ -21,7 +21,7 @@ LGBM_reg,baseline,False
 LGBM_reg,baseline_MSC,False
 LGBM_reg,baseline_RNV,False
 LGBM_reg,baseline_SNV,False
-LGBM_reg,baseline_derivate,False
+LGBM_reg,baseline_derivate,True
 LGBM_reg,baseline_detrend,False
 LGBM_reg,baseline_gaussian,False
 LGBM_reg,baseline_haar,False
@@ -92,7 +92,7 @@ NICON_reg,baseline_SNV,False
 NICON_reg,baseline_derivate,False
 NICON_reg,baseline_detrend,False
 NICON_reg,baseline_gaussian,False
-NICON_reg,baseline_haar,False
+NICON_reg,baseline_haar,True
 NICON_reg,baseline_normalize,False
 NICON_reg,baseline_savgol,False
 NICON_reg,baseline_simplescale,False
@@ -139,7 +139,7 @@ PLS_reg,MSC,True
 PLS_reg,MSC_RNV,True
 PLS_reg,MSC_SNV,True
 PLS_reg,MSC_gaussian,False
-PLS_reg,MSC_haar,False
+PLS_reg,MSC_haar,True
 PLS_reg,MSC_normalize,True
 PLS_reg,MSC_savgol,True
 PLS_reg,MSC_simplescale,True

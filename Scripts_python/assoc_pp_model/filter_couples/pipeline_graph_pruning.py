@@ -34,6 +34,8 @@ import pandas as pd
 import random
 import warnings
 import sys
+from joblib import Parallel, delayed
+import gc
 from tqdm import tqdm
 from scipy.stats import spearmanr, binomtest, ConstantInputWarning
 warnings.filterwarnings("ignore", category=ConstantInputWarning)
@@ -54,7 +56,7 @@ except Exception:
 # ----------------------- Parameters -----------------------
 
 DEFAULT_INPUT_DIR = "Results/assoc_pp_model/per_dataset"
-DEFAULT_OUTPUT_PREFIX = "Results/assoc_pp_model/All_datasets/Pipeline_graph/adaptive_diverse_selection"
+DEFAULT_OUTPUT_PREFIX = "Results/assoc_pp_model/All_datasets/Pipeline_graph/"
 DEFAULT_ALPHA = 0.05
 DEFAULT_PERMUTATIONS = 10000
 DEFAULT_RANDOM_SEED = 42
@@ -107,29 +109,52 @@ def exact_sign_test_greater(diff):
     return float(res.pvalue) if hasattr(res, "pvalue") else float(res)
 
 def spearman_hybrid_pvalue(x, y, n_perm=10000, seed=42):
-    """Hybrid one-sided Spearman test (H1: rho > 0).
-       If n < 30 -> permutation p-value; else -> asymptotic one-sided p-value.
-       Returns (rho, p_one_sided, n_used).
     """
+    Hybrid one-sided Spearman test (H1: rho > 0).
+    - n < 30  -> permutation p-value (exact Monte Carlo)
+    - n >= 30 -> fast direct rank-correlation with asymptotic one-sided p-value
+    Returns (rho, p_one_sided, n_used).
+    """
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
     mask = np.isfinite(x) & np.isfinite(y)
     x, y = x[mask], y[mask]
     n = len(x)
     if n < 3:
         return np.nan, np.nan, n
-    rho, p_two = spearmanr(x, y)
-    if np.isnan(rho):
+
+    # --- Guard against degenerate data ---
+    if np.allclose(x, x[0]) or np.allclose(y, y[0]):
         return np.nan, np.nan, n
+
+    # --- Case 1: small n -> permutation test ---
     if n < 30:
         rng = np.random.default_rng(seed)
+        rx = np.argsort(np.argsort(x))
+        ry = np.argsort(np.argsort(y))
+        rho_obs = np.corrcoef(rx, ry)[0, 1]
         cnt = 0
         for _ in range(n_perm):
-            yp = rng.permutation(y)
-            rp, _ = spearmanr(x, yp)
-            if np.isfinite(rp) and rp >= rho:
+            rp = np.corrcoef(rx, np.random.permutation(ry))[0, 1]
+            if rp >= rho_obs:
                 cnt += 1
         p_one = (cnt + 1) / (n_perm + 1)
-    else:
-        p_one = p_two / 2 if rho > 0 else 1 - p_two / 2
+        return float(rho_obs), float(p_one), n
+
+    # --- Case 2: n >= 30 -> fast asymptotic computation ---
+    # Compute rank correlation manually (no scipy.spearmanr)
+    rx = np.argsort(np.argsort(x))
+    ry = np.argsort(np.argsort(y))
+    rho = np.corrcoef(rx, ry)[0, 1]
+
+    # Asymptotic p-value (one-sided)
+    # Under H0, t = rho * sqrt((n-2)/(1-rho^2)) ~ Student(n-2)
+    if np.isnan(rho) or abs(rho) >= 1:
+        return rho, 0.0 if rho > 0 else 1.0, n
+    t_stat = rho * np.sqrt((n - 2) / max(1e-12, 1 - rho**2))
+    # approximate one-sided p-value via survival function of normal
+    from scipy.stats import norm
+    p_one = 1 - norm.cdf(t_stat)
     return float(rho), float(p_one), n
 
 
@@ -161,6 +186,20 @@ def load_long_table(csv_path, exclude_preps=None):
         raise ValueError("Missing 'Model' column in CSV.")
     long = df.melt(id_vars=["Model"], var_name="prep", value_name="metric")
     long.rename(columns={"Model": "candidate_model"}, inplace=True)
+    # --- Merge equivalent model names ---
+    def _merge_nicon_cnn(name):
+        # Preserve suffix (_reg / _classif) if present
+        if "CNN" in name or "NICON" in name:
+            if name.endswith("_reg"):
+                return "CNN_reg"
+            elif name.endswith("_classif"):
+                return "CNN_classif"
+            else:
+                return "CNN"
+        return name
+
+    long["candidate_model"] = long["candidate_model"].apply(_merge_nicon_cnn)
+
     long.dropna(subset=["metric"], inplace=True)
     if exclude_preps:
         long = long[~long["prep"].isin(exclude_preps)]
@@ -169,6 +208,8 @@ def load_long_table(csv_path, exclude_preps=None):
 def detect_task(models):
     """Detect task from model suffixes."""
     s = [str(m) for m in models]
+    s = ["NICON_reg" if ("CNN_reg" in x or "NICON_reg" in x) else
+         "NICON_classif" if ("CNN_classif" in x or "NICON_classif" in x) else x for x in s]
     has_reg = any(m.endswith("_reg") for m in s)
     has_clf = any(m.endswith("_classif") for m in s)
     if has_reg and not has_clf:
@@ -222,41 +263,167 @@ def normalize_within_dataset_task(df):
 
 # ----------------------- Graph pruning core -----------------------
 
-def precompute_correlations(pivot, alpha, n_perm, seed):
-    """Compute Spearman hybrid tests for all pairs; return rho & q matrices (global BH-FDR)."""
-    items = list(pivot.index)
-    n = len(items)
-    rho = np.full((n, n), np.nan, dtype=float)
-    pmat = np.full((n, n), np.nan, dtype=float)
+def precompute_correlations_streaming(
+    pivot: pd.DataFrame,
+    alpha: float,
+    n_perm: int,
+    seed: int,
+    min_overlap: int,
+    neighbor_preselect: int = 25,
+    preselect_sample: int = 32,
+    k_neighbors: int = 5,
+    n_jobs_corr: int = 1
+):
+    """
+    Streaming correlation computation with pre-screening, NumPy vectorization,
+    and parallelized true tests.
 
-    # Upper-triangular tests
-    for i in range(n):
-        xi = pivot.loc[items[i]].to_numpy(dtype=float)
-        for j in range(i + 1, n):
-            yj = pivot.loc[items[j]].to_numpy(dtype=float)
-            r, p, n_used = spearman_hybrid_pvalue(xi, yj, n_perm=n_perm, seed=seed)
+    Parameters
+    ----------
+    pivot : pd.DataFrame
+        Performance matrix (rows = (model, prep), columns = datasets).
+    alpha : float
+        Significance level (for later BH-FDR).
+    n_perm : int
+        Number of permutations for small-n tests.
+    seed : int
+        Random seed for determinism.
+    min_overlap : int
+        Minimum number of common datasets to compute a correlation.
+    neighbor_preselect : int
+        Number of top cheap correlations per i to keep for exact tests.
+    preselect_sample : int
+        Number of dataset columns to subsample for cheap screening.
+    k_neighbors : int
+        Number of final strongest neighbors per i kept.
+    n_jobs_corr : int
+        Number of parallel threads for true correlation tests.
+
+    Returns
+    -------
+    rho_df : pd.DataFrame
+        Matrix of positive Spearman correlations (NaN elsewhere).
+    q_df : pd.DataFrame
+        Matrix of p-values (uncorrected, NaN elsewhere).
+    """
+
+    from joblib import Parallel, delayed
+    import gc
+
+    items = list(pivot.index)
+    n_items = len(items)
+    n_cols = pivot.shape[1]
+    print(f"[Graph] Streaming correlations on {n_items} pairs × {n_cols} datasets")
+
+    # --- Convert pivot to NumPy for efficiency ---
+    X = pivot.to_numpy(dtype=np.float64, copy=True)
+    mask_valid = np.isfinite(X)
+    rng = np.random.default_rng(seed)
+
+    rho = np.full((n_items, n_items), np.nan, dtype=float)
+    pmat = np.full((n_items, n_items), np.nan, dtype=float)
+
+    # --- Main loop over i ---
+    for i in tqdm(range(n_items), desc="[Graph] Streaming correlations"):
+        xi_full = X[i, :]
+        mask_i = mask_valid[i, :]
+        if np.sum(mask_i) < min_overlap:
+            continue
+
+        # 1) choose deterministic subsample of columns for cheap screening
+        valid_cols_i = np.where(mask_i)[0]
+        if len(valid_cols_i) > preselect_sample:
+            S = rng.choice(valid_cols_i, size=preselect_sample, replace=False)
+        else:
+            S = valid_cols_i
+        xiS = xi_full[S]
+        mask_iS = np.isfinite(xiS)
+        if mask_iS.sum() < min_overlap:
+            continue
+        xiS = xiS[mask_iS]
+        xiS -= xiS.mean()
+        den_iS = np.sqrt(np.sum(xiS ** 2))
+        if den_iS == 0:
+            continue
+
+        # 2) cheap screening on subsample S
+        candidates = []
+        for j in range(i + 1, n_items):
+            yjS = X[j, S][mask_iS]
+            if np.sum(np.isfinite(yjS)) < min_overlap:
+                continue
+            yjS = yjS[np.isfinite(yjS)]
+            if len(yjS) != len(xiS):
+                continue
+            yjS -= yjS.mean()
+            den_jS = np.sqrt(np.sum(yjS ** 2))
+            if den_jS == 0:
+                continue
+            cheap_r = float(np.dot(xiS, yjS) / (den_iS * den_jS))
+            if cheap_r > 0:
+                candidates.append((cheap_r, j))
+
+        # keep top candidates
+        candidates.sort(key=lambda t: t[0], reverse=True)
+        candidates = [j for _, j in candidates[:neighbor_preselect]]
+        if not candidates:
+            continue
+
+        # 3) true tests in parallel
+        def test_one(j):
+            y = X[j, :]
+            mask = mask_i & mask_valid[j, :]
+            if np.sum(mask) < min_overlap:
+                return None
+            xx, yy = xi_full[mask], y[mask]
+            if np.allclose(xx, xx[0]) or np.allclose(yy, yy[0]):
+                return None
+            r, p, n_used = spearman_hybrid_pvalue(xx, yy, n_perm=n_perm, seed=seed + j)
+            if np.isnan(r) or np.isnan(p) or r <= 0:
+                return None
+            return (r, p, j)
+
+        local_corrs = Parallel(n_jobs=n_jobs_corr, prefer="threads")(
+            delayed(test_one)(j) for j in candidates
+        )
+        local_corrs = [t for t in local_corrs if t is not None]
+        if not local_corrs:
+            continue
+
+        # 4) keep only top k_neighbors per node
+        local_corrs.sort(key=lambda t: t[0], reverse=True)
+        for (r, p, j) in local_corrs[:k_neighbors]:
             rho[i, j] = r
             pmat[i, j] = p
 
-    # BH-FDR across all tested edges
-    p_list = [pmat[i, j] for i in range(n) for j in range(i + 1, n) if not np.isnan(pmat[i, j])]
-    q = np.full_like(pmat, np.nan)
-    if p_list:
-        q_list = benjamini_hochberg(p_list)
-        it = iter(q_list)
-        for i in range(n):
-            for j in range(i + 1, n):
-                if not np.isnan(pmat[i, j]):
-                    q[i, j] = next(it)
+        if i % 10 == 0:
+            gc.collect()
 
     # symmetrize
-    for i in range(n):
-        for j in range(i + 1, n):
+    for i in range(n_items):
+        for j in range(i + 1, n_items):
             rho[j, i] = rho[i, j]
-            q[j, i] = q[i, j]
+            pmat[j, i] = pmat[i, j]
+
+    # BH-FDR across all p-values
+    flat_p = [pmat[i, j] for i in range(n_items) for j in range(i + 1, n_items) if not np.isnan(pmat[i, j])]
+    q_df = np.full_like(pmat, np.nan)
+    if flat_p:
+        q_flat = benjamini_hochberg(flat_p)
+        it = iter(q_flat)
+        for i in range(n_items):
+            for j in range(i + 1, n_items):
+                if not np.isnan(pmat[i, j]):
+                    q_df[i, j] = next(it)
+                    q_df[j, i] = q_df[i, j]
 
     rho_df = pd.DataFrame(rho, index=items, columns=items)
-    q_df = pd.DataFrame(q, index=items, columns=items)
+    q_df = pd.DataFrame(q_df, index=items, columns=items)
+    # Flatten tuple index for compatibility with .loc
+    flat_labels = [f"{m}|{p}" for (m, p) in items]
+    rho_df.index = rho_df.columns = flat_labels
+    q_df.index = q_df.columns = flat_labels
+
     return rho_df, q_df
 
 
@@ -264,8 +431,19 @@ def adaptive_graph_pruning(df_task, alpha, n_perm, seed, min_overlap):
     """Run graph pruning for a single task (regression or classification)."""
     pivot = df_task.pivot_table(index=["candidate_model", "prep"],
                                 columns="dataset", values="norm_perf", aggfunc="mean")
-    rho_df, q_df = precompute_correlations(pivot, alpha=alpha, n_perm=n_perm, seed=seed)
+    rho_df, q_df = precompute_correlations_streaming(
+        pivot,
+        alpha=alpha,
+        n_perm=n_perm,
+        seed=seed,
+        min_overlap=min_overlap,
+        neighbor_preselect=args.neighbor_preselect,
+        preselect_sample=args.preselect_sample,
+        k_neighbors=args.k_neighbors,
+        n_jobs_corr=args.n_jobs_corr
+    )
 
+    
     med = pivot.median(axis=1)
     order = med.sort_values(ascending=True).index.tolist()
 
@@ -284,13 +462,25 @@ def adaptive_graph_pruning(df_task, alpha, n_perm, seed, min_overlap):
 
         neighbors = []
         for k in kept:
-            q = q_df.loc[pair, k]
-            r = rho_df.loc[pair, k]
+            pair_key = f"{pair[0]}|{pair[1]}"
+            k_key = f"{k[0]}|{k[1]}"
+            q = q_df.loc[pair_key, k_key]
+            r = rho_df.loc[pair_key, k_key]
             if np.isfinite(q) and q < alpha and np.isfinite(r) and r > 0:
                 xk = pivot.loc[k].to_numpy(dtype=float)
                 mask = np.isfinite(xj) & np.isfinite(xk)
                 if np.sum(mask) >= min_overlap:
                     neighbors.append(k)
+
+            # Compute maximum correlation with kept pairs
+        valid_corrs = []
+        for k in kept:
+            if (pair in rho_df.index) and (k in rho_df.columns):
+                r = rho_df.loc[pair, k]
+                if np.isfinite(r):
+                    valid_corrs.append(r)
+        max_corr_to_S = float(np.max(valid_corrs)) if valid_corrs else 0.0
+
 
         if not neighbors:
             kept.append(pair)
@@ -298,7 +488,8 @@ def adaptive_graph_pruning(df_task, alpha, n_perm, seed, min_overlap):
                 "candidate_model": pair[0], "prep": pair[1], "status": "kept",
                 "reason": "no_significant_positive_correlation_to_kept",
                 "median_profile": float(med.loc[pair]),
-                "sig_corr_edge": False, "sig_worse": False
+                "sig_corr_edge": False, "sig_worse": False,
+                "max_corr_to_S": max_corr_to_S
             })
             progression.append(len(kept))
             continue
@@ -319,7 +510,8 @@ def adaptive_graph_pruning(df_task, alpha, n_perm, seed, min_overlap):
                 "candidate_model": pair[0], "prep": pair[1], "status": "pruned",
                 "reason": "worse_than_correlated_kept",
                 "median_profile": float(med.loc[pair]),
-                "sig_corr_edge": True, "sig_worse": True
+                "sig_corr_edge": True, "sig_worse": True,
+                "max_corr_to_S": max_corr_to_S
             })
         else:
             kept.append(pair)
@@ -327,7 +519,8 @@ def adaptive_graph_pruning(df_task, alpha, n_perm, seed, min_overlap):
                 "candidate_model": pair[0], "prep": pair[1], "status": "kept",
                 "reason": "not_worse_than_correlated_kept",
                 "median_profile": float(med.loc[pair]),
-                "sig_corr_edge": True, "sig_worse": False
+                "sig_corr_edge": True, "sig_worse": False,
+                "max_corr_to_S": max_corr_to_S
             })
         progression.append(len(kept))
 
@@ -378,45 +571,63 @@ def plot_network(rho_df, q_df, dec_df, alpha, out_path, seed=42):
     plt.savefig(out_path, dpi=220)
     plt.close()
 
-def visualize_global(dec_df, progression, out_prefix, task_label):
-    """Scatter (sig_corr vs sig_worse), heatmap kept/pruned, progression plot."""
+def visualize_global(dec_df, pivot, out_prefix, task_label):
+    """
+    Visualization of adaptive graph pruning results:
+      - Scatter plot: X = max correlation to kept, Y = median Δ vs best, color by status.
+      - Decision heatmap: models × preprocessings.
+    """
     if dec_df.empty:
+        print(f"[WARN] No data for visualization ({task_label}).")
         return
-    final = dec_df.groupby(["candidate_model","prep"], as_index=False).tail(1)
 
-    # Scatter
-    plt.figure(figsize=(7.5,6))
-    sns.scatterplot(data=final, x="sig_corr_edge", y="sig_worse", hue="status",
-                    palette={"kept":"green","pruned":"red","skipped_insufficient_data":"gray"},
-                    s=100, alpha=0.9)
-    plt.title(f"Outcomes — {task_label}")
-    plt.xlabel("Has significant positive corr to kept set")
-    plt.ylabel("Significantly worse (FDR within-j)")
+    fig_prefix = out_prefix.replace("Results", "Figures")
+    # Keep final decisions (one per pair)
+    final = dec_df.groupby(["candidate_model", "prep"], as_index=False).tail(1)
+
+    # --- Compute median Δ (vs best per dataset) for scatter Y-axis ---
+    med_diffs = []
+    for (model, prep), row in pivot.iterrows():
+        vec = row.dropna()
+        if len(vec) < 3:
+            med_diffs.append(np.nan)
+            continue
+        # Compute difference to best value per dataset
+        best_val = np.min(vec) if task_label == "regression" else np.max(vec)
+        med_diffs.append(np.median(vec - best_val))
+    pivot["median_diff_vs_best"] = med_diffs
+
+    # Merge median_diff into final
+    final = final.merge(pivot[["median_diff_vs_best"]], left_on=["candidate_model", "prep"], right_index=True, how="left")
+
+    # --- Scatter plot ---
+    plt.figure(figsize=(8, 6))
+    color_map = {"kept": "green", "pruned": "red", "skipped_insufficient_data": "gray"}
+    plt.scatter(final["max_corr_to_S"], final["median_diff_vs_best"],
+                c=final["status"].map(color_map), alpha=0.8, s=80, edgecolor="black", linewidth=0.5)
+    plt.axhline(0, color="black", linestyle="--", linewidth=1)
+    plt.xlabel("Max correlation to kept pairs")
+    plt.ylabel("Median Δ vs best (negative = better)")
+    plt.title(f"Graph pruning decision map — {task_label}")
     plt.tight_layout()
-    plt.savefig(f"{out_prefix}_{task_label}_scatter.png", dpi=300)
+    plt.savefig(f"{fig_prefix}{task_label}_scatter.png", dpi=300)
     plt.close()
 
-    # Heatmap kept/pruned
-    mat = final.pivot(index="candidate_model", columns="prep", values="status")
-    mat = mat.replace({"kept":1, "pruned":0, "skipped_insufficient_data":np.nan})
-    plt.figure(figsize=(max(12,0.4*mat.shape[1]), max(6,0.5*mat.shape[0])))
-    sns.heatmap(mat, cmap=sns.color_palette(["red","green"]), cbar=False, linewidths=0.4, linecolor="gray")
-    plt.title(f"Kept vs pruned — {task_label}")
+    # --- Decision heatmap (models × preprocessings) ---
+    heat_df = final.pivot(index="candidate_model", columns="prep", values="status")
+    mat = heat_df.replace({"kept": 1, "pruned": 0, "skipped_insufficient_data": np.nan}).infer_objects(copy=False)
+    fig_width = max(10, 0.4 * len(mat.columns))
+    fig_height = max(6, 0.5 * len(mat.index))
+    plt.figure(figsize=(fig_width, fig_height))
+    sns.heatmap(mat, cmap=sns.color_palette(["red", "green"]), cbar=False, linewidths=0.5, linecolor="gray")
+    plt.title(f"Decision heatmap — {task_label}")
+    plt.xlabel("Preprocessing")
+    plt.ylabel("Model")
+    plt.xticks(rotation=45, ha="right", fontsize=8)
+    plt.yticks(fontsize=9)
     plt.tight_layout()
-    plt.savefig(f"{out_prefix}_{task_label}_heatmap.png", dpi=300)
+    plt.savefig(f"{fig_prefix}{task_label}_heatmap.png", dpi=300)
     plt.close()
-
-    # Progression
-    plt.figure(figsize=(7,5))
-    plt.plot(range(1,len(progression)+1), progression, marker="o", linewidth=2)
-    plt.xlabel("Iteration")
-    plt.ylabel("Number of kept pairs")
-    plt.title(f"Selection progression — {task_label}")
-    plt.grid(alpha=0.3)
-    plt.tight_layout()
-    plt.savefig(f"{out_prefix}_{task_label}_progression.png", dpi=300)
-    plt.close()
-
 
 # ----------------------- Main -----------------------
 
@@ -428,6 +639,14 @@ parser.add_argument("--permutations", type=int, default=DEFAULT_PERMUTATIONS, he
 parser.add_argument("--seed", type=int, default=DEFAULT_RANDOM_SEED, help="Random seed for determinism.")
 parser.add_argument("--min_overlap", type=int, default=DEFAULT_MIN_OVERLAP, help="Min dataset overlap to test.")
 parser.add_argument("--task_only", type=str, choices=["regression", "classification"], default=None, help="If specified, only run adaptive selection for the chosen task (regression or classification).")
+parser.add_argument("--k_neighbors", type=int, default=5,
+                    help="Maximum number of true neighbors kept per node.")
+parser.add_argument("--neighbor_preselect", type=int, default=25,
+                    help="Number of top cheap correlations per node pre-selected for true testing.")
+parser.add_argument("--preselect_sample", type=int, default=32,
+                    help="Number of dataset columns subsampled for cheap screening.")
+parser.add_argument("--n_jobs_corr", type=int, default=1,
+                    help="Parallel jobs for correlation testing (threads).")
 args = parser.parse_args()
 
 # Discover datasets
@@ -474,7 +693,27 @@ for task_label, df_task in merged.groupby("task"):
     # Global summaries
     figs_prefix = base.replace("Results", "Figures")
     os.makedirs(os.path.dirname(figs_prefix), exist_ok=True)
-    visualize_global(dec_df, progression, figs_prefix, task_label)
-    print(f"[INFO] Saved visual summaries under prefix: {figs_prefix}_*.png")
+    visualize_global(dec_df, pivot, figs_prefix, task_label)
+
+    # --- Export unified selected summary ---
+    summary_path = os.path.join(os.path.dirname(base), "pipeline_graph_pruning_selected.csv")
+
+    # Compute mean & std performance per pair (over datasets)
+    perf_stats = pivot.copy()
+    perf_stats["metric_mean"] = pivot.mean(axis=1)
+    perf_stats["metric_std"] = pivot.std(axis=1)
+    perf_stats = perf_stats[["metric_mean", "metric_std"]].reset_index()
+    perf_stats.rename(columns={"candidate_model": "model_name", "prep": "preprocessing_name"}, inplace=True)
+
+    # Merge with decisions
+    final_dec = dec_df.groupby(["candidate_model", "prep"], as_index=False).tail(1)
+    final_dec["selected"] = final_dec["status"].eq("kept")
+    merged_out = pd.merge(perf_stats, final_dec[["candidate_model", "prep", "selected"]],
+                        left_on=["model_name", "preprocessing_name"],
+                        right_on=["candidate_model", "prep"], how="left").drop(columns=["candidate_model", "prep"])
+
+    merged_out["dataset_name"] = None  # optional placeholder for compatibility
+    merged_out.to_csv(summary_path, index=False)
+    print(f"[INFO] Saved unified summary CSV: {summary_path}")
 
 print("[INFO] All tasks processed successfully.")

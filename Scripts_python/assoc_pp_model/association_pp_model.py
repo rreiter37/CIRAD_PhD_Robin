@@ -632,7 +632,7 @@ plt.xticks(rotation=90, ha="center", fontsize=8 if only_colors else 7)
 plt.yticks(rotation=0, fontsize=10 if only_colors else 9)
 plt.title(f"Performance Heatmap ({'Accuracy' if mode == 'Classification' else 'Relative RMSE'}) / {data_source} dataset ({mode})")
 plt.tight_layout()
-output_dir = os.path.join("Figures", "assoc_pp_model", data_source)
+output_dir = os.path.join("Figures", "assoc_pp_model", "per_dataset", data_source)
 os.makedirs(output_dir, exist_ok=True)
 
 # Name of the heatmap file

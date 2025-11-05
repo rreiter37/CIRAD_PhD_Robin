@@ -227,7 +227,10 @@ def iterative_gatekeeping(df: pd.DataFrame, delta: float, alpha: float,
             "median_gain_vs_best": median_gain  # <-- NEW field stored for plotting
         }
 
-        if (p1 is not None and p1 < alpha) and (p2 is not None and p2 < alpha):
+        # Decision to whether exclude a couple or keep it
+        condition_perf = (p1 is not None and p1 < alpha)
+        condition_corr = (p2 is not None and p2 < alpha) and (T_obs > args.corr_threshold)
+        if condition_perf and condition_corr:
             kept_mask.loc[idx] = False
             records[idx]["decision"] = "EXCLUDE"
         else:
@@ -253,6 +256,12 @@ def iterative_gatekeeping(df: pd.DataFrame, delta: float, alpha: float,
     else:
         report_df["gate2_q"] = np.nan
 
+    # --- Flag significant correlation (statistical + practical) ---
+    report_df["corr_significant"] = (
+        (report_df["gate2_q"] < alpha) &
+        (report_df["rho_max"].abs() >= args.corr_threshold)
+    )
+
     return report_df, kept_mask
 
 # ===============================================================
@@ -271,17 +280,26 @@ def visualize_gatekeeping(report_df: pd.DataFrame, kept_mask: pd.Series, output_
         x="rho_max",
         y="median_gain_vs_best",
         hue="decision",
-        palette={"KEEP": "green", "EXCLUDE": "red", "SKIP": "gray"}
+        style="corr_significant",  # <-- NEW: use cross/ring for correlation significance
+        markers={True: "X", False: "o"},  # True → cross, False → circle
+        palette={"KEEP": "green", "EXCLUDE": "red", "SKIP": "gray"},
+        s=90,  # marker size
+        alpha=0.85
     )
 
-    plt.axhline(0, color="gray", linestyle="--", alpha=0.6)  # reference line (same as best)
+    # Add visual reference lines
+    plt.axhline(0, color="gray", linestyle="--", alpha=0.6)
+    plt.axvline(args.corr_threshold, color="black", linestyle="--", linewidth=1.2)
+    
     plt.xlabel("Max correlation with S (Gate 2)")
     plt.ylabel("Median gain vs best model (negative = better)")
     plt.title(f"Gatekeeping scatter - {task}")
+    plt.legend(title="Decision / Corr. sig.", loc="best", fontsize=9)
     plt.tight_layout()
     plt.savefig(fig_path + "_scatter.png", dpi=300)
     plt.close()
 
+    # --- Plot the decision heatmap
     pivot = report_df.pivot(index="candidate_model", columns="prep", values="decision")
     mat = pivot.map(lambda v: 1 if str(v).upper()=="KEEP" else 0 if str(v).upper()=="EXCLUDE" else np.nan)
     plt.figure(figsize=(max(10,0.4*len(mat.columns)), max(6,0.4*len(mat.index))))
@@ -293,11 +311,12 @@ def visualize_gatekeeping(report_df: pd.DataFrame, kept_mask: pd.Series, output_
     plt.savefig(fig_path + "_heatmap.png", dpi=300)
     plt.close()
 
+    # --- Plot the histograms of pvalues repartitions on both gates
     fig, axes = plt.subplots(1,2,figsize=(10,4))
     sns.histplot(report_df["gate1_p"], bins=20, ax=axes[0], color="blue")
     sns.histplot(report_df["gate2_p"], bins=20, ax=axes[1], color="orange")
     axes[0].set_title("Gate 1 p-values (performance)")
-    axes[1].set_title("Gate 2 p-values (correlation)")
+    axes[1].set_title("Gate 2 p-values (correlation)")  
     plt.tight_layout()
     plt.savefig(fig_path + "_pvals.png", dpi=300)
     plt.close()
@@ -372,6 +391,38 @@ def collect_and_merge_results(dataset_csvs):
         return pd.DataFrame()
     return pd.concat(all_dfs, ignore_index=True)
 
+def build_selection_table(df_task: pd.DataFrame,
+                          kept_mask: pd.Series) -> pd.DataFrame:
+    """
+    Build a flat selection table with mean/std metric per (model, preprocessing)
+    and a 'selected' flag from kept_mask.
+    """
+    # Mean / std across datasets for each (model, prep)
+    stats = (
+        df_task
+        .groupby(["candidate_model", "prep"], as_index=True)["metric"]
+        .agg(metric_mean="mean", metric_std="std")
+    )
+
+    # Align kept_mask (MultiIndex) into a DataFrame
+    sel = kept_mask.rename("selected").to_frame()
+
+    # Join and tidy
+    out = stats.join(sel, how="left")
+    out["selected"] = out["selected"].fillna(False).astype(bool)
+
+    # Final column names as requested
+    out = out.reset_index().rename(columns={
+        "candidate_model": "model_name",
+        "prep": "preprocessing_name"
+    })
+    # Optional dataset column (left empty to indicate “aggregated across datasets”)
+    out["dataset_name"] = ""  # keep the column for downstream pivots
+
+    # Reorder columns
+    out = out[["model_name", "preprocessing_name", "dataset_name", "metric_mean", "metric_std", "selected"]]
+    return out
+
 # ===============================================================
 # Main
 # ===============================================================
@@ -385,6 +436,7 @@ parser.add_argument("--permutations", type=int, default=2000)
 parser.add_argument("--seed", type=int, default=42)
 parser.add_argument("--batch_size", type=int, default=500)
 parser.add_argument("--task_only", type=str, choices=["regression","classification"], default=None)
+parser.add_argument("--corr_threshold", type=float, default=0.7, help="Absolute correlation threshold (|rho|) to consider redundancy practically significant.")
 args = parser.parse_args()
 
 dataset_csvs = discover_dataset_csvs(args.input_dir)
@@ -397,13 +449,34 @@ if args.task_only:
     merged_df = merged_df[merged_df["task"] == args.task_only]
     print(f"[INFO] Running gatekeeping only for task: {args.task_only}")
 
+# Accumulate selection rows across tasks, then write one file at the end
+selection_rows = []
+
 for task, df_task in merged_df.groupby("task"):
     print(f"[INFO] Running gatekeeping for {task}...")
-    report_df, kept_mask = iterative_gatekeeping(df_task, args.delta, args.alpha,
-                                                    args.permutations, args.seed, args.batch_size)
+    report_df, kept_mask = iterative_gatekeeping(
+        df_task, args.delta, args.alpha, args.permutations, args.seed, args.batch_size
+    )
+
     out_csv = f"{args.output_prefix}/{task}_report.csv"
     keep_csv = f"{args.output_prefix}/{task}_keep.csv"
+    os.makedirs(os.path.dirname(out_csv), exist_ok=True)
     report_df.to_csv(out_csv, index=False)
     kept_mask.to_csv(keep_csv)
     print(f"[INFO] Saved {task.upper()} csvs -> {out_csv} / {keep_csv}")
+
+    # --- NEW: build per-task selection table and keep it ---
+    sel_tbl = build_selection_table(df_task, kept_mask)
+    selection_rows.append(sel_tbl)
+
     visualize_gatekeeping(report_df, kept_mask, args.output_prefix, task)
+
+# --- NEW: write the unified selection CSV at the very end ---
+if selection_rows:
+    selection_df = pd.concat(selection_rows, ignore_index=True)
+    final_path = os.path.join(args.output_prefix, "pipeline_gatekeeping_selected.csv")
+    os.makedirs(os.path.dirname(final_path), exist_ok=True)
+    selection_df.to_csv(final_path, index=False)
+    print(f"[INFO] Wrote selection summary -> {final_path}")
+else:
+    print("[WARN] No selection rows to write.")
