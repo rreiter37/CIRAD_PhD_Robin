@@ -1,5 +1,4 @@
 ## Adastra
-collapsed:: true
 	- ### Administratif
 		- **numéro de dossier** : AD011017070
 		- Heures attribuées initialement CINES Adastra Genoa : 200 000 (heures cœurs)

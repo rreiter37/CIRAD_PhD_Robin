@@ -1,0 +1,2 @@
+data_source,epochs_final,patience,optimization_type,time,n_trials_first,n_trials_next,epochs_first,epochs_next
+DIESEL_FREEZE_395_PengKS,10000,1000,progressive,13.24820065498352,500,90,30,10

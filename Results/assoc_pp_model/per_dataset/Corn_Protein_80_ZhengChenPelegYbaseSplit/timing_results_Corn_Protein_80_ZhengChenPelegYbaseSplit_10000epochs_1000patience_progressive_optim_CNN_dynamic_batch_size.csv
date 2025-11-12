@@ -1,0 +1,2 @@
+data_source,epochs_final,patience,optimization_type,time,n_trials_first,n_trials_next,epochs_first,epochs_next
+Corn_Protein_80_ZhengChenPelegYbaseSplit,10000,1000,progressive,2036.2225744724274,500,90,30,10

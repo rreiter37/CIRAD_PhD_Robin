@@ -1,0 +1,2 @@
+data_source,epochs_final,patience,optimization_type,time,n_trials_first,n_trials_next,epochs_first,epochs_next
+DIESEL_BP50_395_ZhengYbase,10000,1000,progressive,6290.169602155685,500,90,30,10

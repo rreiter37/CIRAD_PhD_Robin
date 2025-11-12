@@ -808,7 +808,7 @@ else:
 ### Save per-model timing CSV
 
 file_name = file_name.replace("results", "per_model")
-timing_models_path = os.path.join("Results", "assoc_pp_model", data_source, file_name)
+timing_models_path = os.path.join("Results", "assoc_pp_model", "per_dataset", data_source, file_name)
 if os.path.exists(timing_models_path):
     df_existing = pd.read_csv(timing_models_path)
     df_avg_time = pd.concat([df_existing, df_avg_time], ignore_index=True)

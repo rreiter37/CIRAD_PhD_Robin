@@ -1,0 +1,2 @@
+data_source,epochs_final,patience,optimization_type,time,n_trials_first,n_trials_next,epochs_first,epochs_next
+Rice_Amylose_313_YbasedSplit,10000,1000,progressive,6356.69278883934,500,90,30,10
