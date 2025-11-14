@@ -1,4 +1,0 @@
-Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials_first,n_trials_next,epochs_first,epochs_next
-NICON_reg,25.629480287210264,BeerOriginalExtract,progressive,10000,1000,500,90,30,10
-PLS_reg,0.4199457659440882,BeerOriginalExtract,progressive,10000,1000,500,90,30,10
-Ridge_reg,0.13028289290035472,BeerOriginalExtract,progressive,10000,1000,500,90,30,10
