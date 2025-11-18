@@ -321,8 +321,13 @@ else:
 # STORAGE VARIABLES
 # ---------------------------------------------------------------
 prior_components = []
-best_trials_nicon = None
-best_trials_lgbm = None
+
+# CNN progressive optimization: only this model uses best_trials propagation
+best_trials_cnn = None  
+
+# LGBM: full search per preprocessing => does not use best_trials anymore
+best_trials_lgbm = None   # kept only for saving, but never reused
+
 cnn_batch_sizes = {}
 metrics = []
 timings = []
@@ -371,19 +376,23 @@ def evaluate_combination(
         # -----------------------------------------------------------
         if mdl_name.startswith('PLS'):
 
-            parallelism = big_dataset
-            candidates = np.arange(1, 81)
+            # Full search: candidate components = fixed range
+            candidate_components = np.arange(1, 81)
 
             if mode == "Regression":
                 mdl = AutoPLSRegression(
-                    cv=5, scale=True, seed=rd_seed,
-                    candidate_components=candidates
+                    cv=10,              # stronger CV for regression
+                    scale=True,
+                    seed=rd_seed,
+                    candidate_components=candidate_components
                 )
             else:
                 mdl = AutoPLSDAClassifier(
-                    cv=5, scale=True, seed=rd_seed,
-                    candidate_components=candidates,
-                    parallelism=parallelism
+                    cv=5,
+                    scale=True,
+                    seed=rd_seed,
+                    candidate_components=candidate_components,
+                    parallelism=True
                 )
 
         # -----------------------------------------------------------
@@ -391,34 +400,34 @@ def evaluate_combination(
         # -----------------------------------------------------------
         elif mdl_name.startswith("LGBM"):
 
-            cv = 5 if big_dataset else 10
-            subsampling_rate = 0.3 if big_dataset else None
+            # Always perform full Optuna search on every preprocessing
+            # (progressive optimization is disabled for LGBM)
+            n_trials_lgbm = 300 if mode == "Regression" else 100
 
-            # Full Optuna search per preprocessing
-            best_trials=None
-            n_trials = 200 # Increased number for Adastra
+            cv = 10 if mode == "Regression" else 5
+            subsampling_rate = 0.3 if Xcal.shape[0] > 2000 else None
 
             if mode == "Regression":
                 mdl = LGBMOptuna(
-                    cv=cv, 
-                    n_trials=n_trials, 
+                    cv=cv,
+                    n_trials=n_trials_lgbm,
                     random_state=rd_seed,
-                    verbose=0, 
+                    verbose=0,
                     verbose_optuna=False,
                     scoring="neg_mean_squared_error",
-                    best_trials=best_trials,
+                    best_trials=None,           # <--- always None
                     name_pp=pp_name,
                     subsampling_rate=subsampling_rate
                 )
             else:
                 mdl = LGBMOptunaClassifier(
-                    cv=cv, 
-                    n_trials=n_trials, 
+                    cv=cv,
+                    n_trials=n_trials_lgbm,
                     random_state=rd_seed,
-                    verbose=0, 
+                    verbose=0,
                     verbose_optuna=False,
                     scoring="log_loss",
-                    best_trials=best_trials,
+                    best_trials=None,
                     name_pp=pp_name,
                     subsampling_rate=subsampling_rate
                 )
@@ -428,34 +437,39 @@ def evaluate_combination(
         # -----------------------------------------------------------
         elif mdl_name.startswith('CNN'):
 
+            # Only CNN uses progressive optimization
             if not progressive_optim:
-                best_trials = None
+                effective_best_trials = None
             else:
-                print("[INFO] Number of CNN best trials used:", len(best_trials) if best_trials else 0)
+                effective_best_trials = best_trials   # from previous preprocessing
+                if effective_best_trials:
+                    print("[INFO] CNN progressive search: using reduced search space")
 
-            if best_trials is None:
-                # First deep search
+            if effective_best_trials is None:
+                # First (wide) search
                 n_trials_use = n_trials_first if progressive_optim else n_trials_uniform
                 epochs_optuna_use = epochs_first if progressive_optim else epochs_uniform
-                patience_optuna = patience_optuna_first if progressive_optim else 100
+                patience_optuna_use = patience_optuna_first if progressive_optim else 20
             else:
                 # Reduced search space
                 n_trials_use = n_trials_next
                 epochs_optuna_use = epochs_next
-                patience_optuna = patience_optuna_next
+                patience_optuna_use = patience_optuna_next
 
             if mode == "Regression":
                 mdl = NiconOptunaRegressor(
                     n_trials=n_trials_use,
-                    epochs=epochs, 
+                    epochs=epochs,
                     patience=patience,
-                    patience_optuna = patience_optuna,
-                    cyclic_learning=True, lr_min=1e-6, lr_max=1e-3,
+                    patience_optuna=patience_optuna_use,
+                    cyclic_learning=True,
+                    lr_min=1e-6,
+                    lr_max=1e-3,
                     epochs_optuna=epochs_optuna_use,
                     random_state=rd_seed,
                     device=device,
                     verbose_optuna=True,
-                    best_trials=best_trials,
+                    best_trials=effective_best_trials,
                     name_pp=pp_name,
                     adaptive_batch_size=adaptive_batch_size
                 )
@@ -585,7 +599,7 @@ if use_parallelism:
             pp_name, pp_method, mdl_name, mdl, mode,
             Xcal, Ycal, Xval, Yval, metrics,
             progressive_optim,
-            best_trials_nicon if mdl_name.startswith("CNN") else best_trials_lgbm if mdl_name.startswith("LGBM") else None,
+            best_trials_cnn if mdl_name.startswith("CNN") else None,
             rd_seed, scaler_Y
         )
         for (pp_name, pp_method, mdl_name, mdl) in tqdm(combinations, desc="Evaluations")
@@ -616,7 +630,7 @@ else:
                 pp_name, pp_method, mdl_name, mdl, mode,
                 Xcal, Ycal, Xval, Yval,
                 metrics, progressive_optim,
-                best_trials_nicon if mdl_name.startswith("CNN") else None,
+                best_trials_cnn if mdl_name.startswith("CNN") else None,
                 rd_seed, scaler_Y
             )
             results.append((pp_name, mdl_name, metric))
@@ -625,7 +639,7 @@ else:
                 pp_name, pp_method, mdl_name, mdl, mode,
                 Xcal, Ycal, Xval, Yval,
                 metrics, progressive_optim,
-                best_trials_nicon if mdl_name.startswith("CNN") else None,
+                best_trials_cnn if mdl_name.startswith("CNN") else None,
                 rd_seed, scaler_Y
             )
             results.append((pp_name, mdl_name, metric))
@@ -636,9 +650,7 @@ else:
 
         # Update best trials
         if mdl_name.startswith("CNN") and trials is not None:
-            best_trials_nicon = trials
-        elif mdl_name.startswith("LGBM") and trials is not None:
-            best_trials_lgbm = trials
+            best_trials_cnn = trials
 
 # ---------------------------------------------------------------
 # BUILD DATAFRAMES FROM RAW RESULTS
@@ -971,41 +983,22 @@ elif adaptive_batch_size == "dynamic":
 else:
     adaptive_suffix = ""
 
-# CNN best_trials
-if best_trials_nicon is not None and progressive_optim:
+# Export CNN best_trials (only model using progressive optimization)
+if best_trials_cnn is not None and progressive_optim:
     trials_path_cnn = os.path.join(
         RESULTS_DIR, "assoc_pp_model", "per_dataset", data_source,
         f"best_trials_CNN_{data_source}{adaptive_suffix}.json"
     )
-    try:
-        with open(trials_path_cnn, "w") as f:
-            json.dump(make_json_serializable(best_trials_nicon), f, indent=2)
-        print(f"[INFO] CNN best_trials saved to: {trials_path_cnn}")
-    except Exception as e:
-        print(f"[WARNING] Error while saving CNN best_trials: {e}")
+    with open(trials_path_cnn, "w") as f:
+        json.dump(make_json_serializable(best_trials_cnn), f, indent=2)
+    print(f"[INFO] CNN best_trials saved to: {trials_path_cnn}")
 
-# LGBM best_trials
-if best_trials_lgbm is not None and progressive_optim:
+# Export LGBM best_trials (just for record, not reused)
+if best_trials_lgbm is not None:
     trials_path_lgbm = os.path.join(
         RESULTS_DIR, "assoc_pp_model", "per_dataset", data_source,
         f"best_trials_LGBM_{data_source}{adaptive_suffix}.json"
     )
-    try:
-        with open(trials_path_lgbm, "w") as f:
-            json.dump(make_json_serializable(best_trials_lgbm), f, indent=2)
-        print(f"[INFO] LGBM best_trials saved to: {trials_path_lgbm}")
-    except Exception as e:
-        print(f"[WARNING] Error while saving LGBM best_trials: {e}")
-
-# CNN batch sizes per preprocessing
-if len(cnn_batch_sizes) > 0:
-    batch_sizes_path = os.path.join(
-        RESULTS_DIR, "assoc_pp_model", "per_dataset", data_source,
-        f"batch_sizes_CNN_{data_source}{adaptive_suffix}.json"
-    )
-    try:
-        with open(batch_sizes_path, "w") as f:
-            json.dump(make_json_serializable(cnn_batch_sizes), f, indent=2)
-        print(f"[INFO] CNN batch sizes saved to: {batch_sizes_path}")
-    except Exception as e:
-        print(f"[WARNING] Error while saving CNN batch sizes: {e}")
+    with open(trials_path_lgbm, "w") as f:
+        json.dump(make_json_serializable(best_trials_lgbm), f, indent=2)
+    print(f"[INFO] LGBM best_trials saved to: {trials_path_lgbm}")

@@ -5,10 +5,13 @@ from pathlib import Path
 
 # Function to load a CSV file with automatic separator detection
 
-def load_csv_auto_sep(mode, data_source, type_data, verbose=True, delimiter=None):
+def load_csv_auto_sep(mode, data_source, type_data, data_dir=None, verbose=True, delimiter=None):
 
     ## Importation of the datasets with the adapted path
-    file_name = Path("Data/%s/%s"% (mode,data_source))
+    if data_dir is None:
+        file_name = Path("Data/%s/%s"% (mode,data_source))
+    else:
+        file_name = Path(data_dir + "/%s/%s"% (mode,data_source))
     full_path = str(file_name.resolve()).replace("\\", "/")
     path = full_path + "/%s.csv" % type_data
     
@@ -44,14 +47,14 @@ def load_csv_auto_sep(mode, data_source, type_data, verbose=True, delimiter=None
         return df
     
 
-def split_data(mode, data_source, verbose=True):
+def split_data(mode, data_source, data_dir=None, verbose=True):
     """
     Function to split the data into calibration and validation sets.
     """
     # Load the data
-    Xcal = load_csv_auto_sep(mode, data_source, "Xcal", verbose=verbose)
-    Ycal = load_csv_auto_sep(mode, data_source, "Ycal", verbose=verbose, delimiter= ' ')
-    Xval = load_csv_auto_sep(mode, data_source, "Xval", verbose=verbose)
-    Yval = load_csv_auto_sep(mode, data_source, "Yval", verbose=verbose, delimiter= ' ')
+    Xcal = load_csv_auto_sep(mode, data_source, "Xcal", data_dir=data_dir, verbose=verbose)
+    Ycal = load_csv_auto_sep(mode, data_source, "Ycal", data_dir=data_dir, verbose=verbose, delimiter= ' ')
+    Xval = load_csv_auto_sep(mode, data_source, "Xval", data_dir=data_dir, verbose=verbose)
+    Yval = load_csv_auto_sep(mode, data_source, "Yval", data_dir=data_dir, verbose=verbose, delimiter= ' ')
 
     return Xcal, Ycal, Xval, Yval
