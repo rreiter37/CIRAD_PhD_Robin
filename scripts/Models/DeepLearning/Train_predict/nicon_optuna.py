@@ -275,7 +275,7 @@ class NiconPLModule(pl.LightningModule):
 
 
 class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
-    def __init__(self, input_shape=None, n_trials=20, batch_size=None, epochs=100, patience=10, patience_optuna=30,
+    def __init__(self, input_shape=None, n_trials=20, batch_size=None, epochs=100, patience=10,
                  lr_min=1e-6, lr_max=1e-3, epochs_optuna=100, verbose=0, verbose_optuna=False,
                  random_state=42, device=None, get_logger=True, get_logger_optuna=False,
                  cyclic_learning=True, best_trials=None, name_pp=None,
@@ -290,7 +290,6 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
         self.batch_size = batch_size
         self.epochs = epochs
         self.patience = patience
-        self.patience_optuna = patience_optuna
         self.lr_min = lr_min
         self.lr_max = lr_max
         self.epochs_optuna = epochs_optuna
@@ -558,9 +557,7 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
             return val_loss
 
         study_name=f"optuna_{self.pp}" if self.pp is not None else "optuna"
-        early_stopping = pl.callbacks.EarlyStopping(monitor="val_loss", 
-                                                    patience=self.patience_optuna
-                                                    )
+
         self.study_ = optuna.create_study(direction="minimize", 
                                           sampler=TPESampler(seed=self.random_state), 
                                           pruner=HyperbandPruner(), 
@@ -568,7 +565,6 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
                                           )
         self.study_.optimize(objective, 
                              n_trials=self.n_trials,
-                             callbacks=[early_stopping],
                              show_progress_bar=self.verbose_optuna
                              )
         

@@ -259,8 +259,6 @@ if progressive_optim:
     n_trials_next  = 200  if mode == "Regression" else 20
     epochs_first   = 100
     epochs_next    = 40
-    patience_optuna_first = 30
-    patience_optuna_next = 15
 else:
     n_trials_uniform = 90
     epochs_uniform   = 10
@@ -449,19 +447,16 @@ def evaluate_combination(
                 # First (wide) search
                 n_trials_use = n_trials_first if progressive_optim else n_trials_uniform
                 epochs_optuna_use = epochs_first if progressive_optim else epochs_uniform
-                patience_optuna_use = patience_optuna_first if progressive_optim else 20
             else:
                 # Reduced search space
                 n_trials_use = n_trials_next
                 epochs_optuna_use = epochs_next
-                patience_optuna_use = patience_optuna_next
 
             if mode == "Regression":
                 mdl = NiconOptunaRegressor(
                     n_trials=n_trials_use,
                     epochs=epochs,
                     patience=patience,
-                    patience_optuna=patience_optuna_use,
                     cyclic_learning=True,
                     lr_min=1e-6,
                     lr_max=1e-3,
