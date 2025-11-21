@@ -1,0 +1,2 @@
+data_source,epochs_final,patience,optimization_type,time,n_trials_first,n_trials_next,epochs_first,epochs_next
+ALPINE_P_291_RobustnessFennoscandia,10000,1000,progressive,7606.084777355194,500,90,30,10

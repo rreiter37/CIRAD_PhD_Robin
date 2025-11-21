@@ -1,0 +1,2 @@
+data_source,epochs_final,patience,optimization_type,time,n_trials_first,n_trials_next,epochs_first,epochs_next
+Beef_Marbling_RandomSplit,10000,1000,progressive,39.97080421447754,500,90,30,10

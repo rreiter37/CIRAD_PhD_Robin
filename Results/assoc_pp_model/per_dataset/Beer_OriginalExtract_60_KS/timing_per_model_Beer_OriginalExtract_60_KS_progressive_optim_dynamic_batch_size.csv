@@ -1,0 +1,5 @@
+Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials_first,n_trials_next,epochs_first,epochs_next
+CNN_reg,45.19876553381191,Beer_OriginalExtract_60_KS,progressive,10000,1000,500,90,30,10
+LGBM_reg,17.206101585836972,Beer_OriginalExtract_60_KS,progressive,10000,1000,500,90,30,10
+PLS_reg,0.4053174572832444,Beer_OriginalExtract_60_KS,progressive,10000,1000,500,90,30,10
+Ridge_reg,0.12806399078930125,Beer_OriginalExtract_60_KS,progressive,10000,1000,500,90,30,10

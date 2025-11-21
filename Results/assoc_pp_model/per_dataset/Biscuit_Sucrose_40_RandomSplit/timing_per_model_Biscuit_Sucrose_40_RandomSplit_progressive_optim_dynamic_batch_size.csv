@@ -1,0 +1,5 @@
+Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials_first,n_trials_next,epochs_first,epochs_next
+CNN_reg,45.1943556526128,Biscuit_Sucrose_40_RandomSplit,progressive,10000,1000,500,90,30,10
+LGBM_reg,16.824125033967636,Biscuit_Sucrose_40_RandomSplit,progressive,10000,1000,500,90,30,10
+PLS_reg,0.27569570962120504,Biscuit_Sucrose_40_RandomSplit,progressive,10000,1000,500,90,30,10
+Ridge_reg,0.1297740340232849,Biscuit_Sucrose_40_RandomSplit,progressive,10000,1000,500,90,30,10
