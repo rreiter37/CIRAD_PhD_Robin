@@ -88,7 +88,7 @@ from scripts.utils.build_filename import build_filename
 from scripts.utils.make_serializable import make_json_serializable
 from scripts.Model_optim.pls_components_hybrid import get_pls_component_candidates
 from scripts.utils.correct_class_unbalances import correct_class_unbalances
-from scripts.utils.compute_budget_optuna import compute_optuna_budget
+from scripts.utils.compute_budget_optuna import compute_budget_optuna
 
 from scripts.Models.DeepLearning.Train_predict.nicon_optuna import NiconOptunaRegressor
 from scripts.Models.DeepLearning.Train_predict.nicon_optuna_classif import NiconOptunaClassifier
@@ -254,7 +254,7 @@ preprocessings.append(('PCA', PCA(random_state=rd_seed)))
 # ---------------------------------------------------------------
 # PROGRESSIVE OPTIMIZATION PARAMETERS
 # ---------------------------------------------------------------
-budget = compute_optuna_budget(Xcal.shape[0])
+budget = compute_budget_optuna(Xcal.shape[0])
 if progressive_optim:
     # Deep search for first preprocessing
     n_trials_first = budget["n_trials_initial"] if mode == "Regression" else 100
