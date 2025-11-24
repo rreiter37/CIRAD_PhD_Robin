@@ -1,0 +1,2 @@
+data_source,epochs_final,patience,optimization_type,time,n_trials_first,n_trials_next,epochs_first,epochs_next
+Cattle_manure_CaO_KS,10000,1000,progressive,6853.9664216041565,500,90,30,10

@@ -1,0 +1,5 @@
+Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials_first,n_trials_next,epochs_first,epochs_next
+CNN_reg,68.68351592737086,Cattle_manure_MgO_KS,progressive,10000,1000,500,90,30,10
+LGBM_reg,30.00769453539568,Cattle_manure_MgO_KS,progressive,10000,1000,500,90,30,10
+PLS_reg,2.625928777105668,Cattle_manure_MgO_KS,progressive,10000,1000,500,90,30,10
+Ridge_reg,0.31124645120957317,Cattle_manure_MgO_KS,progressive,10000,1000,500,90,30,10
