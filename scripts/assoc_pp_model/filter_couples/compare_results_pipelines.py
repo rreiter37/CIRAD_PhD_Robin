@@ -95,7 +95,7 @@ def normalize_model_name(model):
 
     # Merge NICON_reg and CNN_reg into a single model name
     if "nicon" in m or "cnn" in m:
-        return "NICON"
+        return "CNN"
 
     # Default: return unchanged
     return model
@@ -110,6 +110,10 @@ def load_pipeline_csv(name, path):
         raise FileNotFoundError(f"Missing file for {name}: {full_path}")
 
     df = pd.read_csv(full_path)
+
+    # Keep only selected=True rows
+    df = df[df['selected'] == True]
+        
 
     # Apply regression/classification filtering
     df = filter_task(df)
