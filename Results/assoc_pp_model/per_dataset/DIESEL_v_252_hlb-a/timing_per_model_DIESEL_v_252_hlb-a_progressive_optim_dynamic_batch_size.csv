@@ -1,0 +1,5 @@
+Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials_first,n_trials_next,epochs_first,epochs_next
+CNN_reg,61.04779249780319,DIESEL_v_252_hlb-a,progressive,10000,1000,500,90,30,10
+LGBM_reg,26.45507811798769,DIESEL_v_252_hlb-a,progressive,10000,1000,500,90,30,10
+PLS_reg,0.5021954248933231,DIESEL_v_252_hlb-a,progressive,10000,1000,500,90,30,10
+Ridge_reg,0.17154047419043147,DIESEL_v_252_hlb-a,progressive,10000,1000,500,90,30,10

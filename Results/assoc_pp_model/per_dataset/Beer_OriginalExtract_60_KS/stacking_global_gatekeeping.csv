@@ -1,0 +1,2 @@
+data_source,pipeline,mode,n_base_estimators,RRMSE_train,RRMSE_test,RMSE_train,RMSE_test,range_y
+Beer_OriginalExtract_60_KS,gatekeeping,Regression,80,0.015763470929740765,0.012124001512955836,0.2290432357618275,0.1761617444080486,14.5300002

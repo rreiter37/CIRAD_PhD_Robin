@@ -108,7 +108,7 @@ def build_models_dict(mode: str, num_classes: int, random_state: int = 42):
         models = {
             "Ridge_reg": RidgeCVRegressor(alphas=np.logspace(-4, 2, 50), cv=5, random_state=random_state),
             "PLS_reg": AutoPLSRegression(cv=3, seed=random_state),
-            "LGBM_reg": LGBMOptuna(cv=5, n_trials=20, random_state=random_state,
+            "LGBM_reg": LGBMOptuna(cv=3, n_trials=20, random_state=random_state,
                                    verbose=0, verbose_optuna=False),
             "CNN_reg": NiconOptunaRegressor(
                 n_trials=30,

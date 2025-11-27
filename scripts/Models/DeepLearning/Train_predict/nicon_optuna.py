@@ -4,29 +4,30 @@ logging.getLogger("lightning").setLevel(logging.ERROR)
 import sys
 import os
 
-# Désactiver Fabric
+# Disable Fabric (to avoid unnecessary overhead / conflicts)
 os.environ["PL_DISABLE_FABRIC"] = "1"
 
-# Capturer la sortie standard et erreur pendant l'import de pytorch_lightning
+# Capture stdout/stderr during Lightning import to keep logs clean
 class DummyFile(object):
-    def write(self, x): pass
-    def flush(self): pass
+    def write(self, x): 
+        pass
+    def flush(self): 
+        pass
 
 sys.stdout = DummyFile()
 sys.stderr = DummyFile()
 
 import pytorch_lightning as pl
 
-# Remettre la sortie standard normale
+# Restore normal stdout/stderr
 sys.stdout = sys.__stdout__
 sys.stderr = sys.__stderr__
 
-# Supprimer rank_zero_info au cas où (pour la suite)
+# Silence rank_zero logging
 import pytorch_lightning.utilities.rank_zero as rank_zero
 rank_zero.rank_zero_info = lambda *args, **kwargs: None
 rank_zero.rank_zero_warn = lambda *args, **kwargs: None
 rank_zero.rank_zero_debug = lambda *args, **kwargs: None
-
 
 logging.getLogger("pytorch_lightning").setLevel(logging.ERROR)
 
@@ -50,6 +51,10 @@ from scripts.utils.checkpointing_logger import CheckpointLoggerCallback
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.loggers import TensorBoardLogger
 
+
+# =========================================================
+# Optuna pruning callback
+# =========================================================
 class CustomOptunaPruningCallback(Callback):
     def __init__(self, trial, monitor="val_loss"):
         super().__init__()
@@ -57,6 +62,7 @@ class CustomOptunaPruningCallback(Callback):
         self.monitor = monitor
 
     def on_validation_epoch_end(self, trainer, pl_module):
+        """Report validation loss to Optuna and prune if needed."""
         current_score = trainer.callback_metrics.get(self.monitor)
         if current_score is None:
             return
@@ -66,30 +72,39 @@ class CustomOptunaPruningCallback(Callback):
         if self.trial.should_prune():
             raise optuna.exceptions.TrialPruned()
 
-# Fix seed for reproducibility
-def set_global_seed(seed):
+
+# =========================================================
+# Reproducibility helpers
+# =========================================================
+def set_global_seed(seed: int):
+    """Set global seed for Python, NumPy, PyTorch (CPU & CUDA) and enforce determinism."""
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
     np.random.seed(seed)
     random.seed(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
+    # Deterministic algorithms can slow things down but guarantee reproducibility
     torch.use_deterministic_algorithms(True, warn_only=False)
     os.environ["PYTHONHASHSEED"] = str(seed)
 
-def seed_worker(worker_id):
+
+def seed_worker(worker_id: int):
+    """Worker init function to make DataLoader workers deterministic."""
     worker_seed = torch.initial_seed() % 2**32
     np.random.seed(worker_seed)
     random.seed(worker_seed)
 
 
-# ==========================================
-# Dynamic Batch and LR Scaling
-# ==========================================
+# =========================================================
+# Dynamic batch + LR scaling (optional)
+# =========================================================
 class DynamicBatchScalingCallback(Callback):
     """
     Dynamically adjust batch size and learning rate based on gradient noise scale
     following McCandlish et al. (2018). Also records and logs batch size history.
+
+    This is relatively expensive; only use if adaptive_batch_size == "dynamic".
     """
     def __init__(self, model_ref, dataset, adaptive_factor=2.0, probe_batches=5, min_batch=16, max_batch=8192):
         super().__init__()
@@ -123,7 +138,7 @@ class DynamicBatchScalingCallback(Callback):
         # Compute new batch size using the square-root heuristic
         new_batch = int(np.clip(np.sqrt(self.adaptive_factor * S), self.min_batch, self.max_batch))
 
-        # Adjust learning rate to maintain constant noise ratio (η/B ≈ const)
+        # Adjust learning rate to maintain roughly constant noise ratio (η/B ≈ const)
         optimizer = trainer.optimizers[0]
         old_lr = optimizer.param_groups[0]["lr"]
         new_lr = old_lr * np.sqrt(new_batch / max(1, self.current_batch))
@@ -132,7 +147,7 @@ class DynamicBatchScalingCallback(Callback):
         self.current_batch = new_batch
         optimizer.param_groups[0]["lr"] = new_lr
 
-        # ✅ Record batch size into the model's history
+        # Record batch size into the model's history
         self.model_ref.batch_size_history.append(new_batch)
 
         if self.model_ref.verbose:
@@ -148,29 +163,22 @@ class DynamicBatchScalingCallback(Callback):
                 self.dataset, batch_size=new_batch, shuffle=True, num_workers=0
             )
 
-        # ──────────────────────────────
-        # 🔵 TensorBoard logging
-        # ──────────────────────────────
+        # TensorBoard logging
         if isinstance(trainer.logger, pl.loggers.TensorBoardLogger):
             writer = trainer.logger.experiment
             epoch = pl_module.current_epoch
-
-            # Scalar metrics for this epoch
             writer.add_scalar("adaptive/S_noise", S, epoch)
             writer.add_scalar("adaptive/batch_size", new_batch, epoch)
             writer.add_scalar("adaptive/lr", new_lr, epoch)
 
-            # Full batch history (for visualization curve)
-            batch_hist = np.array(self.model_ref.batch_size_history, dtype=float)
-            writer.add_scalars("adaptive/batch_history", {"batch_size": batch_hist[-1]}, epoch)
 
-
-
-
-
+# =========================================================
+# LightningModule wrapper for CustomizableNicon
+# =========================================================
 class NiconPLModule(pl.LightningModule):
     def __init__(self, input_channels, params, lr_max, lr_min, epochs, t0_steps=None, cyclic_learning=True):
         super().__init__()
+        # We do NOT save t0_steps / cyclic_learning in hparams to keep them external
         self.save_hyperparameters(ignore=["t0_steps", "cyclic_learning"])
         self.params = params
         self.lr_max = lr_max
@@ -273,7 +281,9 @@ class NiconPLModule(pl.LightningModule):
             return optimizer
 
 
-
+# =========================================================
+# NiconOptunaRegressor (patched + GPU-optimised)
+# =========================================================
 class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
     def __init__(self, input_shape=None, n_trials=20, batch_size=None, epochs=100, patience=10,
                  lr_min=1e-6, lr_max=1e-3, epochs_optuna=100, verbose=0, verbose_optuna=False,
@@ -281,7 +291,10 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
                  cyclic_learning=True, best_trials=None, name_pp=None,
                  adaptive_batch_size=False, adaptive_factor=2.0, probe_batches=5):
         """
-        adaptive_batch_size : if True, estimate batch size using gradient noise scale
+        adaptive_batch_size : 
+            - False / "False": no dynamic adaptation (fastest, default)
+            - "static": one-shot estimation via gradient noise scale
+            - "dynamic": adapt batch size per epoch (most expensive)
         adaptive_factor : scaling factor applied to noise scale for safety margin
         probe_batches : number of probing batches used to estimate noise scale
         """
@@ -300,7 +313,10 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
         self.model_ = None
         self.pp = None
         self.best_params_ = None
+
+        # Prefer GPU if available
         self.device = device if device else ("cuda" if torch.cuda.is_available() else "cpu")
+
         self.get_logger = get_logger
         self.get_logger_optuna = get_logger_optuna
         self.cyclic_learning = cyclic_learning
@@ -309,8 +325,11 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
         self.adaptive_batch_size = adaptive_batch_size
         self.adaptive_factor = adaptive_factor
         self.probe_batches = probe_batches
-        self.batch_size_history = []  # Stores list of batch sizes when dynamic mode is active
+        self.batch_size_history = []  # Stores batch sizes when dynamic mode is active
 
+    # -------------------------
+    # Internal helpers
+    # -------------------------
     def _reshape(self, X):
         X = np.array(X)
         if len(X.shape) == 2:
@@ -318,32 +337,32 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
         return torch.tensor(X, dtype=torch.float32)
 
     def _suggest_params(self, trial):
+        """Suggest CNN hyperparameters, possibly narrowed around previous best trials."""
         best_trials = self.best_trials
+
         def median_and_range(param_name, type, low, high, log=False, step=2, scale=0.4):
             if best_trials is None:
-                if type=='int':
+                if type == 'int':
                     return trial.suggest_int(param_name, low, high, step=step)
                 else:
                     return trial.suggest_float(param_name, low, high, log=log)
-                
+
             values = [t[param_name] for t in best_trials if param_name in t.keys()]
-
             if not values:
-                if type=='int':
+                if type == 'int':
                     return trial.suggest_int(param_name, low, high, step=step)
                 else:
                     return trial.suggest_float(param_name, low, high, log=log)
-                
-            median = np.median(values)
 
-            if type=='int':
+            median = np.median(values)
+            if type == 'int':
                 median = int(median)
-                delta = int((high - low) * scale/2)
+                delta = int((high - low) * scale / 2)
                 bounded_low = max(low, median - delta)
                 bounded_high = min(high, median + delta)
-                return trial.suggest_int(param_name, bounded_low, bounded_high, step = max(1, step//2))
+                return trial.suggest_int(param_name, bounded_low, bounded_high, step=max(1, step // 2))
             else:
-                delta = (high - low) * scale/2
+                delta = (high - low) * scale / 2
                 bounded_low = max(low, median - delta)
                 bounded_high = min(high, median + delta)
                 return trial.suggest_float(param_name, bounded_low, bounded_high, log=log)
@@ -357,10 +376,14 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
             "filters1": median_and_range("filters1", 'int', 8, 64, step=8),
             "filters2": median_and_range("filters2", 'int', 32, 256, step=32),
             "filters3": median_and_range("filters3", 'int', 13, 128, step=16),
-            "dense_units":median_and_range("dense_units", 'int', 16, 128, step=8)
+            "dense_units": median_and_range("dense_units", 'int', 16, 128, step=8),
         }
 
     def _train_model(self, params, train_loader, val_loader, trial=None):
+        """
+        Internal training used during Optuna optimization.
+        Uses GPU if available, with AMP (precision=16) to maximize speed.
+        """
         set_global_seed(self.random_state)
         input_channels = self.input_shape[0] if self.input_shape else 1
 
@@ -374,7 +397,7 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
             lr_min=self.lr_min,
             epochs=self.epochs_optuna,
             t0_steps=t0_steps,
-            cyclic_learning=self.cyclic_learning
+            cyclic_learning=self.cyclic_learning,
         )
         model.to(self.device)
 
@@ -382,9 +405,8 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
         with torch.no_grad():
             try:
                 dummy = torch.zeros(2, input_channels, self.input_shape[-1], device=self.device)
-                _ = model.model(dummy)  # forward of the internal architecture (CustomizableNicon)
+                _ = model.model(dummy)  # forward of CustomizableNicon
             except RuntimeError as e:
-                # If invalid shape (kernel size too big), trial is pruned
                 if trial is not None:
                     trial.set_user_attr("shape_error", str(e))
                     raise optuna.TrialPruned()
@@ -392,22 +414,41 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
                     raise
         # --- END PRE-FLIGHT ---
 
+        # For Optuna phase, we do NOT need to save checkpoints to disk (for speed).
+        save_top_k = 0 if trial is not None else 1
         checkpoint_callback = pl.callbacks.ModelCheckpoint(
             monitor="val_loss",
-            save_top_k=1,
+            save_top_k=save_top_k,
             mode="min",
             save_last=False,
             verbose=self.verbose_optuna,
-            filename=f"{self.name_pp or 'noprep'}-{{epoch:02d}}-{{val_loss:.4f}}"
+            filename=f"{self.name_pp or 'noprep'}-{{epoch:02d}}-{{val_loss:.4f}}",
         )
 
-        early_stopping = pl.callbacks.EarlyStopping(monitor="val_loss", patience=self.patience, verbose=self.verbose_optuna)
+        early_stopping = pl.callbacks.EarlyStopping(
+            monitor="val_loss",
+            patience=self.patience,
+            verbose=self.verbose_optuna,
+        )
 
         callbacks = [checkpoint_callback, early_stopping, CheckpointLoggerCallback()]
         if trial is not None:
             callbacks.insert(0, CustomOptunaPruningCallback(trial, monitor="val_loss"))
 
-        logger = TensorBoardLogger("lightning_logs", name="nicon_optuna", default_hp_metric=False) if self.get_logger_optuna else False
+        # Log to TensorBoard only if explicitly requested
+        logger = (
+            TensorBoardLogger("lightning_logs", name="nicon_optuna", default_hp_metric=False)
+            if self.get_logger_optuna
+            else False
+        )
+
+        # -------------------------------
+        # Trainer config (GPU/CPU + AMP)
+        # -------------------------------
+        use_gpu = (self.device == "cuda") and torch.cuda.is_available()
+        accelerator = "gpu" if use_gpu else "cpu"
+        devices = 1  # Critical: must be int > 0 for both CPU and GPU
+        precision = 16 if use_gpu else 32
 
         trainer = pl.Trainer(
             max_epochs=self.epochs_optuna,
@@ -415,40 +456,48 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
             logger=logger,
             callbacks=callbacks,
             enable_model_summary=False,
-            devices=1 if self.device == "cuda" else None,
-            accelerator=self.device if self.device == "cuda" else "cpu",
+            accelerator=accelerator,
+            devices=devices,
+            precision=precision,
             deterministic=True,
         )
 
         trainer.fit(model, train_loader, val_loader)
 
+        # In Optuna phase, save_top_k=0 → no checkpoint, but we don't need the model anyway
         if checkpoint_callback.best_model_path:
             model = NiconPLModule.load_from_checkpoint(checkpoint_callback.best_model_path)
 
-
         val_loss = trainer.callback_metrics.get("val_loss")
         return model, val_loss.item() if isinstance(val_loss, torch.Tensor) else val_loss
-    
+
     def _estimate_noise_scale(self, dataset, input_channels):
         """
         Estimate gradient noise scale (McCandlish et al., 2018) using small probe batches.
+        This is optional and only used when adaptive_batch_size is enabled.
         """
-        # Use small probing batch size (default 32)
         probe_batch = min(32, len(dataset))
         loader = DataLoader(dataset, batch_size=probe_batch, shuffle=True)
-        params = {"kernel_size1": 3, "kernel_size2": 3, "kernel_size3": 3,
-                  "spatial_dropout": 0.01, "dropout_rate": 0.01, "output_dim": 1}
+
+        params = {
+            "kernel_size1": 3,
+            "kernel_size2": 3,
+            "kernel_size3": 3,
+            "spatial_dropout": 0.01,
+            "dropout_rate": 0.01,
+            "output_dim": 1,
+        }
         model = NiconPLModule(
             input_channels=input_channels,
             params=params,
             lr_max=self.lr_max,
             lr_min=self.lr_min,
-            epochs=1
+            epochs=1,
         ).to(self.device)
+
         optimizer = torch.optim.SGD(model.parameters(), lr=1e-3)
 
         grads = []
-        # Collect gradients on a few probe batches
         for i, (x, y) in enumerate(loader):
             if i >= self.probe_batches:
                 break
@@ -461,20 +510,23 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
             grads.append(grad_vector.detach().cpu())
 
         if len(grads) < 2:
-            return None  # Not enough data
+            return None
 
         grads = torch.stack(grads)
         g_mean = grads.mean(dim=0)
         var = grads.var(dim=0, unbiased=True).mean()  # mean variance across params
         norm_sq = g_mean.pow(2).sum()
 
-        # Gradient noise scale S ≈ variance / ||g||^2
         if norm_sq.item() == 0:
             return None
         S = var.item() / norm_sq.item()
         return S
 
+    # =====================================================
+    # Public API: fit / predict
+    # =====================================================
     def fit(self, X, y):
+        """Fit the Nicon model with Optuna hyperparameter search."""
         X = self._reshape(X)
         y = torch.tensor(y, dtype=torch.float32)
 
@@ -487,23 +539,39 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
         dataset = TensorDataset(X, y)
         n_val = max(1, int(n_samples * 0.2))
         n_train = n_samples - n_val
-        train_set, val_set = random_split(dataset, [n_train, n_val],
-                                          generator=torch.Generator().manual_seed(self.random_state))
+        train_set, val_set = random_split(
+            dataset,
+            [n_train, n_val],
+            generator=torch.Generator().manual_seed(self.random_state),
+        )
 
-        # --- Adaptive batch size estimation ---
+        # ---------------------------------------------
+        # Batch size strategy (adaptive or max batch)
+        # ---------------------------------------------
         if self.batch_size is None:
             if self.adaptive_batch_size in [True, "static"]:
                 try:
-                    input_channels = self.input_shape if isinstance(self.input_shape, int) else self.input_shape[0]
+                    input_channels = (
+                        self.input_shape if isinstance(self.input_shape, int) else self.input_shape[0]
+                    )
                     S = self._estimate_noise_scale(train_set, input_channels)
                     if S is not None and S > 0:
-                        # Use heuristic: batch ≈ S / factor, bounded by GPU max
                         max_hw_batch = find_max_batch_size(
-                            model=CustomizableNicon(input_channels, {"kernel_size1": 3, "kernel_size2": 3,
-                                                                    "kernel_size3": 3, "spatial_dropout": 0.01,
-                                                                    "dropout_rate": 0.01, "output_dim": 1}),
-                            input_shape=self.input_shape, device=self.device,
-                            max_batch=X.shape[-1], min_batch=1
+                            model=CustomizableNicon(
+                                input_channels,
+                                {
+                                    "kernel_size1": 3,
+                                    "kernel_size2": 3,
+                                    "kernel_size3": 3,
+                                    "spatial_dropout": 0.01,
+                                    "dropout_rate": 0.01,
+                                    "output_dim": 1,
+                                },
+                            ),
+                            input_shape=self.input_shape,
+                            device=self.device,
+                            max_batch=X.shape[-1],
+                            min_batch=1,
                         )
                         self.batch_size = int(min(max_hw_batch, max(32, S / self.adaptive_factor)))
                         if self.verbose:
@@ -514,75 +582,130 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
                 except Exception as e:
                     if self.verbose:
                         print(f"[Adaptive] Fallback to max batch size due to error: {e}")
-                    params = {"kernel_size1": 3, "kernel_size2": 3, "kernel_size3": 3,
-                              "spatial_dropout": 0.01, "dropout_rate": 0.01, "output_dim": 1}
+                    params = {
+                        "kernel_size1": 3,
+                        "kernel_size2": 3,
+                        "kernel_size3": 3,
+                        "spatial_dropout": 0.01,
+                        "dropout_rate": 0.01,
+                        "output_dim": 1,
+                    }
                     model = NiconPLModule(
                         input_channels=self.input_shape[0],
                         params=params,
                         lr_max=self.lr_max,
                         lr_min=self.lr_min,
-                        epochs=1
+                        epochs=1,
                     )
-                    self.batch_size = find_max_batch_size(model=model, input_shape=self.input_shape,
-                                                          device=self.device, max_batch=X.shape[-1], min_batch=1)
+                    self.batch_size = find_max_batch_size(
+                        model=model,
+                        input_shape=self.input_shape,
+                        device=self.device,
+                        max_batch=X.shape[-1],
+                        min_batch=1,
+                    )
                     print("Maximum batch size found (adaptive): ", self.batch_size)
             elif self.adaptive_batch_size == "dynamic":
-                # Initialize batch size using small probe, then dynamically adapt
+                # Initialize batch size using a small value, refined dynamically each epoch
                 self.batch_size = min(max(n_train // 10, 8), 32)
                 if self.verbose:
                     print("[Dynamic] Starting with small batch (8 < B < 32) and adaptive scaling per epoch.")
             else:
-                # Original max batch size strategy
-                params = {"kernel_size1": 3, "kernel_size2": 3, "kernel_size3": 3,
-                          "spatial_dropout": 0.01, "dropout_rate": 0.01, "output_dim": 1}
+                # Original max batch size strategy (fast, GPU-oriented)
+                params = {
+                    "kernel_size1": 3,
+                    "kernel_size2": 3,
+                    "kernel_size3": 3,
+                    "spatial_dropout": 0.01,
+                    "dropout_rate": 0.01,
+                    "output_dim": 1,
+                }
                 model = NiconPLModule(
                     input_channels=self.input_shape[0],
                     params=params,
                     lr_max=self.lr_max,
                     lr_min=self.lr_min,
-                    epochs=1
+                    epochs=1,
                 )
-                self.batch_size = find_max_batch_size(model=model, input_shape=self.input_shape,
-                                                      device=self.device, max_batch=X.shape[-1], min_batch=1)
+                self.batch_size = find_max_batch_size(
+                    model=model,
+                    input_shape=self.input_shape,
+                    device=self.device,
+                    max_batch=X.shape[-1],
+                    min_batch=1,
+                )
                 print("Maximum batch size found (GPU-oriented): ", self.batch_size)
 
+        # ---------------------------------------------
+        # Optuna objective
+        # ---------------------------------------------
         def objective(trial):
             params = self._suggest_params(trial)
             params["output_dim"] = 1
-            g = torch.Generator()
-            g.manual_seed(self.random_state)
-            train_loader = DataLoader(train_set, batch_size=self.batch_size, shuffle=True, generator=g, worker_init_fn=seed_worker, num_workers=0)
-            val_loader = DataLoader(val_set, batch_size=self.batch_size, generator=g, worker_init_fn=seed_worker, num_workers=0)
+
+            g = torch.Generator().manual_seed(self.random_state)
+            train_loader = DataLoader(
+                train_set,
+                batch_size=self.batch_size,
+                shuffle=True,
+                generator=g,
+                worker_init_fn=seed_worker,
+                num_workers=0,
+            )
+            val_loader = DataLoader(
+                val_set,
+                batch_size=self.batch_size,
+                generator=g,
+                worker_init_fn=seed_worker,
+                num_workers=0,
+            )
+
             _, val_loss = self._train_model(params, train_loader, val_loader, trial=trial)
             return val_loss
 
-        study_name=f"optuna_{self.pp}" if self.pp is not None else "optuna"
+        study_name = f"optuna_{self.pp}" if self.pp is not None else "optuna"
+        self.study_ = optuna.create_study(
+            direction="minimize",
+            sampler=TPESampler(seed=self.random_state),
+            pruner=HyperbandPruner(),
+            study_name=study_name,
+        )
+        self.study_.optimize(
+            objective,
+            n_trials=self.n_trials,
+            show_progress_bar=self.verbose_optuna,
+        )
 
-        self.study_ = optuna.create_study(direction="minimize", 
-                                          sampler=TPESampler(seed=self.random_state), 
-                                          pruner=HyperbandPruner(), 
-                                          study_name=study_name
-                                          )
-        self.study_.optimize(objective, 
-                             n_trials=self.n_trials,
-                             show_progress_bar=self.verbose_optuna
-                             )
-        
         self.best_params_ = self.study_.best_params
         self.best_params_["output_dim"] = 1
-        
-        # Store the best hyperameters for next pp-model associations
+
+        # Store the best hyperparameters for progressive optimization in later uses
         if self.best_trials is None:
             self.best_trials = [self.best_params_]
         else:
             self.best_trials.append(self.best_params_)
 
-        # Final training phase
-        g = torch.Generator()
-        g.manual_seed(self.random_state)
+        # ---------------------------------------------
+        # Final training with best hyperparameters
+        # ---------------------------------------------
+        g = torch.Generator().manual_seed(self.random_state)
         train_final, val_final = random_split(dataset, [n_samples - n_val, n_val], generator=g)
-        train_loader_final = DataLoader(train_final, batch_size=self.batch_size, shuffle=True, generator=g, worker_init_fn=seed_worker, num_workers=0)
-        val_loader_final = DataLoader(val_final, batch_size=self.batch_size, generator=g, worker_init_fn=seed_worker, num_workers=0)
+
+        train_loader_final = DataLoader(
+            train_final,
+            batch_size=self.batch_size,
+            shuffle=True,
+            generator=g,
+            worker_init_fn=seed_worker,
+            num_workers=0,
+        )
+        val_loader_final = DataLoader(
+            val_final,
+            batch_size=self.batch_size,
+            generator=g,
+            worker_init_fn=seed_worker,
+            num_workers=0,
+        )
 
         t0_steps = len(train_loader_final) * (self.epochs // 4) or 1
 
@@ -593,7 +716,7 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
             lr_min=self.lr_min,
             epochs=self.epochs,
             t0_steps=t0_steps,
-            cyclic_learning=self.cyclic_learning
+            cyclic_learning=self.cyclic_learning,
         )
         final_model.to(self.device)
 
@@ -602,10 +725,14 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
             save_top_k=1,
             mode="min",
             verbose=self.verbose,
-            filename=f"{self.name_pp or 'noprep'}-{{epoch:02d}}-{{val_loss:.4f}}"
+            filename=f"{self.name_pp or 'noprep'}-{{epoch:02d}}-{{val_loss:.4f}}",
         )
 
-        early_stopping = pl.callbacks.EarlyStopping(monitor="val_loss", patience=self.patience, verbose=self.verbose)
+        early_stopping = pl.callbacks.EarlyStopping(
+            monitor="val_loss",
+            patience=self.patience,
+            verbose=self.verbose,
+        )
 
         callbacks = [checkpoint_callback, early_stopping, CheckpointLoggerCallback()]
 
@@ -616,15 +743,26 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
                 dataset=train_final,
                 adaptive_factor=self.adaptive_factor,
                 probe_batches=self.probe_batches,
-                max_batch=self.batch_size * 64  # safety cap
+                max_batch=self.batch_size * 64,  # safety cap
             )
             callbacks.append(dyn_callback)
 
         if self.name_pp is None:
             name = "cnn_final"
         else:
-            name = "cnn_final_%s"%self.name_pp
-        logger = TensorBoardLogger("lightning_logs", name=name, default_hp_metric=False) if self.get_logger else False
+            name = f"cnn_final_{self.name_pp}"
+
+        logger = (
+            TensorBoardLogger("lightning_logs", name=name, default_hp_metric=False)
+            if self.get_logger
+            else False
+        )
+
+        # Final trainer (GPU/CPU + AMP)
+        use_gpu = (self.device == "cuda") and torch.cuda.is_available()
+        accelerator = "gpu" if use_gpu else "cpu"
+        devices = 1
+        precision = 16 if use_gpu else 32
 
         trainer = pl.Trainer(
             max_epochs=self.epochs,
@@ -632,8 +770,9 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
             logger=logger,
             callbacks=callbacks,
             enable_model_summary=False,
-            devices=1 if self.device == "cuda" else None,
-            accelerator=self.device if self.device == "cuda" else "cpu",
+            accelerator=accelerator,
+            devices=devices,
+            precision=precision,
             deterministic=True,
         )
 
@@ -648,6 +787,7 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
         if self.adaptive_batch_size == "dynamic" and not hasattr(self, "batch_size_history"):
             self.batch_size_history = [self.batch_size]
 
+        # Optionally log batch history to TensorBoard
         if self.get_logger and hasattr(self, "batch_size_history"):
             try:
                 if isinstance(self.model_.logger, pl.loggers.TensorBoardLogger):
@@ -660,6 +800,7 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
         return self
 
     def predict(self, X):
+        """Standard sklearn-style predict: returns numpy array on CPU."""
         self.model_.eval()
         X = self._reshape(X).to(self.device)
         with torch.no_grad():

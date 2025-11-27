@@ -36,3 +36,4 @@ Scripts_python/utils/__pycache__/
 # Ignore other folders
 INSPIR_nirs4all/
 .vscode/
+outputs/

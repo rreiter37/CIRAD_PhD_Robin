@@ -1,0 +1,5 @@
+Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials_first,n_trials_next,epochs_first,epochs_next
+CNN_reg,219.7651860608774,EUCALYPTUS_Density_1654_Chaix_RMSE0.03,progressive,10000,1000,500,90,30,10
+LGBM_reg,140.17228884556715,EUCALYPTUS_Density_1654_Chaix_RMSE0.03,progressive,10000,1000,500,90,30,10
+PLS_reg,6.4186802892123955,EUCALYPTUS_Density_1654_Chaix_RMSE0.03,progressive,10000,1000,500,90,30,10
+Ridge_reg,6.974193632602692,EUCALYPTUS_Density_1654_Chaix_RMSE0.03,progressive,10000,1000,500,90,30,10

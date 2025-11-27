@@ -1,0 +1,2 @@
+data_source,epochs_final,patience,optimization_type,time,n_trials_first,n_trials_next,epochs_first,epochs_next
+EUCALYPTUS_Density_1654_Chaix_RMSE0.03,10000,1000,progressive,25387.61065363884,500,90,30,10
