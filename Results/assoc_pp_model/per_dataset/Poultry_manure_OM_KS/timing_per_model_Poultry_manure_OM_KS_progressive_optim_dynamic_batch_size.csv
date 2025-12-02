@@ -1,0 +1,5 @@
+Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials_first,n_trials_next,epochs_first,epochs_next
+CNN_reg,33.69021274762995,Poultry_manure_OM_KS,progressive,10000,1000,500,90,30,10
+LGBM_reg,27.434875723193674,Poultry_manure_OM_KS,progressive,10000,1000,500,90,30,10
+PLS_reg,0.519911857212291,Poultry_manure_OM_KS,progressive,10000,1000,500,90,30,10
+Ridge_reg,0.19313282125136433,Poultry_manure_OM_KS,progressive,10000,1000,500,90,30,10

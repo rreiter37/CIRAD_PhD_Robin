@@ -130,7 +130,7 @@ run_datasets() {
         # Run the Python script for each dataset
         for ds in "${datasets[@]}"; do
             echo "Running on $ds ($mode)"
-            python -m scripts.assoc_pp_model.association_pp_model \
+            python -m scripts.assoc_pp_model.main_pipeline.main \
                 --mode "$mode" \
                 --data_source "$ds" \
                 --only_colors \

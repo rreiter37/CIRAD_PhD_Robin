@@ -53,38 +53,6 @@ class CustomizableNicon(nn.Module):
             'swish': nn.SiLU()
         }
         return activations.get(name.lower(), nn.ReLU())
-
-    def forward(self, x):
-        if x.dim() == 2:
-            x = x.unsqueeze(1)
-
-        x = self.spatial_dropout(x)
-        x = self.activation1(self.conv1(x))
-        x = self.dropout(x)
-        x = self.conv2(x)
-
-        if isinstance(self.norm1, nn.LayerNorm):
-            x = x.permute(0, 2, 1)
-            x = self.norm1(x)
-            x = x.permute(0, 2, 1)
-        else:
-            x = self.norm1(x)
-
-        x = self.activation2(x)
-        x = self.conv3(x)
-
-        if isinstance(self.norm2, nn.LayerNorm):
-            x = x.permute(0, 2, 1)
-            x = self.norm2(x)
-            x = x.permute(0, 2, 1)
-        else:
-            x = self.norm2(x)
-
-        x = self.activation3(x)
-        x = self.flatten(x)
-        x = self.dense_activation(self.dense(x))
-        x = torch.sigmoid(self.out(x))
-        return x
         
     def get_activation(self, name):
         activations = {
@@ -105,10 +73,16 @@ class CustomizableNicon(nn.Module):
                 x = x.unsqueeze(1)
             
             x = self.spatial_dropout(x)
+            if x.shape[-1] < self.conv1.kernel_size[0]:
+                pad = self.conv1.kernel_size[0] - x.shape[-1]
+                x = F.pad(x, (pad, 0))
             x = self.activation1(self.conv1(x))
             x = self.dropout(x)
+            if x.shape[-1] < self.conv2.kernel_size[0]:
+                pad = self.conv2.kernel_size[0] - x.shape[-1]
+                x = F.pad(x, (pad, 0))
             x = self.conv2(x)
-            
+
             if isinstance(self.norm1, nn.LayerNorm):
                 x = x.permute(0, 2, 1)
                 x = self.norm1(x)
@@ -117,6 +91,9 @@ class CustomizableNicon(nn.Module):
                 x = self.norm1(x)
             
             x = self.activation2(x)
+            if x.shape[-1] < self.conv3.kernel_size[0]:
+                pad = self.conv3.kernel_size[0] - x.shape[-1]
+                x = F.pad(x, (pad, 0))
             x = self.conv3(x)
             
             if isinstance(self.norm2, nn.LayerNorm):

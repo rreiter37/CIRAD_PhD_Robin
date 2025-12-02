@@ -13,12 +13,18 @@ For each requested pipeline:
   - Save:
       * Global metrics (train/test) in CSV.
       * Per-individual predictions (train/test) in another CSV.
+  - Additionally:
+      * Measure total computation time per pipeline.
+      * After all pipelines are processed, build barplots:
+          - Performance (RRMSE / Accuracy on test set) per pipeline.
+          - Total runtime (seconds) per pipeline.
 
 Author: ChatGPT (all comments in English).
 """
 
 import os
 import argparse
+import time  # <-- added for runtime measurement
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
@@ -32,6 +38,9 @@ from sklearn.metrics import mean_squared_error, accuracy_score, f1_score
 from sklearn.linear_model import RidgeCV, LogisticRegression
 from sklearn.model_selection import KFold, StratifiedKFold
 from sklearn.base import clone
+
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 import nirs4all.operators.transformations as pp
 
@@ -58,6 +67,69 @@ PIPELINE_FILE_CONFIG = {
     "graph_pruning": ("graph", "graph_pruning"),
     "weakness_coverage": ("weakness_coverage", "weakness_coverage"),
 }
+
+# ======================================================================
+# Function to plot the performances of each estimator of the stack
+# ======================================================================
+
+def plot_estimator_diagnostics(estimators, Z_train_full, pipeline_name, data_source, save_dir):
+    """
+    Create a diagnostic boxplot showing the distribution of predictions
+    for each estimator. The figure layout automatically adapts to the number
+    of estimators to remain readable.
+
+    Parameters
+    ----------
+    estimators : list of (name, estimator)
+        List of base models used in stacking.
+    Z_train_full : ndarray of shape (n_samples, n_estimators)
+        Predictions of each estimator on the full training set.
+    pipeline_name : str
+        Name of the pipeline (for saving the figure).
+    data_source : str
+        Dataset name (for saving the figure).
+    save_dir : str
+        Directory where the figure is saved.
+    """
+
+    est_names = [name for name, _ in estimators]
+    n_estimators = len(est_names)
+
+    # Convert predictions to DataFrame
+    df_preds = pd.DataFrame(Z_train_full, columns=est_names)
+
+    # Auto-scale figure height depending on number of estimators
+    fig_height = max(6, 0.25 * n_estimators)
+
+    # Adaptive font size for labels
+    if n_estimators <= 30:
+        label_font = 9
+    elif n_estimators <= 60:
+        label_font = 7
+    elif n_estimators <= 100:
+        label_font = 5
+    else:
+        label_font = 4  # extreme case
+
+    plt.figure(figsize=(12, fig_height))
+
+    # Horizontal boxplot for readability
+    sns.boxplot(data=df_preds, orient="h", fliersize=1)
+
+    plt.title(f"Estimator Prediction Distributions – Pipeline: {pipeline_name}\nDataset: {data_source}", fontsize=12)
+    plt.xlabel("Predicted values", fontsize=10)
+    plt.ylabel("Estimators", fontsize=10)
+
+    plt.yticks(fontsize=label_font)
+
+    plt.tight_layout()
+
+    # Save figure
+    fig_path = os.path.join(save_dir, f"diagnostics_{pipeline_name}.png")
+    plt.savefig(fig_path, dpi=300)
+    plt.close()
+
+    print(f"[INFO] Diagnostic figure saved to {fig_path}")
 
 
 # ======================================================================
@@ -212,6 +284,7 @@ def build_base_estimators_from_selection(
         base_model = clone(models_dict[full_model_name])
         prep_obj = preprocessings[prep_name]
 
+        # LGBM models require EnsureDataFrame wrapper as in your association script
         if full_model_name.startswith("LGBM"):
             pipe = Pipeline([
                 ("prep", prep_obj),
@@ -253,10 +326,12 @@ def manual_stacking_regression(estimators, X_train, y_train, X_test, n_splits=5,
     # Generate out-of-fold predictions
     for est_idx, (name, est) in enumerate(tqdm(estimators, desc="OF preds (reg)", unit="est")):
         Z_train_col = np.zeros(n_samples, dtype=float)
-        for train_idx, val_idx in tqdm(kf.split(X_train, y_train),
-                               total=kf.get_n_splits(),
-                               desc=f"Folds for {name}",
-                               leave=False):
+        for train_idx, val_idx in tqdm(
+            kf.split(X_train, y_train),
+            total=kf.get_n_splits(),
+            desc=f"Folds for {name}",
+            leave=False
+        ):
             est_fold = clone(est)
             est_fold.fit(X_train[train_idx], y_train[train_idx])
             pred_val = est_fold.predict(X_train[val_idx])
@@ -298,10 +373,12 @@ def manual_stacking_classification(estimators, X_train, y_train, X_test, n_split
 
     for est_idx, (name, est) in enumerate(tqdm(estimators, desc="OF preds (classif)", unit="est")):
         Z_train_col = np.zeros(n_samples, dtype=float)
-        for train_idx, val_idx in tqdm(skf.split(X_train, y_train),
-                               total=skf.get_n_splits(),
-                               desc=f"Folds for {name}",
-                               leave=False):
+        for train_idx, val_idx in tqdm(
+            skf.split(X_train, y_train),
+            total=skf.get_n_splits(),
+            desc=f"Folds for {name}",
+            leave=False
+        ):
             est_fold = clone(est)
             est_fold.fit(X_train[train_idx], y_train[train_idx])
             pred_val = est_fold.predict(X_train[val_idx])
@@ -389,15 +466,27 @@ def main():
 
     print(f"[INFO] Pipelines considered: {pipelines_to_run}")
 
-    # Output dir
+    # Output dir for CSV results
     out_dir = os.path.join("Results", "assoc_pp_model", "per_dataset", data_source)
     os.makedirs(out_dir, exist_ok=True)
+
+    # Output dir for figures
+    fig_dir = os.path.join("Figures", "assoc_pp_model", "per_dataset", data_source)
+    os.makedirs(fig_dir, exist_ok=True)
+
+    # This list will collect global metrics & runtimes for all pipelines
+    global_results_rows = []
 
     # -------------------------------------------------------------
     # Loop over pipelines
     # -------------------------------------------------------------
     for pipeline_name in tqdm(pipelines_to_run, desc="Pipelines", unit="pipeline"):
         print(f"\n[INFO] ===== Processing pipeline: {pipeline_name} =====")
+
+        # Start timer for this pipeline
+        pipeline_start_time = time.time()
+        
+        models_dict = build_models_dict(mode=mode, num_classes=num_classes, random_state=rd_seed)
 
         if pipeline_name == "all":
             # Baseline: all combinations of (model, preprocessing) consistent with mode
@@ -511,22 +600,33 @@ def main():
             y_pred_train_to_save = y_pred_train_meta
             y_pred_test_to_save = y_pred_test_meta
 
-        print(f"[RESULTS] Pipeline '{pipeline_name}' metrics: {metrics}")
+        # Stop timer for this pipeline
+        pipeline_elapsed = time.time() - pipeline_start_time
+        print(f"[INFO] Total runtime for pipeline '{pipeline_name}': {pipeline_elapsed:.2f} seconds")
+
+        # Attach runtime to metrics
+        metrics_with_time = dict(metrics)
+        metrics_with_time["runtime_seconds"] = pipeline_elapsed
+
+        print(f"[RESULTS] Pipeline '{pipeline_name}' metrics: {metrics_with_time}")
 
         # ---------------------------------------------------------
-        # Save global metrics
+        # Save global metrics (per pipeline)
         # ---------------------------------------------------------
         df_global = pd.DataFrame([{
             "data_source": data_source,
             "pipeline": pipeline_name,
             "mode": mode,
             "n_base_estimators": len(estimators),
-            **metrics,
+            **metrics_with_time,
         }])
 
         global_path = os.path.join(out_dir, f"stacking_global_{pipeline_name}.csv")
         df_global.to_csv(global_path, index=False)
         print(f"[INFO] Global metrics saved to {global_path}")
+
+        # Also store in the in-memory list for later barplots
+        global_results_rows.append(df_global.iloc[0].to_dict())
 
         # ---------------------------------------------------------
         # Save per-individual predictions
@@ -546,6 +646,73 @@ def main():
         indiv_path = os.path.join(out_dir, f"stacking_individuals_{pipeline_name}.csv")
         df_individuals.to_csv(indiv_path, index=False)
         print(f"[INFO] Per-individual predictions saved to {indiv_path}")
+
+        # ------------------------------------------------------------------
+        # Diagnostic plot for estimator predictions
+        # ------------------------------------------------------------------
+        fig_dir = os.path.join("Figures", "assoc_pp_model", "per_dataset", data_source)
+        os.makedirs(fig_dir, exist_ok=True)
+
+        plot_estimator_diagnostics(
+            estimators=estimators,
+            Z_train_full=Z_train_full,
+            pipeline_name=pipeline_name,
+            data_source=data_source,
+            save_dir=fig_dir,
+        )
+
+    # ==================================================================
+    # After all pipelines: aggregate results and build barplots
+    # ==================================================================
+    if len(global_results_rows) == 0:
+        print("[WARN] No pipeline results collected; skipping global barplots.")
+        return
+
+    df_all = pd.DataFrame(global_results_rows)
+
+    # Save aggregated global file for convenience
+    global_all_path = os.path.join(out_dir, "stacking_global_all_pipelines.csv")
+    df_all.to_csv(global_all_path, index=False)
+    print(f"[INFO] Aggregated global metrics saved to {global_all_path}")
+
+    # Determine which performance metric to plot depending on the task
+    if mode == "Regression":
+        perf_col = "RRMSE_test"
+        perf_label = "Test RRMSE"
+        perf_title = f"Stacking performance (RRMSE) by pipeline - {data_source}"
+    else:
+        perf_col = "Accuracy_test"
+        perf_label = "Test Accuracy"
+        perf_title = f"Stacking performance (Accuracy) by pipeline - {data_source}"
+
+    # Sort pipelines on x-axis in a stable order (as they appear)
+    df_all["pipeline"] = pd.Categorical(df_all["pipeline"], categories=df_all["pipeline"].unique(), ordered=True)
+
+    # ---------------- Performance barplot ----------------
+    plt.figure(figsize=(8, 5))
+    plt.bar(df_all["pipeline"], df_all[perf_col])
+    plt.xlabel("Pipeline")
+    plt.ylabel(perf_label)
+    plt.title(perf_title)
+    plt.xticks(rotation=45, ha="right")
+    plt.tight_layout()
+    perf_fig_path = os.path.join(fig_dir, f"stacking_performance_barplot_{mode}_{data_source}.png")
+    plt.savefig(perf_fig_path, dpi=300)
+    plt.close()
+    print(f"[INFO] Performance barplot saved to {perf_fig_path}")
+
+    # ---------------- Runtime barplot ----------------
+    plt.figure(figsize=(8, 5))
+    plt.bar(df_all["pipeline"], df_all["runtime_seconds"])
+    plt.xlabel("Pipeline")
+    plt.ylabel("Total runtime (seconds)")
+    plt.title(f"Stacking runtime by pipeline - {data_source}")
+    plt.xticks(rotation=45, ha="right")
+    plt.tight_layout()
+    time_fig_path = os.path.join(fig_dir, f"stacking_runtime_barplot_{mode}_{data_source}.png")
+    plt.savefig(time_fig_path, dpi=300)
+    plt.close()
+    print(f"[INFO] Runtime barplot saved to {time_fig_path}")
 
 
 if __name__ == "__main__":

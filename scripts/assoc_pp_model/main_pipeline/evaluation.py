@@ -21,12 +21,12 @@ import os
 import joblib
 from sklearn.pipeline import Pipeline
 from sklearn.base import clone
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import (
     root_mean_squared_error,
     accuracy_score,
     f1_score,
     confusion_matrix,
-    minmax_scale,
 )
 
 from scripts.utils.ensure_dataframe import EnsureDataFrame

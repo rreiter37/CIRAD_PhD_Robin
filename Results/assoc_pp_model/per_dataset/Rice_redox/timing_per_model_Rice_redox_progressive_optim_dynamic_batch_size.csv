@@ -1,0 +1,5 @@
+Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials_first,n_trials_next,epochs_first,epochs_next
+CNN_reg,342.71543834139317,Rice_redox,progressive,10000,1000,500,90,30,10
+LGBM_reg,49.51207848857431,Rice_redox,progressive,10000,1000,500,90,30,10
+PLS_reg,4.689983367919922,Rice_redox,progressive,10000,1000,500,90,30,10
+Ridge_reg,1.013819999554578,Rice_redox,progressive,10000,1000,500,90,30,10

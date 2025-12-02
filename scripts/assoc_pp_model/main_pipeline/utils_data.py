@@ -14,7 +14,7 @@ scripts.utils.load_dataset or any other domain-specific loaders.
 import numpy as np
 import os
 
-from scripts.utils.load_dataset import load_dataset
+from scripts.utils.utils_bdd import split_data
 
 
 # ======================================================================
@@ -62,7 +62,7 @@ def _to_numpy_flat(X, Y):
 # Public interface
 # ======================================================================
 
-def load_dataset_safely(mode, data_source):
+def load_dataset_safely(mode, data_source, data_dir=None, verbose=False):
     """
     Load a dataset using the project's canonical loader and perform
     validation and formatting.
@@ -82,7 +82,7 @@ def load_dataset_safely(mode, data_source):
 
     try:
         # Domain-specific loader (your project already uses this)
-        Xcal, Ycal, Xval, Yval = load_dataset(data_source=data_source, mode=mode)
+        Xcal, Ycal, Xval, Yval = split_data(mode=mode, data_source=data_source, data_dir=data_dir, verbose=verbose)
 
     except Exception as e:
         raise RuntimeError(

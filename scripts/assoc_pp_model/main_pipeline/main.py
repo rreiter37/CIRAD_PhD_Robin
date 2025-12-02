@@ -14,6 +14,7 @@ All heavy logic is delegated to specialized modules for clarity.
 import os
 import numpy as np
 import torch
+from sklearn.preprocessing import MinMaxScaler
 from tqdm import tqdm
 
 from .config import get_config, setup_environment
@@ -49,8 +50,17 @@ def main():
     # -----------------------------------------------------------
     Xcal, Ycal, Xval, Yval = load_dataset_safely(
         mode=cfg["mode"],
-        data_source=cfg["data_source"]
+        data_source=cfg["data_source"],
+        verbose=False
     )
+
+    # ---------------------------------------------------------------
+    # Scale Y in regression mode
+    # ---------------------------------------------------------------
+    if cfg["mode"] == "Regression":
+        scaler_Y = MinMaxScaler()
+        Ycal = scaler_Y.fit_transform(np.array(Ycal).reshape(-1, 1)).ravel()
+        Yval = scaler_Y.transform(np.array(Yval).reshape(-1, 1)).ravel()
 
     # Some metrics require the number of classes
     num_classes = len(np.unique(Ycal))
@@ -112,6 +122,21 @@ def main():
                 cfg, Xcal, Ycal, Xval, Yval
             )
             raw_results.append(out)
+
+            # -----------------------------------------------
+            # Propagate best_trials for progressive_optim
+            # -----------------------------------------------
+            if cfg["progressive_optim"]:
+                # Regression mode → out = (pp, mdl, metric, updated_best, time, batch)
+                # Classification → out = (pp, mdl, acc, f1, fpr, updated_best, time, batch)
+                if cfg["mode"] == "Regression":
+                    updated_best = out[3]
+                else:
+                    updated_best = out[5]
+
+                # update the model instance stored in dict_models
+                if updated_best is not None:
+                    mdl.best_trials = updated_best
 
     # -----------------------------------------------------------
     # 7. Convert raw results into score matrix

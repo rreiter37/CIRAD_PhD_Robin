@@ -337,46 +337,121 @@ class NiconOptunaRegressor(BaseEstimator, RegressorMixin):
         return torch.tensor(X, dtype=torch.float32)
 
     def _suggest_params(self, trial):
-        """Suggest CNN hyperparameters, possibly narrowed around previous best trials."""
-        best_trials = self.best_trials
+        """
+        Suggest CNN hyperparameters with:
+        - progressive narrowing (median + scale)
+        - convolution-safe conditional kernel sizes
+        """
 
-        def median_and_range(param_name, type, low, high, log=False, step=2, scale=0.4):
+        best_trials = self.best_trials
+        input_length = self.input_shape[-1]
+
+        # Convenience helpers ---------------------------------------------------
+
+        def median_and_range_conditional(param_name, low, high, type="int",
+                                        log=False, step=1, scale=0.4):
+            """
+            Progressive narrowing (median + scale), but ensures final high ≥ low.
+            """
+            # -------- No previous trials → full range --------
             if best_trials is None:
-                if type == 'int':
+                if type == "int":
                     return trial.suggest_int(param_name, low, high, step=step)
                 else:
                     return trial.suggest_float(param_name, low, high, log=log)
 
-            values = [t[param_name] for t in best_trials if param_name in t.keys()]
-            if not values:
-                if type == 'int':
+            # -------- With previous trials → narrow around median --------
+            values = [t[param_name] for t in best_trials if param_name in t]
+
+            if len(values) == 0:  # fallback
+                if type == "int":
                     return trial.suggest_int(param_name, low, high, step=step)
                 else:
                     return trial.suggest_float(param_name, low, high, log=log)
 
             median = np.median(values)
-            if type == 'int':
-                median = int(median)
-                delta = int((high - low) * scale / 2)
-                bounded_low = max(low, median - delta)
-                bounded_high = min(high, median + delta)
-                return trial.suggest_int(param_name, bounded_low, bounded_high, step=max(1, step // 2))
+
+            # compute reduced bounds
+            delta = (high - low) * scale / 2
+            b_low = max(low, median - delta)
+            b_high = min(high, median + delta)
+
+            # ensure valid interval
+            if b_low >= b_high:
+                b_low = low
+                b_high = high
+
+            if type == "int":
+                return trial.suggest_int(param_name, int(b_low), int(b_high), step=step)
             else:
-                delta = (high - low) * scale / 2
-                bounded_low = max(low, median - delta)
-                bounded_high = min(high, median + delta)
-                return trial.suggest_float(param_name, bounded_low, bounded_high, log=log)
+                return trial.suggest_float(param_name, float(b_low), float(b_high), log=log)
+
+        # ======================================================================
+        #  CONDITIONAL KERNEL SIZES (with narrowing)
+        # ======================================================================
+
+        # ---- First kernel size ----
+        ks1 = median_and_range_conditional(
+            "kernel_size1",
+            low=3,
+            high=min(35, input_length),   # convolution constraint
+            type="int",
+            step=2,
+            scale=0.4,
+        )
+
+        # After conv1
+        L1 = max(1, input_length - ks1 + 1)
+
+        # ---- Second kernel size ----
+        ks2 = median_and_range_conditional(
+            "kernel_size2",
+            low=3,
+            high=min(35, L1),    # convolution constraint
+            type="int",
+            step=2,
+            scale=0.4,
+        )
+
+        # After conv2
+        L2 = max(1, L1 - ks2 + 1)
+
+        # ---- Third kernel size ----
+        ks3 = median_and_range_conditional(
+            "kernel_size3",
+            low=3,
+            high=min(35, L2),
+            type="int",
+            step=2,
+            scale=0.4,
+        )
+
+        # ======================================================================
+        #  OTHER HYPERPARAMETERS (unchanged, but narrowed)
+        # ======================================================================
 
         return {
-            "kernel_size1": median_and_range("kernel_size1", 'int', 3, 35, step=2, scale=0.4),
-            "kernel_size2": median_and_range("kernel_size2", 'int', 3, 35, step=2, scale=0.4),
-            "kernel_size3": median_and_range("kernel_size3", 'int', 3, 35, step=2, scale=0.4),
-            "spatial_dropout": median_and_range("spatial_dropout", 'float', 0.01, 0.5, scale=0.2),
-            "dropout_rate": median_and_range("dropout_rate", 'float', 0.01, 0.5, scale=0.2),
-            "filters1": median_and_range("filters1", 'int', 8, 64, step=8),
-            "filters2": median_and_range("filters2", 'int', 32, 256, step=32),
-            "filters3": median_and_range("filters3", 'int', 13, 128, step=16),
-            "dense_units": median_and_range("dense_units", 'int', 16, 128, step=8),
+            "kernel_size1": ks1,
+            "kernel_size2": ks2,
+            "kernel_size3": ks3,
+            "spatial_dropout": median_and_range_conditional(
+                "spatial_dropout", 0.01, 0.5, type="float", scale=0.2
+            ),
+            "dropout_rate": median_and_range_conditional(
+                "dropout_rate", 0.01, 0.5, type="float", scale=0.2
+            ),
+            "filters1": median_and_range_conditional(
+                "filters1", 8, 64, type="int", step=8
+            ),
+            "filters2": median_and_range_conditional(
+                "filters2", 32, 256, type="int", step=32
+            ),
+            "filters3": median_and_range_conditional(
+                "filters3", 13, 128, type="int", step=16
+            ),
+            "dense_units": median_and_range_conditional(
+                "dense_units", 16, 128, type="int", step=8
+            ),
         }
 
     def _train_model(self, params, train_loader, val_loader, trial=None):

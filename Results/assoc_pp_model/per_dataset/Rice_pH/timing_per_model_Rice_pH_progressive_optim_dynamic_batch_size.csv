@@ -1,0 +1,5 @@
+Model,Time_seconds,Data_source,Optimization_type,epochs_final,patience,n_trials_first,n_trials_next,epochs_first,epochs_next
+CNN_reg,366.1457084873143,Rice_pH,progressive,10000,1000,500,90,30,10
+LGBM_reg,32.374926402288324,Rice_pH,progressive,10000,1000,500,90,30,10
+PLS_reg,4.553495848880095,Rice_pH,progressive,10000,1000,500,90,30,10
+Ridge_reg,1.0231387474957634,Rice_pH,progressive,10000,1000,500,90,30,10
