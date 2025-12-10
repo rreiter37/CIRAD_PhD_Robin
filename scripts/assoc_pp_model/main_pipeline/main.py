@@ -11,7 +11,6 @@ This file handles:
 All heavy logic is delegated to specialized modules for clarity.
 """
 
-import os
 import numpy as np
 import torch
 from sklearn.preprocessing import MinMaxScaler
@@ -53,7 +52,12 @@ def main():
         data_source=cfg["data_source"],
         verbose=False
     )
-
+    print("-"*100)
+    print("Xcal : ", Xcal)
+    print("-"*100)
+    print("Ycal : ", Ycal)
+    print("-"*100)
+    
     # ---------------------------------------------------------------
     # Scale Y in regression mode
     # ---------------------------------------------------------------
@@ -115,7 +119,7 @@ def main():
         print("[INFO] Running in sequential mode...")
         raw_results = []
         for (pp_name, pp_method, mdl_name, mdl) in tqdm(
-            combinations, desc="Evaluations"
+            combinations, desc=f"Evaluations ({cfg["data_source"]})"
         ):
             out = evaluate_combination(
                 pp_name, pp_method, mdl_name, mdl,

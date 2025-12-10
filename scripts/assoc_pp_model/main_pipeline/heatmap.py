@@ -1,13 +1,12 @@
 """
-Heatmap generation module.
+Heatmap generation module (modified to highlight best model per preprocessing).
 
 This module handles:
 - Building the main heatmap (RMSE for Regression, Accuracy for Classification)
 - Optional heatmaps for F1-score and FPR (Classification only)
 - Pretty styling and clean axis formatting
 - Saving figures in the correct dataset subdirectory
-
-Fully compatible with the pivot tables produced by results_handler.py.
+- NEW: Red rectangle around the best model for each preprocessing
 """
 
 import os
@@ -15,6 +14,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+from matplotlib.patches import Rectangle   # <-- Added for red rectangles
 
 from scripts.utils.build_filename import build_filename
 
@@ -48,7 +48,6 @@ def _apply_top_n_filter(pivot, cfg):
 
     N = cfg["top_n_preprocs"]
 
-    # Compute mean score per preprocessing
     means = pivot.mean(axis=0)
     top_cols = means.sort_values(ascending=False).head(N).index
 
@@ -60,6 +59,78 @@ def _heatmap_style():
     sns.set_theme(style="white", font_scale=1.2)
     plt.rcParams["figure.dpi"] = 140
     plt.rcParams["axes.titleweight"] = "bold"
+
+
+def _add_best_boxes(ax, pivot, mode):
+    """
+    Draw a red rectangle around the best score for each preprocessing column.
+
+    For regression → best = min value
+    For classification → best = max value
+    """
+
+    # Loop through columns (= preprocessings)
+    for j, col in enumerate(pivot.columns):
+
+        values = pivot[col]
+
+        # Skip entirely NaN columns
+        if values.isnull().all():
+            continue
+
+        # Select optimal value depending on task type
+        if mode == "Regression":
+            best_val = values.min()
+        else:  # Classification
+            best_val = values.max()
+
+        # List of rows (models) matching the best score
+        best_indices = values[values == best_val].index
+
+        # Draw a red rectangle around each best cell
+        for idx in best_indices:
+            i = list(pivot.index).index(idx)
+            ax.add_patch(
+                Rectangle(
+                    (j, i),
+                    1, 1,
+                    fill=False,
+                    edgecolor="red",
+                    linewidth=2
+                )
+            )
+
+
+def _remove_outliers_from_pivot(pivot, mode):
+    """
+    Remove outliers from the pivoted score table, following the same logic
+    as the evaluation script:
+    - Regression: very large values are removed
+    - Classification: very low accuracies are removed
+    """
+
+    cleaned = pivot.copy()
+
+    for col in cleaned.columns:
+        col_values = cleaned[col]
+
+        # Ignore empty columns
+        if col_values.isnull().all():
+            continue
+
+        mean_val = np.nanmean(col_values.values)
+
+        # Regression → remove abnormally large RMSE
+        if mode == "Regression":
+            mask = np.abs(col_values) > 10 * mean_val
+            cleaned.loc[mask, col] = np.nan
+
+        # Classification → remove abnormally low accuracy
+        else:
+            mask = col_values < 0.4 * mean_val
+            cleaned.loc[mask, col] = np.nan
+
+    return cleaned
 
 
 def _save_heatmap(fig, cfg, ext, title_suffix=""):
@@ -92,37 +163,38 @@ def _save_heatmap(fig, cfg, ext, title_suffix=""):
 
 def generate_heatmaps(pivot_score, results, cfg):
     """
-    Main public function that generates:
-    - The main heatmap (RMSE in regression, ACC in classification)
-    - Extra classification heatmaps: F1 and FPR
-
-    Args:
-        pivot_score (pd.DataFrame): pivot table of model x preprocessing (main metric)
-        results (list): raw results from evaluate_combination()
-        cfg (dict): configuration
+    Generates:
+    - Main heatmap (RMSE or Accuracy)
+    - Extra heatmaps (F1, FPR) for Classification
     """
 
     mode = cfg["mode"]
     only_colors = cfg["only_colors"]
 
-    # Apply Seaborn style
     _heatmap_style()
 
-    # Optionally restrict to top-N preprocessings
+    # Optional top-N filtering
     pivot_filtered = _apply_top_n_filter(pivot_score, cfg)
+
+    # Remove outliers as in the main evaluation script
+    pivot_filtered = _remove_outliers_from_pivot(pivot_filtered, mode)
 
     # -----------------------------------------------------------
     # MAIN HEATMAP
     # -----------------------------------------------------------
-    fig = plt.figure(figsize=(max(10, pivot_filtered.shape[1] * 0.6), 6))
-    ax = sns.heatmap(
+    fig, ax = plt.subplots(
+        figsize=(max(10, pivot_filtered.shape[1] * 0.6), 6)
+    )
+
+    heatmap = sns.heatmap(
         pivot_filtered,
         annot=not only_colors,
         cmap="viridis",
         linewidths=0.5,
         linecolor="white",
         fmt=".3f",
-        cbar=True
+        cbar=True,
+        ax=ax
     )
 
     title_metric = "Normalized RMSE" if mode == "Regression" else "Accuracy"
@@ -130,11 +202,14 @@ def generate_heatmaps(pivot_score, results, cfg):
     ax.set_xlabel("Preprocessing")
     ax.set_ylabel("Model")
 
+    # === NEW: Add red boxes around best model per preprocessing ===
+    _add_best_boxes(ax, pivot_filtered, mode)
+
     _save_heatmap(fig, cfg, ext="main")
     plt.close(fig)
 
     # -----------------------------------------------------------
-    # CLASSIFICATION: F1-SCORE & FPR HEATMAPS
+    # Secondary heatmaps (Classification only)
     # -----------------------------------------------------------
     if mode == "Classification":
         _generate_secondary_heatmaps(results, cfg, only_colors)
@@ -149,11 +224,10 @@ def _generate_secondary_heatmaps(results, cfg, only_colors):
     Build and save the F1-score and FPR heatmaps for classification tasks.
     """
 
-    # Extract tuples from results
-    # Format: (pp, mdl, acc, f1, fpr, best, time, batch)
     rows_f1 = []
     rows_fpr = []
 
+    # Extract metrics from raw results
     for pp, mdl, acc, f1, fpr, *_ in results:
         rows_f1.append((pp, mdl, f1))
         rows_fpr.append((pp, mdl, fpr))
@@ -164,42 +238,57 @@ def _generate_secondary_heatmaps(results, cfg, only_colors):
     pivot_f1 = df_f1.pivot(index="Model", columns="Preprocessing", values="F1")
     pivot_fpr = df_fpr.pivot(index="Model", columns="Preprocessing", values="FPR")
 
-    # Apply top-N filter
+    # Top-N filtering
     pivot_f1 = _apply_top_n_filter(pivot_f1, cfg)
     pivot_fpr = _apply_top_n_filter(pivot_fpr, cfg)
 
-    # Create and save the F1 heatmap
-    fig = plt.figure(figsize=(max(10, pivot_f1.shape[1] * 0.6), 6))
-    ax = sns.heatmap(
+    pivot_f1 = _remove_outliers_from_pivot(pivot_f1, mode="Classification")
+    pivot_fpr = _remove_outliers_from_pivot(pivot_fpr, mode="Regression")  # min is best
+
+    # ---- F1 Heatmap ----
+    fig, ax = plt.subplots(
+        figsize=(max(10, pivot_f1.shape[1] * 0.6), 6)
+    )
+    sns.heatmap(
         pivot_f1,
         annot=not only_colors,
         cmap="magma",
         linewidths=0.5,
         linecolor="white",
         fmt=".3f",
-        cbar=True
+        cbar=True,
+        ax=ax
     )
     ax.set_title("Model vs Preprocessing — F1-score")
     ax.set_xlabel("Preprocessing")
     ax.set_ylabel("Model")
 
+    # Red rectangles around best F1 values (max)
+    _add_best_boxes(ax, pivot_f1, mode="Classification")
+
     _save_heatmap(fig, cfg, ext="f1")
     plt.close(fig)
 
-    # Create and save the FPR heatmap
-    fig = plt.figure(figsize=(max(10, pivot_fpr.shape[1] * 0.6), 6))
-    ax = sns.heatmap(
+    # ---- FPR Heatmap ----
+    fig, ax = plt.subplots(
+        figsize=(max(10, pivot_fpr.shape[1] * 0.6), 6)
+    )
+    sns.heatmap(
         pivot_fpr,
         annot=not only_colors,
         cmap="inferno",
         linewidths=0.5,
         linecolor="white",
         fmt=".3f",
-        cbar=True
+        cbar=True,
+        ax=ax
     )
     ax.set_title("Model vs Preprocessing — FPR")
     ax.set_xlabel("Preprocessing")
     ax.set_ylabel("Model")
+
+    # Red rectangles around best FPR values (min)
+    _add_best_boxes(ax, pivot_fpr, mode="Regression")  # Regression = min is best
 
     _save_heatmap(fig, cfg, ext="fpr")
     plt.close(fig)

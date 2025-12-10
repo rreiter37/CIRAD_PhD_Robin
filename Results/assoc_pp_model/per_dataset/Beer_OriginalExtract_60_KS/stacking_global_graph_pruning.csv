@@ -1,2 +1,2 @@
-data_source,pipeline,mode,n_base_estimators,RRMSE_train,RRMSE_test,RMSE_train,RMSE_test,range_y
-Beer_OriginalExtract_60_KS,graph_pruning,Regression,131,0.028590326390633847,0.01320965048939383,0.4154174481739751,0.19193622425282245,14.5300002
+data_source,pipeline,mode,n_base_estimators,RRMSE_train,RRMSE_test,RMSE_train,RMSE_test,range_y,runtime_seconds
+Beer_OriginalExtract_60_KS,graph_pruning,Regression,131,0.03220256513077613,0.012543906942399853,0.46790327779069013,0.18226297038185124,14.5300002,2571.105680704117

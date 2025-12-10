@@ -1,2 +1,2 @@
-data_source,pipeline,mode,n_base_estimators,RRMSE_train,RRMSE_test,RMSE_train,RMSE_test,range_y
-Beer_OriginalExtract_60_KS,weakness_coverage,Regression,39,103923312125843.86,106657480687192.47,1510005745973173.8,1549733215716402.8,14.5300002
+data_source,pipeline,mode,n_base_estimators,RRMSE_train,RRMSE_test,RMSE_train,RMSE_test,range_y,runtime_seconds
+Beer_OriginalExtract_60_KS,weakness_coverage,Regression,39,103923312125843.86,106657480687192.47,1510005745973173.8,1549733215716402.8,14.5300002,558.8815195560455
