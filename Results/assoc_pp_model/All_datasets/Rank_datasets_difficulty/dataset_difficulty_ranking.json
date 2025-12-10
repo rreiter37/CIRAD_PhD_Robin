@@ -1,0 +1,628 @@
+{
+    "scores": {
+        "Cassava_TCC_4468_DavrieuxRobustness2013": {
+            "best_rrmse": 0.057316965607902,
+            "mean_rrmse": 0.1150690254670909,
+            "mean_best_model": 0.069672117618828
+        },
+        "DIESEL_f_251_b-a": {
+            "best_rrmse": 0.1163810918433333,
+            "mean_rrmse": 0.16836585267216866,
+            "mean_best_model": 0.13625296832750414
+        },
+        "Cattle_manure_DM_KS": {
+            "best_rrmse": 0.1513869612119945,
+            "mean_rrmse": 0.2251803523499326,
+            "mean_best_model": 0.16786482967966093
+        },
+        "ALPINE_P_291_RobustnessFennoscandia": {
+            "best_rrmse": 0.1341786962236497,
+            "mean_rrmse": 0.19483340179652484,
+            "mean_best_model": 0.1549361335512373
+        },
+        "DIESEL_bp50_246_hla-b": {
+            "best_rrmse": 0.0273209857936463,
+            "mean_rrmse": 0.11587165911339863,
+            "mean_best_model": 0.05070341747513987
+        },
+        "ALPINE_N_552_KS": {
+            "best_rrmse": 0.0599371981444869,
+            "mean_rrmse": 0.11349512867169775,
+            "mean_best_model": 0.0640978023300155
+        },
+        "WOOD_Density_402_Olale": {
+            "best_rrmse": 0.1604862148326132,
+            "mean_rrmse": 25155746.265356652,
+            "mean_best_model": 0.16424943764571828
+        },
+        "DIESEL_D4052_395_ZhengYbase": {
+            "best_rrmse": 0.0121958480479153,
+            "mean_rrmse": 0.06757450599040572,
+            "mean_best_model": 0.021856530552516577
+        },
+        "Biscuit_Sucrose_40_RandomSplit": {
+            "best_rrmse": 0.0595140415864823,
+            "mean_rrmse": 0.17757594069199953,
+            "mean_best_model": 0.07567068888198865
+        },
+        "DIESEL_cn_245_hlb-a": {
+            "best_rrmse": 0.1000359818246682,
+            "mean_rrmse": 0.1361763909366454,
+            "mean_best_model": 0.10788033148756157
+        },
+        "Cattle_manure_OM_KS": {
+            "best_rrmse": 0.1070146871654709,
+            "mean_rrmse": 0.18047001309116195,
+            "mean_best_model": 0.1273926415213754
+        },
+        "grapevine_chloride_556_KS": {
+            "best_rrmse": 0.1688364287541339,
+            "mean_rrmse": 0.22657341759977404,
+            "mean_best_model": 0.17942000275425332
+        },
+        "Poultry_manure_K2O_KS": {
+            "best_rrmse": 0.1148994406648498,
+            "mean_rrmse": 0.15887988540446438,
+            "mean_best_model": 0.1270159264051323
+        },
+        "DIESEL_t_256_hla-b": {
+            "best_rrmse": 0.0184752175835618,
+            "mean_rrmse": 0.07478355819191237,
+            "mean_best_model": 0.025141299194517904
+        },
+        "Cattle_manure_K2O_KS": {
+            "best_rrmse": 0.1228051125668656,
+            "mean_rrmse": 0.1815283657665288,
+            "mean_best_model": 0.1385454145794424
+        },
+        "Poultry_manure_OM_KS": {
+            "best_rrmse": 0.1062635377559351,
+            "mean_rrmse": 0.18935033302678866,
+            "mean_best_model": 0.12953027843905118
+        },
+        "DIESEL_f_251_hla-b": {
+            "best_rrmse": 0.112441002081194,
+            "mean_rrmse": 0.1531440652443643,
+            "mean_best_model": 0.12380909231353171
+        },
+        "DIESEL_cn_245_b-a": {
+            "best_rrmse": 0.0998688691558049,
+            "mean_rrmse": 0.13862932147565388,
+            "mean_best_model": 0.1100485594417315
+        },
+        "Biscuit_Fat_40_RandomSplit": {
+            "best_rrmse": 0.027775915789489,
+            "mean_rrmse": 0.17212001972881394,
+            "mean_best_model": 0.06135462099325703
+        },
+        "YamProtein": {
+            "best_rrmse": 0.0718734239497252,
+            "mean_rrmse": 10799758.3615426,
+            "mean_best_model": 0.09855738825010779
+        },
+        "ALPINE_P_291_KS": {
+            "best_rrmse": 0.1054764735374642,
+            "mean_rrmse": 0.15038097770948244,
+            "mean_best_model": 0.10646696954364217
+        },
+        "WOOD_C_402_Olale": {
+            "best_rrmse": 0.1176615350125963,
+            "mean_rrmse": 8896640.315711305,
+            "mean_best_model": 0.12000987687401654
+        },
+        "WOOD_N_402_Olale": {
+            "best_rrmse": 0.1226377126828712,
+            "mean_rrmse": 28622474.53504778,
+            "mean_best_model": 0.12818770796698198
+        },
+        "DIESEL_VISC_395_ZhengYbase": {
+            "best_rrmse": 0.0478425903343343,
+            "mean_rrmse": 0.09939610038177209,
+            "mean_best_model": 0.050781131323061154
+        },
+        "DIESEL_TOTAL_395_PengKS": {
+            "best_rrmse": 0.0210727938822971,
+            "mean_rrmse": 0.07279785923307179,
+            "mean_best_model": 0.025741014411089502
+        },
+        "DIESEL_bp50_246_b-a": {
+            "best_rrmse": 0.0324716998648565,
+            "mean_rrmse": 0.09147572802797194,
+            "mean_best_model": 0.04351534422268797
+        },
+        "Cassava_TCC_4930_DavrieuxRobustness2014": {
+            "best_rrmse": 0.0729675859481974,
+            "mean_rrmse": 0.12960680101084984,
+            "mean_best_model": 0.07835838865962665
+        },
+        "TABLET_Escitalopramt_310_Zhao": {
+            "best_rrmse": 0.0562189161986223,
+            "mean_rrmse": 589574674.9838369,
+            "mean_best_model": 0.06557751600432479
+        },
+        "DIESEL_f_251_hlb-a": {
+            "best_rrmse": 0.1134566401472566,
+            "mean_rrmse": 0.16484519732898367,
+            "mean_best_model": 0.1338524998146398
+        },
+        "Rice_pH": {
+            "best_rrmse": 0.0698845994562337,
+            "mean_rrmse": 0.12894810689525973,
+            "mean_best_model": 0.10476980946085632
+        },
+        "DIESEL_v_252_b-a": {
+            "best_rrmse": 0.0472705796662842,
+            "mean_rrmse": 0.12252269391299189,
+            "mean_best_model": 0.0704587840297133
+        },
+        "DIESEL_d_263_b-a": {
+            "best_rrmse": 0.0120431916450945,
+            "mean_rrmse": 0.10975333612961977,
+            "mean_best_model": 0.051424023423732326
+        },
+        "Corn_Starch_80_ZhengChenPelegYbaseSplit": {
+            "best_rrmse": 0.0402108631806663,
+            "mean_rrmse": 0.20391532248551905,
+            "mean_best_model": 0.10317708937981658
+        },
+        "DIESEL_v_252_hlb-a": {
+            "best_rrmse": 0.0475737551651301,
+            "mean_rrmse": 0.12171107757753251,
+            "mean_best_model": 0.07279373330267416
+        },
+        "Poultry_manure_MgO_KS": {
+            "best_rrmse": 0.1603568278687032,
+            "mean_rrmse": 0.1973884510660415,
+            "mean_best_model": 0.16631691834083837
+        },
+        "DIESEL_t_256_hlb-a": {
+            "best_rrmse": 0.0166524557810956,
+            "mean_rrmse": 0.07255064627297964,
+            "mean_best_model": 0.023788279265634867
+        },
+        "ALPINE_N_552_RobustnessFennoscandia": {
+            "best_rrmse": 0.0736437353661439,
+            "mean_rrmse": 0.15385217936231865,
+            "mean_best_model": 0.09457494084576347
+        },
+        "DIESEL_v_252_hla-b": {
+            "best_rrmse": 0.0372877736715359,
+            "mean_rrmse": 0.11216343711355278,
+            "mean_best_model": 0.06757608214556172
+        },
+        "DIESEL_FREEZE_395_ZhengYbase": {
+            "best_rrmse": 0.0517844703949452,
+            "mean_rrmse": 0.09548819842175628,
+            "mean_best_model": 0.0593678181634021
+        },
+        "Cattle_manure_CaO_KS": {
+            "best_rrmse": 0.2132606126930753,
+            "mean_rrmse": 0.32755935425431815,
+            "mean_best_model": 0.22514122520491883
+        },
+        "Cattle_manure_MgO_KS": {
+            "best_rrmse": 0.1907394938911638,
+            "mean_rrmse": 0.22946481156870413,
+            "mean_best_model": 0.1998649396858807
+        },
+        "DIESEL_d_263_hla-b": {
+            "best_rrmse": 0.0152868862444529,
+            "mean_rrmse": 0.12747476169255062,
+            "mean_best_model": 0.05380965481384648
+        },
+        "DIESEL_D4052_395_PengKS": {
+            "best_rrmse": 0.0118515195132908,
+            "mean_rrmse": 0.08099104397428558,
+            "mean_best_model": 0.027021703575616302
+        },
+        "DIESEL_BP50_395_PengKS": {
+            "best_rrmse": 0.0287971571229114,
+            "mean_rrmse": 0.07099756486187386,
+            "mean_best_model": 0.03840833276963427
+        },
+        "Rice_redox": {
+            "best_rrmse": 0.062897480111465,
+            "mean_rrmse": 0.09976566392576214,
+            "mean_best_model": 0.08016014954220263
+        },
+        "DIESEL_BP50_395_ZhengYbase": {
+            "best_rrmse": 0.0290911878317197,
+            "mean_rrmse": 0.08676710901638793,
+            "mean_best_model": 0.03999059029672705
+        },
+        "Beer_OriginalExtract_60_KS": {
+            "best_rrmse": 0.0188447928760468,
+            "mean_rrmse": 0.13092818095927436,
+            "mean_best_model": 0.030425495984995703
+        },
+        "Corn_Protein_80_ZhengChenPelegYbaseSplit": {
+            "best_rrmse": 0.0141785451465069,
+            "mean_rrmse": 0.20267745070555454,
+            "mean_best_model": 0.07901662502967861
+        },
+        "Poultry_manure_CaO_KS": {
+            "best_rrmse": 0.1451955037068052,
+            "mean_rrmse": 0.22075515017538172,
+            "mean_best_model": 0.16985315363130205
+        },
+        "Milk_Fat_1224_KS": {
+            "best_rrmse": 0.0175962113322594,
+            "mean_rrmse": 0.07869450198440311,
+            "mean_best_model": 0.0198600480114342
+        },
+        "Milk_Lactose_1224_KS": {
+            "best_rrmse": 0.0542237707140267,
+            "mean_rrmse": 0.13671252843119303,
+            "mean_best_model": 0.06776410315515903
+        },
+        "DIESEL_bp50_246_hlb-a": {
+            "best_rrmse": 0.0308843508822593,
+            "mean_rrmse": 0.11919756459611713,
+            "mean_best_model": 0.06543891118033553
+        },
+        "Corn_Oil_80_ZhengChenPelegYbaseSplit": {
+            "best_rrmse": 0.0295085719356284,
+            "mean_rrmse": 0.20240035540531523,
+            "mean_best_model": 0.10982180807507023
+        },
+        "DIESEL_FLASH_395_PengKS": {
+            "best_rrmse": 0.1413982945179376,
+            "mean_rrmse": 0.15581397390650584,
+            "mean_best_model": 0.14288658356477132
+        },
+        "LUCAS_SOC_all_26650_NocitaKS": {
+            "best_rrmse": 0.0319158740594682,
+            "mean_rrmse": 0.09537503957008683,
+            "mean_best_model": 0.0507592774401156
+        },
+        "Rice_EC": {
+            "best_rrmse": 0.0592761225099132,
+            "mean_rrmse": 0.08437313618752569,
+            "mean_best_model": 0.07062685060983775
+        },
+        "DIESEL_FREEZE_395_PengKS": {
+            "best_rrmse": 0.1265861317490833,
+            "mean_rrmse": 0.20700825795968877,
+            "mean_best_model": 0.15096320298130791
+        },
+        "Poultry_manure_P2O5_KS": {
+            "best_rrmse": 0.134237617528405,
+            "mean_rrmse": 0.19366173570149636,
+            "mean_best_model": 0.15385444177288282
+        },
+        "Cattle_manure_Total_N_KS": {
+            "best_rrmse": 0.1411573791215064,
+            "mean_rrmse": 0.16928293894861385,
+            "mean_best_model": 0.14908735160355477
+        },
+        "DIESEL_FLASH_395_ZhengYbase": {
+            "best_rrmse": 0.1181835477201853,
+            "mean_rrmse": 0.1469832229955535,
+            "mean_best_model": 0.12679823918314787
+        },
+        "DIESEL_cn_245_hla-b": {
+            "best_rrmse": 0.0951461727119633,
+            "mean_rrmse": 0.13084479705966537,
+            "mean_best_model": 0.10392076492598273
+        },
+        "Rice_Amylose_313_YbasedSplit": {
+            "best_rrmse": 0.0703246065969931,
+            "mean_rrmse": 0.14773313951138722,
+            "mean_best_model": 0.0959595346203852
+        },
+        "Poultry_manure_Total_N_KS": {
+            "best_rrmse": 0.1304104038389552,
+            "mean_rrmse": 0.2018827693030006,
+            "mean_best_model": 0.14130247986538114
+        },
+        "Poultry_manure_DM_KS": {
+            "best_rrmse": 0.086069224211523,
+            "mean_rrmse": 0.17600953093356383,
+            "mean_best_model": 0.10697663548741697
+        },
+        "grapevine_chloride_260_KS": {
+            "best_rrmse": 0.2329415274689452,
+            "mean_rrmse": 0.26900252764822075,
+            "mean_best_model": 0.24093445744325892
+        },
+        "WOOD_Sustainability_511_Davrieux_RMSE0.092": {
+            "best_rrmse": 0.1211726443561402,
+            "mean_rrmse": 3902597.5572823137,
+            "mean_best_model": 0.12317901779016337
+        },
+        "Sorghom_digest": {
+            "best_rrmse": 0.2065008448038317,
+            "mean_rrmse": 0.23060746055424572,
+            "mean_best_model": 0.21057301856551416
+        },
+        "DIESEL_TOTAL_395_ZhengYbase": {
+            "best_rrmse": 0.0183876707884458,
+            "mean_rrmse": 0.06834371296988993,
+            "mean_best_model": 0.024122006081857876
+        },
+        "Cattle_manure_P2O5_KS": {
+            "best_rrmse": 0.191967166727716,
+            "mean_rrmse": 0.27476329583067727,
+            "mean_best_model": 0.20342715899337419
+        },
+        "DIESEL_CN_381_PengKS": {
+            "best_rrmse": 0.1316218274530491,
+            "mean_rrmse": 0.1494333619145134,
+            "mean_best_model": 0.132464185715906
+        },
+        "Milk_Protein_1224_KS": {
+            "best_rrmse": 0.0295081892065468,
+            "mean_rrmse": 0.12330415975655334,
+            "mean_best_model": 0.04496387365204098
+        },
+        "EUCALYPTUS_Density_1654_Chaix_RMSE0.03": {
+            "best_rrmse": 0.049858479007442,
+            "mean_rrmse": 0.08756376308857265,
+            "mean_best_model": 0.052824151234969474
+        },
+        "DIESEL_VISC_395_PengKS": {
+            "best_rrmse": 0.0361851896602967,
+            "mean_rrmse": 0.07262686147529591,
+            "mean_best_model": 0.043438180615124465
+        },
+        "DIESEL_CN_381_ZhengYbase": {
+            "best_rrmse": 0.1012274104938343,
+            "mean_rrmse": 0.13098880665827006,
+            "mean_best_model": 0.10763799643194819
+        },
+        "DIESEL_d_263_hlb-a": {
+            "best_rrmse": 0.0122500865058724,
+            "mean_rrmse": 0.10809872052943237,
+            "mean_best_model": 0.049950117918249645
+        },
+        "DIESEL_t_256_b-a": {
+            "best_rrmse": 0.0181624327306258,
+            "mean_rrmse": 0.10608491188797735,
+            "mean_best_model": 0.03839769010601429
+        },
+        "Biscuit_Flour_40_RandomSplit": {
+            "best_rrmse": 0.0644728851057294,
+            "mean_rrmse": 0.15749577735618317,
+            "mean_best_model": 0.06904045376092792
+        }
+    },
+    "rankings": {
+        "best_rrmse": [
+            "grapevine_chloride_260_KS",
+            "Cattle_manure_CaO_KS",
+            "Sorghom_digest",
+            "Cattle_manure_P2O5_KS",
+            "Cattle_manure_MgO_KS",
+            "grapevine_chloride_556_KS",
+            "WOOD_Density_402_Olale",
+            "Poultry_manure_MgO_KS",
+            "Cattle_manure_DM_KS",
+            "Poultry_manure_CaO_KS",
+            "DIESEL_FLASH_395_PengKS",
+            "Cattle_manure_Total_N_KS",
+            "Poultry_manure_P2O5_KS",
+            "ALPINE_P_291_RobustnessFennoscandia",
+            "DIESEL_CN_381_PengKS",
+            "Poultry_manure_Total_N_KS",
+            "DIESEL_FREEZE_395_PengKS",
+            "Cattle_manure_K2O_KS",
+            "WOOD_N_402_Olale",
+            "WOOD_Sustainability_511_Davrieux_RMSE0.092",
+            "DIESEL_FLASH_395_ZhengYbase",
+            "WOOD_C_402_Olale",
+            "DIESEL_f_251_b-a",
+            "Poultry_manure_K2O_KS",
+            "DIESEL_f_251_hlb-a",
+            "DIESEL_f_251_hla-b",
+            "Cattle_manure_OM_KS",
+            "Poultry_manure_OM_KS",
+            "ALPINE_P_291_KS",
+            "DIESEL_CN_381_ZhengYbase",
+            "DIESEL_cn_245_hlb-a",
+            "DIESEL_cn_245_b-a",
+            "DIESEL_cn_245_hla-b",
+            "Poultry_manure_DM_KS",
+            "ALPINE_N_552_RobustnessFennoscandia",
+            "Cassava_TCC_4930_DavrieuxRobustness2014",
+            "YamProtein",
+            "Rice_Amylose_313_YbasedSplit",
+            "Rice_pH",
+            "Biscuit_Flour_40_RandomSplit",
+            "Rice_redox",
+            "ALPINE_N_552_KS",
+            "Biscuit_Sucrose_40_RandomSplit",
+            "Rice_EC",
+            "Cassava_TCC_4468_DavrieuxRobustness2013",
+            "TABLET_Escitalopramt_310_Zhao",
+            "Milk_Lactose_1224_KS",
+            "DIESEL_FREEZE_395_ZhengYbase",
+            "EUCALYPTUS_Density_1654_Chaix_RMSE0.03",
+            "DIESEL_VISC_395_ZhengYbase",
+            "DIESEL_v_252_hlb-a",
+            "DIESEL_v_252_b-a",
+            "Corn_Starch_80_ZhengChenPelegYbaseSplit",
+            "DIESEL_v_252_hla-b",
+            "DIESEL_VISC_395_PengKS",
+            "DIESEL_bp50_246_b-a",
+            "LUCAS_SOC_all_26650_NocitaKS",
+            "DIESEL_bp50_246_hlb-a",
+            "Corn_Oil_80_ZhengChenPelegYbaseSplit",
+            "Milk_Protein_1224_KS",
+            "DIESEL_BP50_395_ZhengYbase",
+            "DIESEL_BP50_395_PengKS",
+            "Biscuit_Fat_40_RandomSplit",
+            "DIESEL_bp50_246_hla-b",
+            "DIESEL_TOTAL_395_PengKS",
+            "Beer_OriginalExtract_60_KS",
+            "DIESEL_t_256_hla-b",
+            "DIESEL_TOTAL_395_ZhengYbase",
+            "DIESEL_t_256_b-a",
+            "Milk_Fat_1224_KS",
+            "DIESEL_t_256_hlb-a",
+            "DIESEL_d_263_hla-b",
+            "Corn_Protein_80_ZhengChenPelegYbaseSplit",
+            "DIESEL_d_263_hlb-a",
+            "DIESEL_D4052_395_ZhengYbase",
+            "DIESEL_d_263_b-a",
+            "DIESEL_D4052_395_PengKS"
+        ],
+        "mean_rrmse": [
+            "TABLET_Escitalopramt_310_Zhao",
+            "WOOD_N_402_Olale",
+            "WOOD_Density_402_Olale",
+            "YamProtein",
+            "WOOD_C_402_Olale",
+            "WOOD_Sustainability_511_Davrieux_RMSE0.092",
+            "Cattle_manure_CaO_KS",
+            "Cattle_manure_P2O5_KS",
+            "grapevine_chloride_260_KS",
+            "Sorghom_digest",
+            "Cattle_manure_MgO_KS",
+            "grapevine_chloride_556_KS",
+            "Cattle_manure_DM_KS",
+            "Poultry_manure_CaO_KS",
+            "DIESEL_FREEZE_395_PengKS",
+            "Corn_Starch_80_ZhengChenPelegYbaseSplit",
+            "Corn_Protein_80_ZhengChenPelegYbaseSplit",
+            "Corn_Oil_80_ZhengChenPelegYbaseSplit",
+            "Poultry_manure_Total_N_KS",
+            "Poultry_manure_MgO_KS",
+            "ALPINE_P_291_RobustnessFennoscandia",
+            "Poultry_manure_P2O5_KS",
+            "Poultry_manure_OM_KS",
+            "Cattle_manure_K2O_KS",
+            "Cattle_manure_OM_KS",
+            "Biscuit_Sucrose_40_RandomSplit",
+            "Poultry_manure_DM_KS",
+            "Biscuit_Fat_40_RandomSplit",
+            "Cattle_manure_Total_N_KS",
+            "DIESEL_f_251_b-a",
+            "DIESEL_f_251_hlb-a",
+            "Poultry_manure_K2O_KS",
+            "Biscuit_Flour_40_RandomSplit",
+            "DIESEL_FLASH_395_PengKS",
+            "ALPINE_N_552_RobustnessFennoscandia",
+            "DIESEL_f_251_hla-b",
+            "ALPINE_P_291_KS",
+            "DIESEL_CN_381_PengKS",
+            "Rice_Amylose_313_YbasedSplit",
+            "DIESEL_FLASH_395_ZhengYbase",
+            "DIESEL_cn_245_b-a",
+            "Milk_Lactose_1224_KS",
+            "DIESEL_cn_245_hlb-a",
+            "DIESEL_CN_381_ZhengYbase",
+            "Beer_OriginalExtract_60_KS",
+            "DIESEL_cn_245_hla-b",
+            "Cassava_TCC_4930_DavrieuxRobustness2014",
+            "Rice_pH",
+            "DIESEL_d_263_hla-b",
+            "Milk_Protein_1224_KS",
+            "DIESEL_v_252_b-a",
+            "DIESEL_v_252_hlb-a",
+            "DIESEL_bp50_246_hlb-a",
+            "DIESEL_bp50_246_hla-b",
+            "Cassava_TCC_4468_DavrieuxRobustness2013",
+            "ALPINE_N_552_KS",
+            "DIESEL_v_252_hla-b",
+            "DIESEL_d_263_b-a",
+            "DIESEL_d_263_hlb-a",
+            "DIESEL_t_256_b-a",
+            "Rice_redox",
+            "DIESEL_VISC_395_ZhengYbase",
+            "DIESEL_FREEZE_395_ZhengYbase",
+            "LUCAS_SOC_all_26650_NocitaKS",
+            "DIESEL_bp50_246_b-a",
+            "EUCALYPTUS_Density_1654_Chaix_RMSE0.03",
+            "DIESEL_BP50_395_ZhengYbase",
+            "Rice_EC",
+            "DIESEL_D4052_395_PengKS",
+            "Milk_Fat_1224_KS",
+            "DIESEL_t_256_hla-b",
+            "DIESEL_TOTAL_395_PengKS",
+            "DIESEL_VISC_395_PengKS",
+            "DIESEL_t_256_hlb-a",
+            "DIESEL_BP50_395_PengKS",
+            "DIESEL_TOTAL_395_ZhengYbase",
+            "DIESEL_D4052_395_ZhengYbase"
+        ],
+        "mean_best_model": [
+            "grapevine_chloride_260_KS",
+            "Cattle_manure_CaO_KS",
+            "Sorghom_digest",
+            "Cattle_manure_P2O5_KS",
+            "Cattle_manure_MgO_KS",
+            "grapevine_chloride_556_KS",
+            "Poultry_manure_CaO_KS",
+            "Cattle_manure_DM_KS",
+            "Poultry_manure_MgO_KS",
+            "WOOD_Density_402_Olale",
+            "ALPINE_P_291_RobustnessFennoscandia",
+            "Poultry_manure_P2O5_KS",
+            "DIESEL_FREEZE_395_PengKS",
+            "Cattle_manure_Total_N_KS",
+            "DIESEL_FLASH_395_PengKS",
+            "Poultry_manure_Total_N_KS",
+            "Cattle_manure_K2O_KS",
+            "DIESEL_f_251_b-a",
+            "DIESEL_f_251_hlb-a",
+            "DIESEL_CN_381_PengKS",
+            "Poultry_manure_OM_KS",
+            "WOOD_N_402_Olale",
+            "Cattle_manure_OM_KS",
+            "Poultry_manure_K2O_KS",
+            "DIESEL_FLASH_395_ZhengYbase",
+            "DIESEL_f_251_hla-b",
+            "WOOD_Sustainability_511_Davrieux_RMSE0.092",
+            "WOOD_C_402_Olale",
+            "DIESEL_cn_245_b-a",
+            "Corn_Oil_80_ZhengChenPelegYbaseSplit",
+            "DIESEL_cn_245_hlb-a",
+            "DIESEL_CN_381_ZhengYbase",
+            "Poultry_manure_DM_KS",
+            "ALPINE_P_291_KS",
+            "Rice_pH",
+            "DIESEL_cn_245_hla-b",
+            "Corn_Starch_80_ZhengChenPelegYbaseSplit",
+            "YamProtein",
+            "Rice_Amylose_313_YbasedSplit",
+            "ALPINE_N_552_RobustnessFennoscandia",
+            "Rice_redox",
+            "Corn_Protein_80_ZhengChenPelegYbaseSplit",
+            "Cassava_TCC_4930_DavrieuxRobustness2014",
+            "Biscuit_Sucrose_40_RandomSplit",
+            "DIESEL_v_252_hlb-a",
+            "Rice_EC",
+            "DIESEL_v_252_b-a",
+            "Cassava_TCC_4468_DavrieuxRobustness2013",
+            "Biscuit_Flour_40_RandomSplit",
+            "Milk_Lactose_1224_KS",
+            "DIESEL_v_252_hla-b",
+            "TABLET_Escitalopramt_310_Zhao",
+            "DIESEL_bp50_246_hlb-a",
+            "ALPINE_N_552_KS",
+            "Biscuit_Fat_40_RandomSplit",
+            "DIESEL_FREEZE_395_ZhengYbase",
+            "DIESEL_d_263_hla-b",
+            "EUCALYPTUS_Density_1654_Chaix_RMSE0.03",
+            "DIESEL_d_263_b-a",
+            "DIESEL_VISC_395_ZhengYbase",
+            "LUCAS_SOC_all_26650_NocitaKS",
+            "DIESEL_bp50_246_hla-b",
+            "DIESEL_d_263_hlb-a",
+            "Milk_Protein_1224_KS",
+            "DIESEL_bp50_246_b-a",
+            "DIESEL_VISC_395_PengKS",
+            "DIESEL_BP50_395_ZhengYbase",
+            "DIESEL_BP50_395_PengKS",
+            "DIESEL_t_256_b-a",
+            "Beer_OriginalExtract_60_KS",
+            "DIESEL_D4052_395_PengKS",
+            "DIESEL_TOTAL_395_PengKS",
+            "DIESEL_t_256_hla-b",
+            "DIESEL_TOTAL_395_ZhengYbase",
+            "DIESEL_t_256_hlb-a",
+            "DIESEL_D4052_395_ZhengYbase",
+            "Milk_Fat_1224_KS"
+        ]
+    }
+}
