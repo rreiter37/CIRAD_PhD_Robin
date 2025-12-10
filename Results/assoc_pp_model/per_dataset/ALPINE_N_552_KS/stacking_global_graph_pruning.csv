@@ -1,0 +1,2 @@
+data_source,pipeline,mode,n_base_estimators,RRMSE_train,RRMSE_test,RMSE_train,RMSE_test,range_y,runtime_seconds
+ALPINE_N_552_KS,graph_pruning,Regression,131,0.026325658689121963,0.052021483669032836,0.14946472379559622,0.2953535476490083,5.677530259,53240.804406404495

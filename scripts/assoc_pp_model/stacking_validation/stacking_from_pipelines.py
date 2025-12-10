@@ -24,7 +24,7 @@ Author: ChatGPT (all comments in English).
 
 import os
 import argparse
-import time  # <-- added for runtime measurement
+import time
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
@@ -130,6 +130,77 @@ def plot_estimator_diagnostics(estimators, Z_train_full, pipeline_name, data_sou
     plt.close()
 
     print(f"[INFO] Diagnostic figure saved to {fig_path}")
+
+
+def plot_estimator_rrmse(estimators, Z_train_full, y_true_train, range_y, pipeline_name, data_source, save_dir):
+    """
+    Create a diagnostic boxplot showing the individual RRMSE of each estimator.
+    Like the prediction boxplot, the layout adapts to remain readable.
+
+    Parameters
+    ----------
+    estimators : list of (name, estimator)
+        Estimators used in stacking.
+    Z_train_full : ndarray
+        Predictions of each estimator (shape: n_samples × n_estimators).
+    y_true_train : array-like
+        True training labels in original scale.
+    range_y : float
+        Range of Y (max - min), needed to compute RRMSE.
+    pipeline_name : str
+    data_source : str
+    save_dir : str
+    """
+
+    est_names = [name for name, _ in estimators]
+    n_estimators = len(est_names)
+
+    # Compute RRMSE per estimator
+    rrmse_values = []
+    for est_idx, name in enumerate(est_names):
+        rmse = np.sqrt(mean_squared_error(y_true_train, Z_train_full[:, est_idx]))
+        rrmse = rmse / range_y if range_y != 0 else np.nan
+        rrmse_values.append(rrmse)
+
+    df_rrmse = pd.DataFrame({"Estimator": est_names, "RRMSE": rrmse_values})
+
+    # Adapt height
+    fig_height = max(6, 0.25 * n_estimators)
+
+    # Adaptive font
+    if n_estimators <= 30:
+        label_font = 9
+    elif n_estimators <= 60:
+        label_font = 7
+    elif n_estimators <= 100:
+        label_font = 5
+    else:
+        label_font = 4
+
+    plt.figure(figsize=(12, fig_height))
+
+    # Horizontal boxplot (each estimator is a single value → boxplot = point, but OK)
+    sns.boxplot(
+        data=df_rrmse,
+        x="RRMSE",
+        y="Estimator",
+        orient="h",
+        fliersize=1,
+        color="skyblue"
+    )
+
+    plt.title(f"Estimator RRMSE – Pipeline: {pipeline_name}\nDataset: {data_source}", fontsize=12)
+    plt.xlabel("RRMSE", fontsize=10)
+    plt.ylabel("Estimators", fontsize=10)
+    plt.yticks(fontsize=label_font)
+
+    plt.tight_layout()
+
+    fig_path = os.path.join(save_dir, f"diagnostics_rrmse_{pipeline_name}.png")
+    plt.savefig(fig_path, dpi=300)
+    plt.close()
+
+    print(f"[INFO] Diagnostic RRMSE figure saved to {fig_path}")
 
 
 # ======================================================================
@@ -449,9 +520,14 @@ def main():
     models_dict = build_models_dict(mode=mode, num_classes=num_classes, random_state=rd_seed)
 
     # -------------------------------------------------------------
-    # Pipelines to consider
+    # Pipelines to consider : 3 filtres + 1 pipeline "no_filter"
     # -------------------------------------------------------------
-    all_logical_pipelines = ["gatekeeping", "graph_pruning", "weakness_coverage"]
+    all_logical_pipelines = [
+        "gatekeeping",
+        "graph_pruning",
+        "weakness_coverage",
+        "no_filter"
+    ]
 
     if subset is None:
         pipelines_to_run = all_logical_pipelines
@@ -485,7 +561,7 @@ def main():
 
         # Start timer for this pipeline
         pipeline_start_time = time.time()
-        
+
         models_dict = build_models_dict(mode=mode, num_classes=num_classes, random_state=rd_seed)
 
         if pipeline_name == "all":
@@ -510,6 +586,74 @@ def main():
                         ])
                     est_name = f"{model_key}_{prep_name}"
                     estimators.append((est_name, pipe))
+                    
+        elif pipeline_name == "no_filter":
+            print("[INFO] Building all model × preprocessing combinations (NO FILTER).")
+
+            # ----- Build preprocessings exactly like association script -----
+            from itertools import combinations
+            import nirs4all.operators.transformations as pp
+            from sklearn.pipeline import Pipeline
+            from sklearn.decomposition import PCA
+
+            # Simple preprocessings
+            simple_preprocs = [
+                ("id", pp.IdentityTransformer()),
+                ("baseline", pp.Baseline()),
+                ("derivate", pp.Derivate()),
+                ("detrend", pp.Detrend()),
+                ("MSC", pp.MultiplicativeScatterCorrection()),
+                ("normalize", pp.Normalize()),
+                ("RNV", pp.RobustStandardNormalVariate()),
+                ("savgol", pp.SavitzkyGolay()),
+                ("simplescale", pp.SimpleScale()),
+                ("SNV", pp.StandardNormalVariate()),
+                ("haar", pp.Wavelet("haar")),
+                ("gaussian", pp.Gaussian(order=2, sigma=1)),
+            ]
+
+            preprocessings_nf = dict(simple_preprocs)
+
+            # Two-step combinations excluding identity
+            filtered_base = [p for p in simple_preprocs if p[0] != "id"]
+            for (name1, trans1), (name2, trans2) in combinations(filtered_base, 2):
+                combo_name = f"{name1}_{name2}"
+                combo_pipe = Pipeline([
+                    (name1, trans1),
+                    (name2, trans2)
+                ])
+                preprocessings_nf[combo_name] = combo_pipe
+
+            # PCA
+            preprocessings_nf["PCA"] = PCA(random_state=rd_seed)
+
+            # ----- Build models respecting mode -----
+            suffix = "_reg" if mode == "Regression" else "_classif"
+            estimators = []
+
+            for model_key, base_model in models_dict.items():
+                if not model_key.endswith(suffix):
+                    continue
+                for prep_name, prep_obj in preprocessings_nf.items():
+                    mdl = clone(base_model)
+
+                    if model_key.startswith("LGBM"):
+                        pipe = Pipeline([
+                            ("prep", prep_obj),
+                            ("ensure_df", EnsureDataFrame()),
+                            ("model", mdl)
+                        ])
+                    else:
+                        pipe = Pipeline([
+                            ("prep", prep_obj),
+                            ("model", mdl)
+                        ])
+
+                    est_name = f"{model_key}_{prep_name}"
+                    estimators.append((est_name, pipe))
+
+            print(f"[INFO] no_filter: Total estimators created = {len(estimators)}")
+
         else:
             # Restricted to selected pairs from pipeline_<name>_selected.csv
             df_sel = load_selected_pairs_for_pipeline(pipeline_name)
@@ -656,6 +800,16 @@ def main():
         plot_estimator_diagnostics(
             estimators=estimators,
             Z_train_full=Z_train_full,
+            pipeline_name=pipeline_name,
+            data_source=data_source,
+            save_dir=fig_dir,
+        )
+
+        plot_estimator_rrmse(
+            estimators=estimators,
+            Z_train_full=Z_train_full,
+            y_true_train=y_true_train_to_save,
+            range_y=metrics["range_y"] if mode == "Regression" else 1,
             pipeline_name=pipeline_name,
             data_source=data_source,
             save_dir=fig_dir,

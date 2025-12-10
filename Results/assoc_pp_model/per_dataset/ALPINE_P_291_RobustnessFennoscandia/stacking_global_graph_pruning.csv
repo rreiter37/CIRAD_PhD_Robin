@@ -1,0 +1,2 @@
+data_source,pipeline,mode,n_base_estimators,RRMSE_train,RRMSE_test,RMSE_train,RMSE_test,range_y,runtime_seconds
+ALPINE_P_291_RobustnessFennoscandia,graph_pruning,Regression,131,0.04787798934448211,0.15576104490825335,0.027025285225341596,0.08792112457679735,0.5644615739999999,9231.926891803741

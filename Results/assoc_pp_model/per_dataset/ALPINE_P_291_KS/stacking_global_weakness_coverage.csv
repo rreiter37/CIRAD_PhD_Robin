@@ -1,0 +1,2 @@
+data_source,pipeline,mode,n_base_estimators,RRMSE_train,RRMSE_test,RMSE_train,RMSE_test,range_y,runtime_seconds
+ALPINE_P_291_KS,weakness_coverage,Regression,39,1.9084201875974072e+20,1.908420183871043e+20,1.2513534185623662e+20,1.2513534161189847e+20,0.655701206,5749.6949870586395
