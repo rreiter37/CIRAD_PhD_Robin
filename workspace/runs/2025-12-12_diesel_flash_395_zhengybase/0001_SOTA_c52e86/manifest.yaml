@@ -1,0 +1,204 @@
+uid: 28c86a82-662e-4b7c-89a9-b251a6fb6c2e
+pipeline_id: 0001_SOTA_c52e86
+name: SOTA_c52e86
+dataset: diesel_flash_395_zhengybase
+created_at: '2025-12-12T08:26:50.118774+00:00'
+version: '1.0'
+pipeline:
+  steps:
+  - nirs4all.operators.transforms.nirs.ASLSBaseline
+  - split:
+      class: nirs4all.operators.splitters.splitters.SPXYGFold
+      params:
+        n_splits: 1
+        random_state: 42
+    group: ID
+  - split:
+      class: nirs4all.operators.splitters.splitters.SPXYGFold
+      params:
+        n_splits: 3
+        random_state: 42
+    group: ID
+  - y_processing: sklearn.preprocessing._data.StandardScaler
+  - sklearn.preprocessing._data.StandardScaler
+  - nirs4all.operators.transforms.nirs.SavitzkyGolay
+  - class: sklearn.decomposition._pca.PCA
+    params:
+      n_components: 0.99
+      whiten: true
+      random_state: 42
+  - sklearn.preprocessing._data.StandardScaler
+  - sklearn.preprocessing._data.PowerTransformer
+  - model:
+      framework: autogluon
+      params:
+        presets: extreme_quality
+        time_limit: 3600
+        num_bag_folds: 5
+        random_state: 42
+    name: AutoGluon
+  - model:
+      class: tabpfn.regressor.TabPFNRegressor
+      params:
+        n_estimators: 16
+        device: cpu
+        ignore_pretraining_limits: true
+        random_state: 42
+    name: TabPFN
+  - model:
+      class: tabpfn.regressor.TabPFNRegressor
+      params:
+        n_estimators: 16
+        model_path: tabpfn-v2.5-regressor-v2.5_real.ckpt
+        device: cpu
+        ignore_pretraining_limits: true
+        random_state: 42
+    name: TabPFN-real
+generator_choices: []
+metadata: {}
+artifacts:
+- hash: sha256:95c7c1d7b88a1236418be2266cbd228dac43925cfde8d91ae47a473976519313
+  name: ASLSBaseline_1
+  path: ASLSBaseline_95c7c1.joblib
+  format: joblib
+  format_version: ''
+  nirs4all_version: 0.5.1
+  size: 216
+  saved_at: '2025-12-12T08:26:50.182001+00:00'
+  step: 1
+- hash: sha256:5d29e567198aae43b01313f99386246f443c31d43b84af830b14768834268af2
+  name: y_StandardScaler
+  path: StandardScaler_5d29e5.joblib
+  format: joblib
+  format_version: sklearn==1.6.1
+  nirs4all_version: 0.5.1
+  size: 441
+  saved_at: '2025-12-12T08:26:50.466036+00:00'
+  step: 4
+- hash: sha256:48191be5510b09ccc16bfeea8b5e0323d34bce4279b518fd5e6a7f11481e5b30
+  name: StandardScaler_1
+  path: StandardScaler_48191b.joblib
+  format: joblib
+  format_version: sklearn==1.6.1
+  nirs4all_version: 0.5.1
+  size: 9279
+  saved_at: '2025-12-12T08:26:50.472258+00:00'
+  step: 5
+- hash: sha256:b4f4680c61f9eabc36df266ceebd221eecd430d08d865533e278a3d159ac507d
+  name: SavitzkyGolay_1
+  path: SavitzkyGolay_b4f468.joblib
+  format: joblib
+  format_version: ''
+  nirs4all_version: 0.5.1
+  size: 137
+  saved_at: '2025-12-12T08:26:50.487120+00:00'
+  step: 6
+- hash: sha256:082eeeefb56f4fbbd88eec3c0726a61105437ba420a1ec2c5f795387bd6c8a95
+  name: PCA_1
+  path: PCA_082eee.joblib
+  format: joblib
+  format_version: sklearn==1.6.1
+  nirs4all_version: 0.5.1
+  size: 19938
+  saved_at: '2025-12-12T08:26:50.526469+00:00'
+  step: 7
+- hash: sha256:08baef5f050d763316a17153d8ea17f04a2261a6e5767fb18177b8987451c729
+  name: StandardScaler_1
+  path: StandardScaler_08baef.joblib
+  format: joblib
+  format_version: sklearn==1.6.1
+  nirs4all_version: 0.5.1
+  size: 674
+  saved_at: '2025-12-12T08:26:50.566317+00:00'
+  step: 8
+- hash: sha256:87fe7c6ee7fd4d64c9d18d3d8959f488efbf5a3b4b9eb34e20cbfb0062de0658
+  name: PowerTransformer_1
+  path: PowerTransformer_87fe7c.joblib
+  format: joblib
+  format_version: sklearn==1.6.1
+  nirs4all_version: 0.5.1
+  size: 911
+  saved_at: '2025-12-12T08:26:50.616447+00:00'
+  step: 9
+- hash: sha256:582ef783fc6f1ae3c206cbaa84673f367331946e1b28dc645545aac227b21e7b
+  name: AutoGluon_1.pkl
+  path: TabularPredictor_582ef7.pkl
+  format: cloudpickle
+  format_version: ''
+  nirs4all_version: 0.5.1
+  size: 14152
+  saved_at: '2025-12-12T08:27:02.353157+00:00'
+  step: 10
+- hash: sha256:a41c5175a857873e6ee3220c3eb028ffc8c86b4798ff95174c7a07be5faebed0
+  name: AutoGluon_2.pkl
+  path: TabularPredictor_a41c51.pkl
+  format: cloudpickle
+  format_version: ''
+  nirs4all_version: 0.5.1
+  size: 14161
+  saved_at: '2025-12-12T08:27:02.353655+00:00'
+  step: 10
+- hash: sha256:b6b891926cfea83a731d6be4acb413baeca4ed2fa34238b301c550b7a570e446
+  name: AutoGluon_3.pkl
+  path: TabularPredictor_b6b891.pkl
+  format: cloudpickle
+  format_version: ''
+  nirs4all_version: 0.5.1
+  size: 14152
+  saved_at: '2025-12-12T08:27:02.354126+00:00'
+  step: 10
+- hash: sha256:edfe6fb60d2555e3a61454dab419d62f8c21c16cab0c22eb6223a54500da7bb9
+  name: TabPFN_1.pkl
+  path: TabPFNRegressor_edfe6f.pkl
+  format: cloudpickle
+  format_version: ''
+  nirs4all_version: 0.5.1
+  size: 41538603
+  saved_at: '2025-12-12T08:27:19.518706+00:00'
+  step: 11
+- hash: sha256:78696bab87049aacf10fab2238358e9bc8084c70c46e98e83cfcc9683647121e
+  name: TabPFN_2.pkl
+  path: TabPFNRegressor_78696b.pkl
+  format: cloudpickle
+  format_version: ''
+  nirs4all_version: 0.5.1
+  size: 41541291
+  saved_at: '2025-12-12T08:27:19.574883+00:00'
+  step: 11
+- hash: sha256:138362d9e33fec0191444ab69a21183c71524a5a7c0c50c38b0c02098f9c3433
+  name: TabPFN_3.pkl
+  path: TabPFNRegressor_138362.pkl
+  format: cloudpickle
+  format_version: ''
+  nirs4all_version: 0.5.1
+  size: 41541291
+  saved_at: '2025-12-12T08:27:19.629560+00:00'
+  step: 11
+- hash: sha256:229885c4e4236f15d177724c29eb7c8f9534e9bc1494037dac1cab5aaca41d5f
+  name: TabPFN-real_1.pkl
+  path: TabPFNRegressor_229885.pkl
+  format: cloudpickle
+  format_version: ''
+  nirs4all_version: 0.5.1
+  size: 41538640
+  saved_at: '2025-12-12T08:27:55.523180+00:00'
+  step: 12
+- hash: sha256:3dff8d098f1e864a60b658d87dabc9bc2ad15ea79e6d372cd2c89e4fce14d238
+  name: TabPFN-real_2.pkl
+  path: TabPFNRegressor_3dff8d.pkl
+  format: cloudpickle
+  format_version: ''
+  nirs4all_version: 0.5.1
+  size: 41541328
+  saved_at: '2025-12-12T08:27:55.567336+00:00'
+  step: 12
+- hash: sha256:39ef53521f1bb35c4092b65a2cb83e065432f39f876b54ff6a46715ab1fb2244
+  name: TabPFN-real_3.pkl
+  path: TabPFNRegressor_39ef53.pkl
+  format: cloudpickle
+  format_version: ''
+  nirs4all_version: 0.5.1
+  size: 41541328
+  saved_at: '2025-12-12T08:27:55.610472+00:00'
+  step: 12
+predictions: []
