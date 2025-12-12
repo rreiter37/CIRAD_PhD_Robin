@@ -15,6 +15,7 @@ Outputs/outliers_detection/**/*.pth.tar
 
 # Ignore les importations de nouvelles bases de données dans le dossier Data
 Data/
+Data_nirs4all/
 
 # Ignore les logs pour tensorboard dans le dossier lightning_logs
 lightning_logs/
@@ -37,3 +38,8 @@ Scripts_python/utils/__pycache__/
 INSPIR_nirs4all/
 .vscode/
 outputs/
+
+# Ignore models and workspace for benchmarking tabpfn
+workspace/*/
+*.ckpt
+charts/
