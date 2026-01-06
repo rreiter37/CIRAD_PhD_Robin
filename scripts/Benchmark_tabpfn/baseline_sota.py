@@ -99,12 +99,7 @@ pipeline = [
     ASLSBaseline(),
     {"split": SPXYGFold(n_splits=1, random_state=42), "group": AGGREGATION_KEY},  # COMMENT IF TRAIN AND TEST ARE PROVIDED
     {"split": SPXYGFold(n_splits=3, random_state=42), "group": AGGREGATION_KEY},
-    {"y_processing": StandardScaler()},
-    StandardScaler(),
-    SavitzkyGolay(),
     PCA(n_components=0.99, random_state=42, whiten=True), # PCA(50)
-    StandardScaler(),
-    PowerTransformer(),
     {
         'model': {
             'framework': 'autogluon',
