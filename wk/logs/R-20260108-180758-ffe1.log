@@ -1,0 +1,1 @@
+2026-01-08T18:07:59+0100 [ERROR] Pipeline PLS_PP_SELECTION_NO_SAVE_ef7004 on dataset beer_originalextract_60_ks failed: Pipeline step 4 failed: Step execution failed: Group column 'ID' specified but dataset has no metadata columns.

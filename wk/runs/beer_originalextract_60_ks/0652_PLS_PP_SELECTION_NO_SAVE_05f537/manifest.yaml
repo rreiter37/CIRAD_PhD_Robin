@@ -1,0 +1,564 @@
+schema_version: '2.0'
+uid: 5c91c3c9-1bb4-4da2-84d9-4607add90866
+pipeline_id: 0652_PLS_PP_SELECTION_NO_SAVE_05f537
+name: PLS_PP_SELECTION_NO_SAVE_05f537
+dataset: beer_originalextract_60_ks
+created_at: '2026-01-08T17:55:21.951455+00:00'
+pipeline:
+  steps:
+  - feature_augmentation: null
+  - feature_augmentation: sklearn.preprocessing._data.StandardScaler
+  - y_processing: sklearn.preprocessing._data.MinMaxScaler
+  - split:
+      class: nirs4all.operators.splitters.splitters.SPXYGFold
+      params:
+        n_splits: 3
+        random_state: 42
+  - feature_augmentation:
+    - nirs4all.operators.transforms.signal.Detrend
+    - class: nirs4all.operators.transforms.nirs.SavitzkyGolay
+      params:
+        window_length: 15
+    - class: nirs4all.operators.transforms.nirs.SavitzkyGolay
+      params:
+        window_length: 15
+        deriv: 1
+    - nirs4all.operators.transforms.nirs.Haar
+  - model:
+      class: sklearn.cross_decomposition._pls.PLSRegression
+    name: PLS_optuna
+    finetune_params:
+      n_trials: 25
+      sample: tpe
+      approach: grouped
+      eval_mode: avg
+      error_score: .nan
+      model_params:
+        n_components:
+        - int
+        - 1
+        - 25
+generator_choices:
+- _or_: null
+- _or_: sklearn.preprocessing._data.StandardScaler
+- _cartesian_:
+  - nirs4all.operators.transforms.signal.Detrend
+  - class: nirs4all.operators.transforms.nirs.SavitzkyGolay
+    params:
+      window_length: 15
+  - class: nirs4all.operators.transforms.nirs.SavitzkyGolay
+    params:
+      window_length: 15
+      deriv: 1
+  - nirs4all.operators.transforms.nirs.Haar
+metadata: {}
+artifacts:
+  schema_version: '2.0'
+  items:
+  - artifact_id: 0652_PLS_PP_SELECTION_NO_SAVE_05f537$e8256e270180:all
+    content_hash: sha256:62fbca7e67132ee4c3eac6fcd60d6652d6e5c748d596fbba7aa83af04e3a52fc
+    path: transformer_StandardScaler_62fbca7e6713.joblib
+    chain_path: s2.StandardScaler[src=0,sub=0]
+    source_index: 0
+    pipeline_id: 0652_PLS_PP_SELECTION_NO_SAVE_05f537
+    branch_path: []
+    step_index: 2
+    substep_index: 0
+    fold_id: null
+    artifact_type: transformer
+    class_name: StandardScaler
+    custom_name: ''
+    depends_on: []
+    format: joblib
+    format_version: sklearn==1.6.1
+    nirs4all_version: 0.6.2
+    size_bytes: 12015
+    created_at: '2026-01-08T17:55:21.958231+00:00'
+    params: {}
+    version: 3
+  - artifact_id: 0652_PLS_PP_SELECTION_NO_SAVE_05f537$f03a08201cd6:all
+    content_hash: sha256:b84d6b12f30fc7926d40e9fdcd72a809060d088b245b5c12dba5b6dd442d1bd0
+    path: encoder_MinMaxScaler_b84d6b12f30f.joblib
+    chain_path: s3.y_MinMaxScaler[sub=1]
+    source_index: null
+    pipeline_id: 0652_PLS_PP_SELECTION_NO_SAVE_05f537
+    branch_path: []
+    step_index: 3
+    substep_index: 1
+    fold_id: null
+    artifact_type: encoder
+    class_name: MinMaxScaler
+    custom_name: ''
+    depends_on: []
+    format: joblib
+    format_version: sklearn==1.6.1
+    nirs4all_version: 0.6.2
+    size_bytes: 420
+    created_at: '2026-01-08T17:55:21.999420+00:00'
+    params: {}
+    version: 3
+  - artifact_id: 0652_PLS_PP_SELECTION_NO_SAVE_05f537$51eb708c8a1f:all
+    content_hash: sha256:11ce246bc67c631c59d4827a162f06b45fa0f87770f7d8325a0c50c7f6d72fcf
+    path: transformer_Detrend_11ce246bc67c.joblib
+    chain_path: s5.Detrend[src=0,sub=0]
+    source_index: 0
+    pipeline_id: 0652_PLS_PP_SELECTION_NO_SAVE_05f537
+    branch_path: []
+    step_index: 5
+    substep_index: 0
+    fold_id: null
+    artifact_type: transformer
+    class_name: Detrend
+    custom_name: ''
+    depends_on: []
+    format: joblib
+    format_version: ''
+    nirs4all_version: 0.6.2
+    size_bytes: 90
+    created_at: '2026-01-08T17:55:22.017992+00:00'
+    params: {}
+    version: 3
+  - artifact_id: 0652_PLS_PP_SELECTION_NO_SAVE_05f537$eeb09d32a26b:all
+    content_hash: sha256:c90a6e998d89e802fdc8ae5af3e9cd7288130360151139484ffc6499b3403f5a
+    path: transformer_SavitzkyGolay_c90a6e998d89.joblib
+    chain_path: s5.SavitzkyGolay[src=0,sub=1]
+    source_index: 0
+    pipeline_id: 0652_PLS_PP_SELECTION_NO_SAVE_05f537
+    branch_path: []
+    step_index: 5
+    substep_index: 1
+    fold_id: null
+    artifact_type: transformer
+    class_name: SavitzkyGolay
+    custom_name: ''
+    depends_on: []
+    format: joblib
+    format_version: ''
+    nirs4all_version: 0.6.2
+    size_bytes: 137
+    created_at: '2026-01-08T17:55:22.028859+00:00'
+    params: {}
+    version: 3
+  - artifact_id: 0652_PLS_PP_SELECTION_NO_SAVE_05f537$296923040127:all
+    content_hash: sha256:d663934f32b4b5e8dba18585ed74e0c4e66ed1008ee606d100f374d3224f9c49
+    path: transformer_SavitzkyGolay_d663934f32b4.joblib
+    chain_path: s5.SavitzkyGolay[src=0,sub=2]
+    source_index: 0
+    pipeline_id: 0652_PLS_PP_SELECTION_NO_SAVE_05f537
+    branch_path: []
+    step_index: 5
+    substep_index: 2
+    fold_id: null
+    artifact_type: transformer
+    class_name: SavitzkyGolay
+    custom_name: ''
+    depends_on: []
+    format: joblib
+    format_version: ''
+    nirs4all_version: 0.6.2
+    size_bytes: 137
+    created_at: '2026-01-08T17:55:22.040177+00:00'
+    params: {}
+    version: 3
+  - artifact_id: 0652_PLS_PP_SELECTION_NO_SAVE_05f537$32bd0e890598:all
+    content_hash: sha256:2237293e62d5640680cb91d003382cdd194cbcc1496aee2fd76192fa547a78be
+    path: transformer_Haar_2237293e62d5.joblib
+    chain_path: s5.Haar[src=0,sub=3]
+    source_index: 0
+    pipeline_id: 0652_PLS_PP_SELECTION_NO_SAVE_05f537
+    branch_path: []
+    step_index: 5
+    substep_index: 3
+    fold_id: null
+    artifact_type: transformer
+    class_name: Haar
+    custom_name: ''
+    depends_on: []
+    format: joblib
+    format_version: ''
+    nirs4all_version: 0.6.2
+    size_bytes: 112
+    created_at: '2026-01-08T17:55:22.047501+00:00'
+    params: {}
+    version: 3
+  - artifact_id: 0652_PLS_PP_SELECTION_NO_SAVE_05f537$9f79d59455ab:0
+    content_hash: sha256:b051b6490fde1797eb4d479872c245b1da027e2a014cd0f02b029209ac6c4751
+    path: model_PLSRegression_b051b6490fde.joblib
+    chain_path: s6.PLSRegression[sub=0]
+    source_index: null
+    pipeline_id: 0652_PLS_PP_SELECTION_NO_SAVE_05f537
+    branch_path: []
+    step_index: 6
+    substep_index: 0
+    fold_id: 0
+    artifact_type: model
+    class_name: PLSRegression
+    custom_name: PLS_optuna
+    depends_on: []
+    format: joblib
+    format_version: sklearn==1.6.1
+    nirs4all_version: 0.6.2
+    size_bytes: 196056
+    created_at: '2026-01-08T17:55:22.669607+00:00'
+    params: {}
+    version: 3
+  - artifact_id: 0652_PLS_PP_SELECTION_NO_SAVE_05f537$9f79d59455ab:1
+    content_hash: sha256:b9f28b398cff916375f986b44ebe93afd0acf0003d1a86973894b7c0e16f4058
+    path: model_PLSRegression_b9f28b398cff.joblib
+    chain_path: s6.PLSRegression[sub=0]
+    source_index: null
+    pipeline_id: 0652_PLS_PP_SELECTION_NO_SAVE_05f537
+    branch_path: []
+    step_index: 6
+    substep_index: 0
+    fold_id: 1
+    artifact_type: model
+    class_name: PLSRegression
+    custom_name: PLS_optuna
+    depends_on: []
+    format: joblib
+    format_version: sklearn==1.6.1
+    nirs4all_version: 0.6.2
+    size_bytes: 196369
+    created_at: '2026-01-08T17:55:22.677867+00:00'
+    params: {}
+    version: 3
+  - artifact_id: 0652_PLS_PP_SELECTION_NO_SAVE_05f537$9f79d59455ab:2
+    content_hash: sha256:1590393d439977e334920330d936e445e0ccc55e338afd21963a1b860d236562
+    path: model_PLSRegression_1590393d4399.joblib
+    chain_path: s6.PLSRegression[sub=0]
+    source_index: null
+    pipeline_id: 0652_PLS_PP_SELECTION_NO_SAVE_05f537
+    branch_path: []
+    step_index: 6
+    substep_index: 0
+    fold_id: 2
+    artifact_type: model
+    class_name: PLSRegression
+    custom_name: PLS_optuna
+    depends_on: []
+    format: joblib
+    format_version: sklearn==1.6.1
+    nirs4all_version: 0.6.2
+    size_bytes: 196384
+    created_at: '2026-01-08T17:55:22.684889+00:00'
+    params: {}
+    version: 3
+predictions: []
+execution_traces:
+  183e1a60-41c:
+    trace_id: 183e1a60-41c
+    pipeline_uid: 0652_PLS_PP_SELECTION_NO_SAVE_05f537
+    created_at: '2026-01-08T17:55:21.952612+00:00'
+    steps:
+    - step_index: 1
+      operator_type: feature_augmentation
+      operator_class: None
+      operator_config:
+        feature_augmentation: null
+      execution_mode: train
+      artifacts:
+        artifact_ids: []
+        primary_artifact_id: null
+        fold_artifact_ids: {}
+        primary_artifacts: {}
+        by_branch: {}
+        by_source: {}
+        by_chain: {}
+        metadata: {}
+      branch_path: []
+      branch_name: ''
+      duration_ms: 2.7632713317871094
+      metadata: {}
+      input_chain_path: ''
+      output_chain_paths: []
+      source_count: 1
+      produces_branches: false
+      substep_index: null
+      input_shape:
+      - 60
+      - 576
+      output_shape:
+      - 60
+      - 576
+      input_features_shape:
+      - - 60
+        - 1
+        - 576
+      output_features_shape:
+      - - 60
+        - 1
+        - 576
+    - step_index: 2
+      operator_type: feature_augmentation
+      operator_class: StandardScaler
+      operator_config:
+        feature_augmentation: sklearn.preprocessing._data.StandardScaler
+      execution_mode: train
+      artifacts:
+        artifact_ids:
+        - 0652_PLS_PP_SELECTION_NO_SAVE_05f537$e8256e270180:all
+        primary_artifact_id: null
+        fold_artifact_ids: {}
+        primary_artifacts: {}
+        by_branch:
+          ? ''
+          : - 0652_PLS_PP_SELECTION_NO_SAVE_05f537$e8256e270180:all
+        by_source:
+          0:
+          - 0652_PLS_PP_SELECTION_NO_SAVE_05f537$e8256e270180:all
+        by_chain:
+          s2.StandardScaler[src=0,sub=0]: 0652_PLS_PP_SELECTION_NO_SAVE_05f537$e8256e270180:all
+        metadata:
+          class_name: StandardScaler
+          name: StandardScaler_1
+      branch_path: []
+      branch_name: ''
+      duration_ms: 7.532596588134766
+      metadata: {}
+      input_chain_path: ''
+      output_chain_paths:
+      - s2.StandardScaler[src=0,sub=0]
+      source_count: 1
+      produces_branches: false
+      substep_index: null
+      input_shape:
+      - 60
+      - 576
+      output_shape:
+      - 60
+      - 576
+      input_features_shape:
+      - - 60
+        - 1
+        - 576
+      output_features_shape:
+      - - 60
+        - 1
+        - 576
+    - step_index: 3
+      operator_type: y_processing
+      operator_class: MinMaxScaler
+      operator_config:
+        y_processing: sklearn.preprocessing._data.MinMaxScaler
+      execution_mode: train
+      artifacts:
+        artifact_ids:
+        - 0652_PLS_PP_SELECTION_NO_SAVE_05f537$f03a08201cd6:all
+        primary_artifact_id: null
+        fold_artifact_ids: {}
+        primary_artifacts: {}
+        by_branch:
+          ? ''
+          : - 0652_PLS_PP_SELECTION_NO_SAVE_05f537$f03a08201cd6:all
+        by_source: {}
+        by_chain:
+          s3.y_MinMaxScaler[sub=1]: 0652_PLS_PP_SELECTION_NO_SAVE_05f537$f03a08201cd6:all
+        metadata:
+          class_name: MinMaxScaler
+          name: y_MinMaxScaler_1
+      branch_path: []
+      branch_name: ''
+      duration_ms: 44.31557655334473
+      metadata: {}
+      input_chain_path: ''
+      output_chain_paths:
+      - s3.y_MinMaxScaler[sub=1]
+      source_count: 1
+      produces_branches: false
+      substep_index: null
+      input_shape:
+      - 60
+      - 576
+      output_shape:
+      - 60
+      - 576
+      input_features_shape:
+      - - 60
+        - 1
+        - 576
+      output_features_shape:
+      - - 60
+        - 1
+        - 576
+    - step_index: 4
+      operator_type: config
+      operator_class: dict
+      operator_config: {}
+      execution_mode: train
+      artifacts:
+        artifact_ids: []
+        primary_artifact_id: null
+        fold_artifact_ids: {}
+        primary_artifacts: {}
+        by_branch: {}
+        by_source: {}
+        by_chain: {}
+        metadata: {}
+      branch_path: []
+      branch_name: ''
+      duration_ms: 6.523609161376953
+      metadata: {}
+      input_chain_path: ''
+      output_chain_paths: []
+      source_count: 1
+      produces_branches: false
+      substep_index: null
+      input_shape:
+      - 60
+      - 576
+      output_shape:
+      - 60
+      - 576
+      input_features_shape:
+      - - 60
+        - 1
+        - 576
+      output_features_shape:
+      - - 60
+        - 1
+        - 576
+    - step_index: 5
+      operator_type: feature_augmentation
+      operator_class: Detrend, SavitzkyGolay, SavitzkyGolay (+1)
+      operator_config:
+        feature_augmentation:
+        - nirs4all.operators.transforms.signal.Detrend
+        - class: nirs4all.operators.transforms.nirs.SavitzkyGolay
+          params:
+            window_length: 15
+        - class: nirs4all.operators.transforms.nirs.SavitzkyGolay
+          params:
+            window_length: 15
+            deriv: 1
+        - nirs4all.operators.transforms.nirs.Haar
+      execution_mode: train
+      artifacts:
+        artifact_ids:
+        - 0652_PLS_PP_SELECTION_NO_SAVE_05f537$51eb708c8a1f:all
+        - 0652_PLS_PP_SELECTION_NO_SAVE_05f537$eeb09d32a26b:all
+        - 0652_PLS_PP_SELECTION_NO_SAVE_05f537$296923040127:all
+        - 0652_PLS_PP_SELECTION_NO_SAVE_05f537$32bd0e890598:all
+        primary_artifact_id: null
+        fold_artifact_ids: {}
+        primary_artifacts: {}
+        by_branch:
+          ? ''
+          : - 0652_PLS_PP_SELECTION_NO_SAVE_05f537$51eb708c8a1f:all
+            - 0652_PLS_PP_SELECTION_NO_SAVE_05f537$eeb09d32a26b:all
+            - 0652_PLS_PP_SELECTION_NO_SAVE_05f537$296923040127:all
+            - 0652_PLS_PP_SELECTION_NO_SAVE_05f537$32bd0e890598:all
+        by_source:
+          0:
+          - 0652_PLS_PP_SELECTION_NO_SAVE_05f537$51eb708c8a1f:all
+          - 0652_PLS_PP_SELECTION_NO_SAVE_05f537$eeb09d32a26b:all
+          - 0652_PLS_PP_SELECTION_NO_SAVE_05f537$296923040127:all
+          - 0652_PLS_PP_SELECTION_NO_SAVE_05f537$32bd0e890598:all
+        by_chain:
+          s5.Detrend[src=0,sub=0]: 0652_PLS_PP_SELECTION_NO_SAVE_05f537$51eb708c8a1f:all
+          s5.SavitzkyGolay[src=0,sub=1]: 0652_PLS_PP_SELECTION_NO_SAVE_05f537$eeb09d32a26b:all
+          s5.SavitzkyGolay[src=0,sub=2]: 0652_PLS_PP_SELECTION_NO_SAVE_05f537$296923040127:all
+          s5.Haar[src=0,sub=3]: 0652_PLS_PP_SELECTION_NO_SAVE_05f537$32bd0e890598:all
+        metadata:
+          class_name: Haar
+          name: Haar_4
+      branch_path: []
+      branch_name: ''
+      duration_ms: 50.284385681152344
+      metadata: {}
+      input_chain_path: ''
+      output_chain_paths:
+      - s5.Detrend[src=0,sub=0]
+      - s5.SavitzkyGolay[src=0,sub=1]
+      - s5.SavitzkyGolay[src=0,sub=2]
+      - s5.Haar[src=0,sub=3]
+      source_count: 1
+      produces_branches: false
+      substep_index: null
+      input_shape:
+      - 60
+      - 576
+      output_shape:
+      - 60
+      - 2880
+      input_features_shape:
+      - - 60
+        - 1
+        - 576
+      output_features_shape:
+      - - 60
+        - 5
+        - 576
+    - step_index: 6
+      operator_type: model
+      operator_class: PLSRegression
+      operator_config:
+        model:
+          class: sklearn.cross_decomposition._pls.PLSRegression
+        name: PLS_optuna
+        finetune_params:
+          n_trials: 25
+          sample: tpe
+          approach: grouped
+          eval_mode: avg
+          error_score: .nan
+          model_params:
+            n_components:
+            - int
+            - 1
+            - 25
+      execution_mode: train
+      artifacts:
+        artifact_ids:
+        - 0652_PLS_PP_SELECTION_NO_SAVE_05f537$9f79d59455ab:0
+        - 0652_PLS_PP_SELECTION_NO_SAVE_05f537$9f79d59455ab:1
+        - 0652_PLS_PP_SELECTION_NO_SAVE_05f537$9f79d59455ab:2
+        primary_artifact_id: null
+        fold_artifact_ids:
+          0: 0652_PLS_PP_SELECTION_NO_SAVE_05f537$9f79d59455ab:0
+          1: 0652_PLS_PP_SELECTION_NO_SAVE_05f537$9f79d59455ab:1
+          2: 0652_PLS_PP_SELECTION_NO_SAVE_05f537$9f79d59455ab:2
+        primary_artifacts: {}
+        by_branch:
+          ? ''
+          : - 0652_PLS_PP_SELECTION_NO_SAVE_05f537$9f79d59455ab:0
+            - 0652_PLS_PP_SELECTION_NO_SAVE_05f537$9f79d59455ab:1
+            - 0652_PLS_PP_SELECTION_NO_SAVE_05f537$9f79d59455ab:2
+        by_source: {}
+        by_chain:
+          s6.PLSRegression[sub=0]: 0652_PLS_PP_SELECTION_NO_SAVE_05f537$9f79d59455ab:2
+        metadata:
+          class_name: PLSRegression
+          custom_name: PLS_optuna
+      branch_path: []
+      branch_name: ''
+      duration_ms: 652.0445346832275
+      metadata: {}
+      input_chain_path: ''
+      output_chain_paths:
+      - s6.PLSRegression[sub=0]
+      source_count: 1
+      produces_branches: false
+      substep_index: null
+      input_shape:
+      - 60
+      - 2880
+      output_shape:
+      - 60
+      - 2880
+      input_features_shape:
+      - - 60
+        - 5
+        - 576
+      output_features_shape:
+      - - 60
+        - 5
+        - 576
+    model_step_index: 6
+    fold_weights: null
+    preprocessing_chain: Std|Std>Detr|Std>SG|Std>SG|Std>Haar
+    metadata:
+      dataset: beer_originalextract_60_ks
+      config_name: PLS_PP_SELECTION_NO_SAVE_05f537
+      n_steps: 6
+      n_artifacts: 9

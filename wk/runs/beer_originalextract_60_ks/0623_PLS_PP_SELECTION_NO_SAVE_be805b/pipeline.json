@@ -1,0 +1,54 @@
+[
+  {
+    "feature_augmentation": null
+  },
+  {
+    "feature_augmentation": "sklearn.preprocessing._data.StandardScaler"
+  },
+  {
+    "y_processing": "sklearn.preprocessing._data.MinMaxScaler"
+  },
+  {
+    "split": {
+      "class": "nirs4all.operators.splitters.splitters.SPXYGFold",
+      "params": {
+        "n_splits": 3,
+        "random_state": 42
+      }
+    }
+  },
+  {
+    "feature_augmentation": [
+      "nirs4all.operators.transforms.signal.Detrend",
+      null,
+      {
+        "class": "nirs4all.operators.transforms.nirs.SavitzkyGolay",
+        "params": {
+          "window_length": 15,
+          "deriv": 1
+        }
+      },
+      "nirs4all.operators.transforms.signal.Detrend"
+    ]
+  },
+  {
+    "model": {
+      "class": "sklearn.cross_decomposition._pls.PLSRegression"
+    },
+    "name": "PLS_optuna",
+    "finetune_params": {
+      "n_trials": 25,
+      "sample": "tpe",
+      "approach": "grouped",
+      "eval_mode": "avg",
+      "error_score": NaN,
+      "model_params": {
+        "n_components": [
+          "int",
+          1,
+          25
+        ]
+      }
+    }
+  }
+]

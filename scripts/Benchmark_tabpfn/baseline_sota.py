@@ -3,13 +3,12 @@ from pathlib import Path
 import os
 
 from sklearn.decomposition import PCA
-from sklearn.preprocessing import MinMaxScaler, StandardScaler, PowerTransformer, QuantileTransformer
 
 from nirs4all.data import DatasetConfigs
 from nirs4all.data.predictions import Predictions
 from nirs4all.pipeline import PipelineConfigs, PipelineRunner
 from nirs4all.operators.splitters import SPXYGFold
-from nirs4all.operators.transforms import SavitzkyGolay, ASLSBaseline
+from nirs4all.operators.transforms import ASLSBaseline
 
 from huggingface_hub import login
 from tabpfn import TabPFNClassifier, TabPFNRegressor
@@ -86,10 +85,10 @@ if args.datasets is not None:
     DATA_PATH = args.datasets
 else:
     DATA_PATH = [
-        'Data_nirs4all/Regression/Beer_OriginalExtract_60_KS',
+        'Data/Regression/Beer_OriginalExtract_60_KS',
     ]
 
-AGGREGATION_KEY = "ID"  # None
+AGGREGATION_KEY = None
 TASK_TYPE = "regression"  # "classification" or "regression" or "auto" or "binary"
 
 TabPFNModel = TabPFNRegressor if TASK_TYPE == "regression" else TabPFNClassifier
@@ -97,25 +96,9 @@ tabpfn_real_path = 'tabpfn-v2.5-regressor-v2.5_real.ckpt' if TASK_TYPE == "regre
 # Define the pipeline
 pipeline = [
     ASLSBaseline(),
-    {"split": SPXYGFold(n_splits=1, random_state=42), "group": AGGREGATION_KEY},  # COMMENT IF TRAIN AND TEST ARE PROVIDED
-    {"split": SPXYGFold(n_splits=3, random_state=42), "group": AGGREGATION_KEY},
+    #{"split": SPXYGFold(n_splits=1, random_state=42), "group": AGGREGATION_KEY},  # COMMENT IF TRAIN AND TEST ARE PROVIDED
+    {"split": SPXYGFold(n_splits=3, random_state=42)},
     PCA(n_components=0.99, random_state=42, whiten=True), # PCA(50)
-    {
-        'model': {
-            'framework': 'autogluon',
-            'params': {
-                'presets': 'extreme_quality',
-                'time_limit': 3600,
-                'num_bag_folds': 5,
-                'random_state': 42,
-            }
-        },
-        "name": "AutoGluon",
-    },
-    {
-        "model": TabPFNModel(n_estimators=16, device=TABPFN_DEVICE, random_state=42, ignore_pretraining_limits=True),
-        "name": "TabPFN",
-    },
     {
         "model": TabPFNModel(n_estimators=16, device=TABPFN_DEVICE, random_state=42, model_path=tabpfn_real_path, ignore_pretraining_limits=True),
         "name": "TabPFN-real",
@@ -127,7 +110,7 @@ pipeline_config = PipelineConfigs(pipeline, "SOTA")
 dataset_config = DatasetConfigs(DATA_PATH, task_type=TASK_TYPE)
 
 # Run the pipeline
-runner = PipelineRunner(save_files=True, verbose=0, workspace_path=args.workspace)
+runner = PipelineRunner(verbose=0, workspace_path=args.workspace)
 predictions, predictions_per_dataset = runner.run(pipeline_config, dataset_config)
 
 # Analyze and display top performing models

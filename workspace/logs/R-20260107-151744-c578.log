@@ -1,0 +1,1 @@
+2026-01-07T15:17:44+0100 [ERROR] Pipeline SOTA_7c21be on dataset beer_originalextract_60_ks failed: Pipeline step 2 failed: Step execution failed: Group column must be a string, got NoneType

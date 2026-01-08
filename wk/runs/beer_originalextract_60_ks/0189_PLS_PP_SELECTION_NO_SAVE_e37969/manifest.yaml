@@ -1,0 +1,58 @@
+schema_version: '2.0'
+uid: 13b29dcc-9091-4b6c-83d3-70dfcad26fe7
+pipeline_id: 0189_PLS_PP_SELECTION_NO_SAVE_e37969
+name: PLS_PP_SELECTION_NO_SAVE_e37969
+dataset: beer_originalextract_60_ks
+created_at: '2026-01-08T17:35:55.913721+00:00'
+pipeline:
+  steps:
+  - feature_augmentation: null
+  - feature_augmentation: null
+  - y_processing: sklearn.preprocessing._data.MinMaxScaler
+  - split:
+      class: nirs4all.operators.splitters.splitters.SPXYGFold
+      params:
+        n_splits: 3
+        random_state: 42
+  - feature_augmentation:
+    - null
+    - null
+    - class: nirs4all.operators.transforms.nirs.SavitzkyGolay
+      params:
+        window_length: 15
+        deriv: 1
+    - class: nirs4all.operators.transforms.nirs.Wavelet
+      params:
+        wavelet: coif3
+  - model:
+      class: sklearn.cross_decomposition._pls.PLSRegression
+    name: PLS_optuna
+    finetune_params:
+      n_trials: 25
+      sample: tpe
+      approach: grouped
+      eval_mode: avg
+      error_score: .nan
+      model_params:
+        n_components:
+        - int
+        - 1
+        - 25
+generator_choices:
+- _or_: null
+- _or_: null
+- _cartesian_:
+  - null
+  - null
+  - class: nirs4all.operators.transforms.nirs.SavitzkyGolay
+    params:
+      window_length: 15
+      deriv: 1
+  - class: nirs4all.operators.transforms.nirs.Wavelet
+    params:
+      wavelet: coif3
+metadata: {}
+artifacts:
+  schema_version: '2.0'
+  items: []
+predictions: []

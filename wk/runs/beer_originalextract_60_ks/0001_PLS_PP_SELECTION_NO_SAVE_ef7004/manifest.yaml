@@ -1,0 +1,69 @@
+schema_version: '2.0'
+uid: 0d23d93b-1e4b-4409-845b-b12bfaf7779a
+pipeline_id: 0001_PLS_PP_SELECTION_NO_SAVE_ef7004
+name: PLS_PP_SELECTION_NO_SAVE_ef7004
+dataset: beer_originalextract_60_ks
+created_at: '2026-01-08T17:07:58.976075+00:00'
+pipeline:
+  steps:
+  - feature_augmentation: null
+  - feature_augmentation: null
+  - y_processing: sklearn.preprocessing._data.MinMaxScaler
+  - split:
+      class: nirs4all.operators.splitters.splitters.SPXYGFold
+      params:
+        n_splits: 3
+        random_state: 42
+    group: ID
+  - feature_augmentation:
+    - null
+    - null
+    - null
+    - null
+  - model:
+      class: sklearn.cross_decomposition._pls.PLSRegression
+    name: PLS_optuna
+    finetune_params:
+      n_trials: 25
+      sample: tpe
+      approach: grouped
+      eval_mode: avg
+      model_params:
+        n_components:
+        - int
+        - 1
+        - 25
+generator_choices:
+- _or_: null
+- _or_: null
+- _cartesian_:
+  - null
+  - null
+  - null
+  - null
+metadata: {}
+artifacts:
+  schema_version: '2.0'
+  items:
+  - artifact_id: 0001_PLS_PP_SELECTION_NO_SAVE_ef7004$f03a08201cd6:all
+    content_hash: sha256:b84d6b12f30fc7926d40e9fdcd72a809060d088b245b5c12dba5b6dd442d1bd0
+    path: encoder_MinMaxScaler_b84d6b12f30f.joblib
+    chain_path: s3.y_MinMaxScaler[sub=1]
+    source_index: null
+    pipeline_id: 0001_PLS_PP_SELECTION_NO_SAVE_ef7004
+    branch_path: []
+    step_index: 3
+    substep_index: 1
+    fold_id: null
+    artifact_type: encoder
+    class_name: MinMaxScaler
+    custom_name: ''
+    depends_on: []
+    format: joblib
+    format_version: sklearn==1.6.1
+    nirs4all_version: 0.6.2
+    size_bytes: 420
+    created_at: '2026-01-08T17:07:59.125712+00:00'
+    params: {}
+    version: 3
+predictions: []
