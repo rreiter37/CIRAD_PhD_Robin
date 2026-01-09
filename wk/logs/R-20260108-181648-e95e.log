@@ -1,1 +1,0 @@
-2026-01-08T18:16:48+0100 [ERROR] Pipeline PLS_PP_SELECTION_NO_SAVE_9e21c7 on dataset beer_originalextract_60_ks failed: Pipeline step 4 failed: Step execution failed: Group column must be a string, got NoneType

@@ -1,0 +1,482 @@
+schema_version: '2.0'
+uid: 4f928828-e355-4264-bbe7-c772367cf00a
+pipeline_id: 0001_SOTA_137acf
+name: SOTA_137acf
+dataset: diesel_f_251_hla_b
+created_at: '2026-01-09T14:28:49.389017+00:00'
+pipeline:
+  steps:
+  - nirs4all.operators.transforms.nirs.ASLSBaseline
+  - y_processing: sklearn.preprocessing._data.StandardScaler
+  - sklearn.preprocessing._data.StandardScaler
+  - split:
+      class: nirs4all.operators.splitters.splitters.SPXYGFold
+      params:
+        n_splits: 3
+        random_state: 42
+  - class: sklearn.decomposition._pca.PCA
+    params:
+      n_components: 0.99
+      whiten: true
+      random_state: 42
+  - model:
+      class: tabpfn.regressor.TabPFNRegressor
+      params:
+        n_estimators: 4
+        model_path: tabpfn-v2.5-regressor-v2.5_real.ckpt
+        device: cpu
+        ignore_pretraining_limits: true
+        random_state: 42
+    name: TabPFN-real
+generator_choices: []
+metadata: {}
+artifacts:
+  schema_version: '2.0'
+  items:
+  - artifact_id: 0001_SOTA_137acf$bb12ee38a89c:all
+    content_hash: sha256:95c7c1d7b88a1236418be2266cbd228dac43925cfde8d91ae47a473976519313
+    path: transformer_ASLSBaseline_95c7c1d7b88a.joblib
+    chain_path: s1.ASLSBaseline[src=0,sub=0]
+    source_index: 0
+    pipeline_id: 0001_SOTA_137acf
+    branch_path: []
+    step_index: 1
+    substep_index: 0
+    fold_id: null
+    artifact_type: transformer
+    class_name: ASLSBaseline
+    custom_name: ''
+    depends_on: []
+    format: joblib
+    format_version: ''
+    nirs4all_version: 0.6.2
+    size_bytes: 216
+    created_at: '2026-01-09T14:28:49.430569+00:00'
+    params: {}
+    version: 3
+  - artifact_id: 0001_SOTA_137acf$2865afbbfc1d:all
+    content_hash: sha256:4feedb6981b0a193fb985eec37ab005fe0d566b36bc6dee619ac09c6fb51ad9f
+    path: encoder_StandardScaler_4feedb6981b0.joblib
+    chain_path: s2.y_StandardScaler[sub=1]
+    source_index: null
+    pipeline_id: 0001_SOTA_137acf
+    branch_path: []
+    step_index: 2
+    substep_index: 1
+    fold_id: null
+    artifact_type: encoder
+    class_name: StandardScaler
+    custom_name: ''
+    depends_on: []
+    format: joblib
+    format_version: sklearn==1.6.1
+    nirs4all_version: 0.6.2
+    size_bytes: 444
+    created_at: '2026-01-09T14:28:49.625649+00:00'
+    params: {}
+    version: 3
+  - artifact_id: 0001_SOTA_137acf$b3c264a83f45:all
+    content_hash: sha256:023b2c0677dd7bdf636e0f362cb022226b9ff9d4547f2bb8dd831f7d7cf51e27
+    path: transformer_StandardScaler_023b2c0677dd.joblib
+    chain_path: s3.StandardScaler[src=0,sub=0]
+    source_index: 0
+    pipeline_id: 0001_SOTA_137acf
+    branch_path: []
+    step_index: 3
+    substep_index: 0
+    fold_id: null
+    artifact_type: transformer
+    class_name: StandardScaler
+    custom_name: ''
+    depends_on: []
+    format: joblib
+    format_version: sklearn==1.6.1
+    nirs4all_version: 0.6.2
+    size_bytes: 9012
+    created_at: '2026-01-09T14:28:49.640334+00:00'
+    params: {}
+    version: 3
+  - artifact_id: 0001_SOTA_137acf$900033a82811:all
+    content_hash: sha256:8df37cf7ccd67bf3a0911f32bb037ac8d191ab291e37c49d826ed5ed8c990229
+    path: transformer_PCA_8df37cf7ccd6.joblib
+    chain_path: s5.PCA[src=0,sub=0]
+    source_index: 0
+    pipeline_id: 0001_SOTA_137acf
+    branch_path: []
+    step_index: 5
+    substep_index: 0
+    fold_id: null
+    artifact_type: transformer
+    class_name: PCA
+    custom_name: ''
+    depends_on: []
+    format: joblib
+    format_version: sklearn==1.6.1
+    nirs4all_version: 0.6.2
+    size_bytes: 9296
+    created_at: '2026-01-09T14:28:49.707943+00:00'
+    params: {}
+    version: 3
+  - artifact_id: 0001_SOTA_137acf$c5f06284fcbc:0
+    content_hash: sha256:24cd18348a6776f91c2a16b2ed9e58663c8147c7862e9799c47de82425686a42
+    path: model_TabPFNRegressor_24cd18348a67.pkl
+    chain_path: s6.TabPFNRegressor[sub=0]
+    source_index: null
+    pipeline_id: 0001_SOTA_137acf
+    branch_path: []
+    step_index: 6
+    substep_index: 0
+    fold_id: 0
+    artifact_type: model
+    class_name: TabPFNRegressor
+    custom_name: TabPFN-real
+    depends_on: []
+    format: cloudpickle
+    format_version: ''
+    nirs4all_version: 0.6.2
+    size_bytes: 40948031
+    created_at: '2026-01-09T14:28:52.063308+00:00'
+    params: {}
+    version: 3
+  - artifact_id: 0001_SOTA_137acf$c5f06284fcbc:1
+    content_hash: sha256:d67c029884c1a819be6904671593369bc83497dd0d6ffee01bd5837334e11ce3
+    path: model_TabPFNRegressor_d67c029884c1.pkl
+    chain_path: s6.TabPFNRegressor[sub=0]
+    source_index: null
+    pipeline_id: 0001_SOTA_137acf
+    branch_path: []
+    step_index: 6
+    substep_index: 0
+    fold_id: 1
+    artifact_type: model
+    class_name: TabPFNRegressor
+    custom_name: TabPFN-real
+    depends_on: []
+    format: cloudpickle
+    format_version: ''
+    nirs4all_version: 0.6.2
+    size_bytes: 40948335
+    created_at: '2026-01-09T14:28:52.105920+00:00'
+    params: {}
+    version: 3
+  - artifact_id: 0001_SOTA_137acf$c5f06284fcbc:2
+    content_hash: sha256:40fd0a82021c12e1d56567f94cdad4e248dda3d398d6f2507bf3fd0a6f9297ba
+    path: model_TabPFNRegressor_40fd0a82021c.pkl
+    chain_path: s6.TabPFNRegressor[sub=0]
+    source_index: null
+    pipeline_id: 0001_SOTA_137acf
+    branch_path: []
+    step_index: 6
+    substep_index: 0
+    fold_id: 2
+    artifact_type: model
+    class_name: TabPFNRegressor
+    custom_name: TabPFN-real
+    depends_on: []
+    format: cloudpickle
+    format_version: ''
+    nirs4all_version: 0.6.2
+    size_bytes: 40948335
+    created_at: '2026-01-09T14:28:52.148243+00:00'
+    params: {}
+    version: 3
+predictions: []
+execution_traces:
+  c689344f-42b:
+    trace_id: c689344f-42b
+    pipeline_uid: 0001_SOTA_137acf
+    created_at: '2026-01-09T14:28:49.389790+00:00'
+    steps:
+    - step_index: 1
+      operator_type: transform
+      operator_class: ASLSBaseline
+      operator_config: {}
+      execution_mode: train
+      artifacts:
+        artifact_ids:
+        - 0001_SOTA_137acf$bb12ee38a89c:all
+        primary_artifact_id: null
+        fold_artifact_ids: {}
+        primary_artifacts: {}
+        by_branch:
+          ? ''
+          : - 0001_SOTA_137acf$bb12ee38a89c:all
+        by_source:
+          0:
+          - 0001_SOTA_137acf$bb12ee38a89c:all
+        by_chain:
+          s1.ASLSBaseline[src=0,sub=0]: 0001_SOTA_137acf$bb12ee38a89c:all
+        metadata:
+          class_name: ASLSBaseline
+          name: ASLSBaseline_1
+      branch_path: []
+      branch_name: ''
+      duration_ms: 46.877384185791016
+      metadata: {}
+      input_chain_path: ''
+      output_chain_paths:
+      - s1.ASLSBaseline[src=0,sub=0]
+      source_count: 1
+      produces_branches: false
+      substep_index: null
+      input_shape:
+      - 251
+      - 401
+      output_shape:
+      - 251
+      - 401
+      input_features_shape:
+      - - 251
+        - 1
+        - 401
+      output_features_shape:
+      - - 251
+        - 1
+        - 401
+    - step_index: 2
+      operator_type: y_processing
+      operator_class: StandardScaler
+      operator_config:
+        y_processing: sklearn.preprocessing._data.StandardScaler
+      execution_mode: train
+      artifacts:
+        artifact_ids:
+        - 0001_SOTA_137acf$2865afbbfc1d:all
+        primary_artifact_id: null
+        fold_artifact_ids: {}
+        primary_artifacts: {}
+        by_branch:
+          ? ''
+          : - 0001_SOTA_137acf$2865afbbfc1d:all
+        by_source: {}
+        by_chain:
+          s2.y_StandardScaler[sub=1]: 0001_SOTA_137acf$2865afbbfc1d:all
+        metadata:
+          class_name: StandardScaler
+          name: y_StandardScaler_1
+      branch_path: []
+      branch_name: ''
+      duration_ms: 198.71020317077637
+      metadata: {}
+      input_chain_path: ''
+      output_chain_paths:
+      - s2.y_StandardScaler[sub=1]
+      source_count: 1
+      produces_branches: false
+      substep_index: null
+      input_shape:
+      - 251
+      - 401
+      output_shape:
+      - 251
+      - 401
+      input_features_shape:
+      - - 251
+        - 1
+        - 401
+      output_features_shape:
+      - - 251
+        - 1
+        - 401
+    - step_index: 3
+      operator_type: transform
+      operator_class: StandardScaler
+      operator_config: {}
+      execution_mode: train
+      artifacts:
+        artifact_ids:
+        - 0001_SOTA_137acf$b3c264a83f45:all
+        primary_artifact_id: null
+        fold_artifact_ids: {}
+        primary_artifacts: {}
+        by_branch:
+          ? ''
+          : - 0001_SOTA_137acf$b3c264a83f45:all
+        by_source:
+          0:
+          - 0001_SOTA_137acf$b3c264a83f45:all
+        by_chain:
+          s3.StandardScaler[src=0,sub=0]: 0001_SOTA_137acf$b3c264a83f45:all
+        metadata:
+          class_name: StandardScaler
+          name: StandardScaler_1
+      branch_path: []
+      branch_name: ''
+      duration_ms: 27.465343475341797
+      metadata: {}
+      input_chain_path: ''
+      output_chain_paths:
+      - s3.StandardScaler[src=0,sub=0]
+      source_count: 1
+      produces_branches: false
+      substep_index: null
+      input_shape:
+      - 251
+      - 401
+      output_shape:
+      - 251
+      - 401
+      input_features_shape:
+      - - 251
+        - 1
+        - 401
+      output_features_shape:
+      - - 251
+        - 1
+        - 401
+    - step_index: 4
+      operator_type: config
+      operator_class: dict
+      operator_config: {}
+      execution_mode: train
+      artifacts:
+        artifact_ids: []
+        primary_artifact_id: null
+        fold_artifact_ids: {}
+        primary_artifacts: {}
+        by_branch: {}
+        by_source: {}
+        by_chain: {}
+        metadata: {}
+      branch_path: []
+      branch_name: ''
+      duration_ms: 34.65914726257324
+      metadata: {}
+      input_chain_path: ''
+      output_chain_paths: []
+      source_count: 1
+      produces_branches: false
+      substep_index: null
+      input_shape:
+      - 251
+      - 401
+      output_shape:
+      - 251
+      - 401
+      input_features_shape:
+      - - 251
+        - 1
+        - 401
+      output_features_shape:
+      - - 251
+        - 1
+        - 401
+    - step_index: 5
+      operator_type: operator
+      operator_class: PCA
+      operator_config:
+        class: sklearn.decomposition._pca.PCA
+        params:
+          n_components: 0.99
+          whiten: true
+          random_state: 42
+      execution_mode: train
+      artifacts:
+        artifact_ids:
+        - 0001_SOTA_137acf$900033a82811:all
+        primary_artifact_id: null
+        fold_artifact_ids: {}
+        primary_artifacts: {}
+        by_branch:
+          ? ''
+          : - 0001_SOTA_137acf$900033a82811:all
+        by_source:
+          0:
+          - 0001_SOTA_137acf$900033a82811:all
+        by_chain:
+          s5.PCA[src=0,sub=0]: 0001_SOTA_137acf$900033a82811:all
+        metadata:
+          class_name: PCA
+          name: PCA_1
+      branch_path: []
+      branch_name: ''
+      duration_ms: 34.55662727355957
+      metadata: {}
+      input_chain_path: ''
+      output_chain_paths:
+      - s5.PCA[src=0,sub=0]
+      source_count: 1
+      produces_branches: false
+      substep_index: null
+      input_shape:
+      - 251
+      - 401
+      output_shape:
+      - 251
+      - 5
+      input_features_shape:
+      - - 251
+        - 1
+        - 401
+      output_features_shape:
+      - - 251
+        - 1
+        - 5
+    - step_index: 6
+      operator_type: model
+      operator_class: TabPFNRegressor
+      operator_config:
+        model:
+          class: tabpfn.regressor.TabPFNRegressor
+          params:
+            n_estimators: 4
+            model_path: tabpfn-v2.5-regressor-v2.5_real.ckpt
+            device: cpu
+            ignore_pretraining_limits: true
+            random_state: 42
+        name: TabPFN-real
+      execution_mode: train
+      artifacts:
+        artifact_ids:
+        - 0001_SOTA_137acf$c5f06284fcbc:0
+        - 0001_SOTA_137acf$c5f06284fcbc:1
+        - 0001_SOTA_137acf$c5f06284fcbc:2
+        primary_artifact_id: null
+        fold_artifact_ids:
+          0: 0001_SOTA_137acf$c5f06284fcbc:0
+          1: 0001_SOTA_137acf$c5f06284fcbc:1
+          2: 0001_SOTA_137acf$c5f06284fcbc:2
+        primary_artifacts: {}
+        by_branch:
+          ? ''
+          : - 0001_SOTA_137acf$c5f06284fcbc:0
+            - 0001_SOTA_137acf$c5f06284fcbc:1
+            - 0001_SOTA_137acf$c5f06284fcbc:2
+        by_source: {}
+        by_chain:
+          s6.TabPFNRegressor[sub=0]: 0001_SOTA_137acf$c5f06284fcbc:2
+        metadata:
+          class_name: TabPFNRegressor
+          custom_name: TabPFN-real
+      branch_path: []
+      branch_name: ''
+      duration_ms: 4686.027765274048
+      metadata: {}
+      input_chain_path: ''
+      output_chain_paths:
+      - s6.TabPFNRegressor[sub=0]
+      source_count: 1
+      produces_branches: false
+      substep_index: null
+      input_shape:
+      - 251
+      - 5
+      output_shape:
+      - 251
+      - 5
+      input_features_shape:
+      - - 251
+        - 1
+        - 5
+      output_features_shape:
+      - - 251
+        - 1
+        - 5
+    model_step_index: 6
+    fold_weights: null
+    preprocessing_chain: ASLSBaseline>Std>PCA
+    metadata:
+      dataset: diesel_f_251_hla_b
+      config_name: SOTA_137acf
+      n_steps: 6
+      n_artifacts: 7

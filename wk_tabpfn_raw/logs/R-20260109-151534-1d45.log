@@ -1,0 +1,4 @@
+2026-01-09T15:26:39+0100 [WARNING] SPXYGFold has 'groups' parameter but no 'group' specified. Using default: 'Sample_ID'
+2026-01-09T15:29:40+0100 [WARNING] SPXYGFold has 'groups' parameter but no 'group' specified. Using default: 'Sample_ID'
+2026-01-09T15:30:28+0100 [WARNING] SPXYGFold has 'groups' parameter but no 'group' specified. Using default: 'Sample_ID'
+2026-01-09T15:43:34+0100 [WARNING] SPXYGFold has 'groups' parameter but no 'group' specified. Using default: 'Sample_ID'

@@ -19,8 +19,7 @@ import subprocess
 from pathlib import Path
 
 
-PROJECT_PATH = "/home/robinr/Desktop/VSCode/CIRAD_PhD_Robin/"
-JSON_PATH = PROJECT_PATH + "Results/assoc_pp_model/All_datasets/Rank_datasets_difficulty/dataset_difficulty_ranking.json"
+JSON_PATH = "Results/assoc_pp_model/All_datasets/Rank_datasets_difficulty/dataset_difficulty_ranking.json"
 BASELINE_PATH = "scripts/Benchmark_tabpfn/baseline_sota.py"
 
 
@@ -131,7 +130,7 @@ def dataset_to_path(ds_name):
 
     Adjust this function to match your filesystem layout.
     """
-    base = Path("Data_nirs4all/Regression")
+    base = Path("Data/Regression")
     return str(base / ds_name)
 
 
@@ -146,7 +145,6 @@ def run_baseline(baseline_script, dataset_paths, workspace):
     ] + dataset_paths + ["--workspace", workspace]
 
     print("\n=== Running baseline_sota.py ===")
-    print("Command:", " ".join(cmd))
     subprocess.run(cmd, check=True)
     print("Completed.\n")
 

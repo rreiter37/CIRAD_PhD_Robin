@@ -2,19 +2,21 @@
 # -*- coding: utf-8 -*-
 
 """
-Optuna PLS preprocessing selection (NO saving) + final TabPFN calibration/test.
+PLS-based preprocessing selection (cartesian Optuna) + final TabPFN training.
 
-PHASE 1 (PLS):
-- Optuna-tuned PLSRegression
-- SPXY 3-fold CV on CALIBRATION ONLY
-- Select best preprocessing (lowest mean RMSE on validation)
-- NO artifacts, NO parquet, NO reports
-
-PHASE 2 (TabPFN):
-- Same preprocessing as selected in Phase 1
+PHASE 1 (PLS, NO SAVING):
+- Optuna selects preprocessing combinations (cartesian product)
+- For each trial:
+    - PLSRegression with n_components in [1..25]
+    - n_components calibration is PARALLELIZED with joblib
 - SPXY 3-fold CV on calibration
-- Evaluation on TEST set
-- Save ONLY final metrics:
+- Selection criterion: mean RMSE over folds
+- NO artifacts, NO parquet
+
+PHASE 2 (TabPFN, WITH SAVING):
+- Same preprocessing as selected in Phase 1
+- Final TabPFN pipeline
+- Save only final metrics:
     * tabpfn_val_rmse_mean
     * tabpfn_val_rmse_best
     * tabpfn_test_rmse
@@ -31,8 +33,12 @@ import polars as pl
 import torch
 from dotenv import load_dotenv
 
+from joblib import Parallel, delayed
+
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.decomposition import PCA
+from sklearn.cross_decomposition import PLSRegression
+from sklearn.metrics import mean_squared_error
 
 from nirs4all.data import DatasetConfigs
 from nirs4all.pipeline import PipelineConfigs, PipelineRunner
@@ -51,9 +57,7 @@ from nirs4all.operators.transforms.nirs import (
     ExtendedMultiplicativeScatterCorrection as EMSC,
 )
 
-from sklearn.cross_decomposition import PLSRegression
 from tabpfn import TabPFNRegressor
-
 
 # =============================================================================
 # Environment & TabPFN safety
@@ -82,69 +86,53 @@ def parse_args():
     parser.add_argument("--datasets", nargs="+", required=True)
     parser.add_argument("--workspace", type=str, default="workspace")
     parser.add_argument("--verbose", type=int, default=1)
+    parser.add_argument("--pls_n_jobs", type=int, default=-1,
+                        help="Number of parallel jobs for PLS n_components calibration")
     return parser.parse_args()
 
 args = parse_args()
 
-
-
-def compute_safe_pls_n_components(dataset_config, n_splits=3):
-    """
-    Compute a safe upper bound for PLS n_components based on
-    the calibration set size, using the official SpectroDataset API.
-    """
-    # Take first dataset (PLS selection is dataset-wise)
-    ds = dataset_config.get_dataset_at(0)
-
-    # OFFICIAL API: access calibration data
-    X_cal = ds.x(
-        {"partition": "train"},
-        layout="2d",
-        concat_source=True,
-        include_augmented=False,
-    )
-
-    n_cal = X_cal.shape[0]
-    n_features = X_cal.shape[1]
-
-    # Conservative estimate of training samples per fold
-    n_train_min = (n_cal * (n_splits - 1)) // n_splits
-
-    # PLS constraint: n_components < min(n_train_samples, n_features)
-    max_components = min(n_train_min - 1, n_features)
-
-    # Safety guard
-    max_components = max(1, max_components)
-
-    return max_components
-
-
-
 # =============================================================================
-# Dataset configuration (CAL / TEST already split)
+# Dataset configuration
 # =============================================================================
-
-TASK_TYPE = "regression"
-AGGREGATION_KEY = None
 
 dataset_config = DatasetConfigs(
     args.datasets,
-    task_type=TASK_TYPE
+    task_type="regression"
 )
 
 # =============================================================================
-# Helpers
+# Utilities
 # =============================================================================
 
 def pp_fingerprint(pp):
     return " | ".join(type(op).__name__ for op in pp)
 
+def evaluate_pls_n_components_parallel(
+    X_train, y_train, X_val, y_val,
+    n_components_range, n_jobs
+):
+    """
+    Evaluate all PLS n_components in parallel and return the best RMSE.
+    """
+
+    def _eval_one(n_comp):
+        model = PLSRegression(n_components=n_comp)
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_val)
+        return mean_squared_error(y_val, y_pred, squared=False)
+
+    rmses = Parallel(n_jobs=n_jobs)(
+        delayed(_eval_one)(n) for n in n_components_range
+    )
+    return float(np.min(rmses))
+
 # =============================================================================
-# PHASE 1 — Optuna PLS preprocessing selection (NO SAVING)
+# PHASE 1 — PLS preprocessing selection (NO SAVING)
 # =============================================================================
 
 print("\n" + "=" * 80)
-print("PHASE 1 – Optuna PLS preprocessing selection (CAL only, NO saving)")
+print("PHASE 1 – PLS cartesian preprocessing selection (joblib enabled)")
 print("=" * 80)
 
 pls_cartesian_pp = {
@@ -156,11 +144,6 @@ pls_cartesian_pp = {
     ]
 }
 
-max_pls_components = compute_safe_pls_n_components(
-    dataset_config,
-    n_splits=3,
-)
-
 pipeline_pls = [
     {"feature_augmentation": {"_or_": [None, ASLSBaseline()]}},
     {"feature_augmentation": {"_or_": [None, StandardScaler(), MinMaxScaler()]}},
@@ -169,15 +152,13 @@ pipeline_pls = [
     {"feature_augmentation": pls_cartesian_pp},
     {
         "model": PLSRegression,
-        "name": "PLS_optuna",
+        "name": "PLS_selection",
         "finetune_params": {
             "n_trials": 25,
-            "sample": "tpe",
             "approach": "grouped",
             "eval_mode": "avg",
-            "error_score": np.nan,
             "model_params": {
-                "n_components": ("int", 1, max_pls_components),
+                "n_components": list(range(1, 26)),  # classical range
             },
         },
     },
@@ -206,6 +187,7 @@ best_pp = runner_pls.manifest_manager.extract_generator_choice(
     choice_index=0,
     instantiate=True
 )
+
 if not isinstance(best_pp, list):
     best_pp = [best_pp]
 
@@ -213,7 +195,7 @@ print("\n🏆 Selected preprocessing:")
 print(pp_fingerprint(best_pp))
 
 # =============================================================================
-# PHASE 2 — Final TabPFN calibration + TEST (WITH SAVING)
+# PHASE 2 — Final TabPFN training (WITH SAVING)
 # =============================================================================
 
 print("\n" + "=" * 80)
@@ -265,31 +247,31 @@ preds_tabpfn, preds_per_ds = runner_tabpfn.run(
 )
 
 # =============================================================================
-# Save final metrics (VAL + TEST) into parquet
+# Save final metrics
 # =============================================================================
 
 for ds_name, ds_pred in preds_per_ds.items():
     run_preds = ds_pred["run_predictions"]
 
-    val_scores = np.array(run_preds.get_scores("rmse", partition="val"))
-    test_scores = np.array(run_preds.get_scores("rmse", partition="test"))
+    val_scores = run_preds.get_scores(metric="rmse", partition="val")
+    test_scores = run_preds.get_scores(metric="rmse", partition="test")
 
-    val_mean = float(val_scores.mean())
-    val_best = float(val_scores.min())
-    test_rmse = float(test_scores.mean())
+    val_mean = float(np.mean(val_scores))
+    val_best = float(np.min(val_scores))
+    test_rmse = float(np.mean(test_scores))
 
     print(f"\nDataset: {ds_name}")
-    print(f"VAL mean RMSE:  {val_mean:.5f}")
-    print(f"VAL best RMSE:  {val_best:.5f}")
-    print(f"TEST RMSE:      {test_rmse:.5f}")
+    print(f"VAL mean RMSE: {val_mean:.5f}")
+    print(f"VAL best RMSE: {val_best:.5f}")
+    print(f"TEST RMSE:     {test_rmse:.5f}")
 
-    df = run_preds._storage._df
-    df = df.with_columns([
+    df = run_preds._storage._df.with_columns([
         pl.lit(val_mean).alias("tabpfn_val_rmse_mean"),
         pl.lit(val_best).alias("tabpfn_val_rmse_best"),
         pl.lit(test_rmse).alias("tabpfn_test_rmse"),
         pl.lit(pp_fingerprint(best_pp)).alias("selected_preprocessing"),
     ])
+
     run_preds._storage._df = df
     run_preds.save()
 

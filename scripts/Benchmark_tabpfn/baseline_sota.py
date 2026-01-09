@@ -1,8 +1,10 @@
 from dotenv import load_dotenv
 from pathlib import Path
 import os
+import pandas as pd
 
 from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
 
 from nirs4all.data import DatasetConfigs
 from nirs4all.data.predictions import Predictions
@@ -96,11 +98,13 @@ tabpfn_real_path = 'tabpfn-v2.5-regressor-v2.5_real.ckpt' if TASK_TYPE == "regre
 # Define the pipeline
 pipeline = [
     ASLSBaseline(),
+    {"y_processing": StandardScaler()},
+    StandardScaler(),
     #{"split": SPXYGFold(n_splits=1, random_state=42), "group": AGGREGATION_KEY},  # COMMENT IF TRAIN AND TEST ARE PROVIDED
     {"split": SPXYGFold(n_splits=3, random_state=42)},
     PCA(n_components=0.99, random_state=42, whiten=True), # PCA(50)
     {
-        "model": TabPFNModel(n_estimators=16, device=TABPFN_DEVICE, random_state=42, model_path=tabpfn_real_path, ignore_pretraining_limits=True),
+        "model": TabPFNModel(n_estimators=4, device=TABPFN_DEVICE, random_state=42, model_path=tabpfn_real_path, ignore_pretraining_limits=True),
         "name": "TabPFN-real",
     },
 ]
@@ -112,6 +116,24 @@ dataset_config = DatasetConfigs(DATA_PATH, task_type=TASK_TYPE)
 # Run the pipeline
 runner = PipelineRunner(verbose=0, workspace_path=args.workspace)
 predictions, predictions_per_dataset = runner.run(pipeline_config, dataset_config)
+
+
+
+def extract_fold_metrics(prediction, metrics, split_name):
+    """
+    Extract per-fold metrics for a given split.
+    Returns a DataFrame with one row per fold.
+    """
+    rows = []
+    for fold_idx, fold_metrics in enumerate(prediction['metrics'][split_name]):
+        row = {
+            "fold": fold_idx,
+        }
+        for m in metrics:
+            row[m] = fold_metrics.get(m, None)
+        rows.append(row)
+    return pd.DataFrame(rows)
+
 
 # Analyze and display top performing models
 best_model_count = 5
@@ -154,3 +176,54 @@ for dataset_name, dataset_prediction in predictions_per_dataset.items():
         top_models_test = dataset_predictions.top(best_model_count, rank_metric, rank_partition='test', display_metrics=display_metrics, aggregate=AGGREGATION_KEY)
         for idx, prediction in enumerate(top_models_test):
             print(f"{idx + 1}. {Predictions.pred_short_string(prediction, metrics=display_metrics)} - {prediction['preprocessings']}")
+
+        # ===================== Save detailed metrics ===================== #
+
+        output_dir = Path(args.workspace) / "metrics"
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        rows = []
+
+        for prediction in dataset_predictions:
+            model_name = prediction["name"]
+            preprocessings = prediction["preprocessings"]
+
+            # ---------- Validation folds ----------
+            df_val_folds = extract_fold_metrics(
+                prediction,
+                display_metrics,
+                split_name="val"
+            )
+
+            val_mean = df_val_folds.mean(numeric_only=True)
+            val_best = df_val_folds.min(numeric_only=True) if TASK_TYPE == "regression" else df_val_folds.max(numeric_only=True)
+
+            # ---------- Test metrics ----------
+            test_metrics = prediction["metrics"]["test"]
+
+            row = {
+                "dataset": dataset_name,
+                "model": model_name,
+                "preprocessings": preprocessings,
+            }
+
+            # Store validation mean
+            for m in display_metrics:
+                row[f"val_mean_{m}"] = val_mean.get(m, None)
+
+            # Store best fold validation
+            for m in display_metrics:
+                row[f"val_best_{m}"] = val_best.get(m, None)
+
+            # Store test metrics
+            for m in display_metrics:
+                row[f"test_{m}"] = test_metrics.get(m, None)
+
+            rows.append(row)
+
+        df_results = pd.DataFrame(rows)
+
+        output_csv = output_dir / f"{dataset_name}_metrics.csv"
+        df_results.to_csv(output_csv, index=False)
+
+        print(f"Saved detailed metrics → {output_csv}")
