@@ -1,0 +1,7 @@
+model,wins,losses
+PLS,22,5
+Ridge,34,2
+LGBM,9,3
+CNN,8,28
+TabPFN Raw,1,5
+TabPFN RFF,1,32
