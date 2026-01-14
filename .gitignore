@@ -43,3 +43,13 @@ outputs/
 wk_*/
 *.ckpt
 charts/
+
+# TabPFN / binaries
+**/_binaries/
+**/binaries/
+
+# Model artifacts
+*.pkl
+*.pt
+*.ckpt
+*.pth
