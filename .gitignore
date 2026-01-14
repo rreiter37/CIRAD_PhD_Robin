@@ -40,6 +40,6 @@ INSPIR_nirs4all/
 outputs/
 
 # Ignore models and workspace for benchmarking tabpfn
-workspace/runs/*/_binaries/
+wk_*/
 *.ckpt
 charts/
