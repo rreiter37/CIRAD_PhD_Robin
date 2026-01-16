@@ -18,6 +18,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 BASE_DIR = "Results/assoc_pp_model/per_dataset"
+DATASET_BASE_DIR = "Data/Regression"
 FORBIDDEN = ["LGBM", "PLS", "Ridge", "CNN", "NICON"]
 
 OUTPUT_BASE_JSON = (
@@ -113,9 +114,10 @@ def compute_difficulty_scores(pivot):
 
 
 def build_rankings(scores_dict):
-    """Build ranking lists for each difficulty metric."""
+    """Build ranking lists for each difficulty metric and dataset size."""
     rankings = {}
 
+    # Difficulty-based rankings (higher = harder)
     for metric in ["best_rrmse", "mean_rrmse", "mean_best_model"]:
         sorted_items = sorted(
             scores_dict.items(),
@@ -124,7 +126,15 @@ def build_rankings(scores_dict):
         )
         rankings[metric] = [ds for ds, _ in sorted_items]
 
+    # Dataset size ranking (smaller first to control computation time)
+    size_sorted = sorted(
+        scores_dict.items(),
+        key=lambda x: x[1]["dataset_size"]
+    )
+    rankings["dataset_size_ascending"] = [ds for ds, _ in size_sorted]
+
     return rankings
+
 
 
 # ----------------------------------------------------------------------
@@ -148,6 +158,50 @@ def plot_one_ranking(metric_name, rankings, scores_dict, suffix):
     plt.close()
 
     print(f"[INFO] Saved figure → {out_path}")
+
+
+def plot_dataset_size_ranking(rankings, scores_dict, suffix):
+    """Create a barplot ranking datasets by size (ascending)."""
+    ordered = rankings["dataset_size_ascending"]
+    values = [scores_dict[ds]["dataset_size"] for ds in ordered]
+
+    plt.figure(figsize=(12, max(6, len(ordered) * 0.4)))
+    plt.barh(ordered, values)
+    plt.xlabel("Dataset size (number of evaluated models)")
+    plt.title(f"Dataset Size Ranking (ascending) ({suffix})")
+    plt.gca().invert_yaxis()
+
+    ensure_dir(FIGURE_DIR)
+    out_path = os.path.join(
+        FIGURE_DIR, f"ranking_dataset_size_ascending__{suffix}.png"
+    )
+    plt.tight_layout()
+    plt.savefig(out_path, dpi=160)
+    plt.close()
+
+    print(f"[INFO] Saved figure → {out_path}")
+
+def get_training_dataset_size(dataset_name):
+    """
+    Return the number of training samples based on Xcal.csv.
+
+    Expected path:
+        Data/Regression/{dataset_name}/Xcal.csv
+    """
+    xcal_path = os.path.join(
+        DATASET_BASE_DIR,
+        dataset_name,
+        "Xcal.csv"
+    )
+
+    if not os.path.exists(xcal_path):
+        raise FileNotFoundError(
+            f"Training file not found: {xcal_path}"
+        )
+
+    # Read only the number of rows (fast and memory-safe)
+    df = pd.read_csv(xcal_path)
+    return df.shape[0]
 
 
 # ----------------------------------------------------------------------
@@ -177,7 +231,18 @@ def main():
             print(f"[WARNING] Dataset {dataset} skipped (no selected models present).")
             continue
 
-        scores_dict[dataset] = compute_difficulty_scores(filtered)
+        # Dataset size based on training samples (Xcal.csv)
+        try:
+            dataset_size = get_training_dataset_size(dataset)
+        except FileNotFoundError as e:
+            print(f"[WARNING] {e}")
+            continue
+
+        difficulty_scores = compute_difficulty_scores(filtered)
+        difficulty_scores["dataset_size"] = int(dataset_size)
+
+        scores_dict[dataset] = difficulty_scores
+
 
     if not scores_dict:
         print("[ERROR] No datasets remain after model filtering.")
@@ -199,7 +264,8 @@ def main():
     # Generate figures per ranking method
     for metric in ["best_rrmse", "mean_rrmse", "mean_best_model"]:
         plot_one_ranking(metric, rankings, scores_dict, suffix)
-
+    
+    plot_dataset_size_ranking(rankings, scores_dict, suffix)
 
 if __name__ == "__main__":
     main()

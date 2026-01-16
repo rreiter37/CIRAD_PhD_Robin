@@ -2,22 +2,61 @@
 # -*- coding: utf-8 -*-
 
 """
-Full benchmark comparison between:
+Generic benchmark comparison between:
   - assoc_pp_model (PLS, Ridge, LGBM, CNN)
-  - TabPFN Raw
-  - TabPFN RFF
+  - Multiple TabPFN workspaces (Raw, RFF, PCA, etc.)
 
 Metric:
   NRMSE = RMSE_test / (max(Y_val) - min(Y_val))
+
+All comments are intentionally written in English.
 """
 
+import argparse
 import json
 from pathlib import Path
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from scipy.stats import rankdata
+
+
+# ==============================
+# CLI arguments
+# ==============================
+
+parser = argparse.ArgumentParser()
+
+parser.add_argument(
+    "--tabpfn_workspaces",
+    nargs="+",
+    required=True,
+    help="List of TabPFN workspace directories to compare"
+)
+
+parser.add_argument(
+    "--tabpfn_labels",
+    nargs="+",
+    required=True,
+    help="Human-readable labels for each TabPFN workspace"
+)
+
+parser.add_argument(
+    "--outdir",
+    type=str,
+    default="Results/comp_assoc_tabpfn",
+    help="Output directory"
+)
+
+args = parser.parse_args()
+
+if len(args.tabpfn_workspaces) != len(args.tabpfn_labels):
+    raise ValueError("tabpfn_workspaces and tabpfn_labels must have the same length")
+
+TABPFN_WORKSPACES = [
+    (Path(ws), label)
+    for ws, label in zip(args.tabpfn_workspaces, args.tabpfn_labels)
+]
 
 
 # ==============================
@@ -25,13 +64,12 @@ from scipy.stats import rankdata
 # ==============================
 
 ASSOC_ROOT = Path("Results/assoc_pp_model/per_dataset")
-TABPFN_RAW_ROOT = Path("wk_tabpfn_raw")
-TABPFN_RFF_ROOT = Path("wk_tabpfn_rff")
-DATA_ROOT = Path("Data/Data/Regression")  # <-- FIXED
-OUTDIR = Path("Results/comp_assoc_tabpfn")
+DATA_ROOT = Path("Data/Regression")
+OUTDIR = Path(args.outdir)
 OUTDIR.mkdir(parents=True, exist_ok=True)
 
-MODELS_ORDER = ["PLS", "Ridge", "LGBM", "CNN", "TabPFN Raw", "TabPFN RFF"]
+BASE_MODELS = ["PLS", "Ridge", "LGBM", "CNN"]
+MODELS_ORDER = BASE_MODELS + args.tabpfn_labels
 
 
 # ==============================
@@ -39,10 +77,12 @@ MODELS_ORDER = ["PLS", "Ridge", "LGBM", "CNN", "TabPFN Raw", "TabPFN RFF"]
 # ==============================
 
 def normalize(name: str) -> str:
+    """Normalize dataset names for fuzzy matching."""
     return name.lower().replace("-", "_").replace(" ", "_")
 
 
 def find_tabpfn_meta(dataset: str, root: Path):
+    """Find the TabPFN .meta.parquet file corresponding to a dataset."""
     norm = normalize(dataset)
     for p in root.glob("*.meta.parquet"):
         if normalize(p.stem).startswith(norm) or norm.startswith(normalize(p.stem)):
@@ -51,9 +91,9 @@ def find_tabpfn_meta(dataset: str, root: Path):
 
 
 def load_Yval_range(dataset: str):
+    """Load Yval.csv and compute its value range."""
     path = DATA_ROOT / dataset / "Yval.csv"
     if not path.exists():
-        print(f"[WARN] Missing Yval.csv for {dataset}")
         return None
 
     y = pd.read_csv(path, sep=";", header=None).iloc[:, 0]
@@ -65,7 +105,8 @@ def load_Yval_range(dataset: str):
     return r if r > 0 else None
 
 
-def extract_tabpfn_rmse(meta_path):
+def extract_tabpfn_rmse(meta_path: Path) -> float:
+    """Extract mean test RMSE from a TabPFN meta.parquet file."""
     df = pd.read_parquet(meta_path)
     test_df = df[
         (df["partition"] == "test") &
@@ -75,7 +116,11 @@ def extract_tabpfn_rmse(meta_path):
     return float(np.mean(rmses))
 
 
-def extract_assoc_best_per_model(csv_path):
+def extract_assoc_best_per_model(csv_path: Path):
+    """
+    Extract the best (minimum) score per model across all preprocessings
+    from assoc_pp_model result CSVs.
+    """
     df = pd.read_csv(csv_path)
     if "Model" not in df.columns:
         raise ValueError("Missing 'Model' column")
@@ -114,34 +159,26 @@ for dataset_dir in ASSOC_ROOT.iterdir():
     for csv_file in dataset_dir.glob("results_*_dynamic_batch_size.csv"):
         try:
             scores = extract_assoc_best_per_model(csv_file)
-        except Exception as e:
-            print(f"[WARN] Failed to read {csv_file}: {e}")
+        except Exception:
             continue
 
-        for model, nrmse in scores.items():
+        for model, rmse in scores.items():
             rows.append({
                 "dataset": dataset,
                 "model": model,
-                "NRMSE": nrmse
+                "NRMSE": rmse
             })
 
-    # ---- TabPFN Raw ----
-    raw_meta = find_tabpfn_meta(dataset, TABPFN_RAW_ROOT)
-    if raw_meta:
-        rmse = extract_tabpfn_rmse(raw_meta)
-        rows.append({
-            "dataset": dataset,
-            "model": "TabPFN Raw",
-            "NRMSE": rmse / y_range
-        })
+    # ---- TabPFN workspaces (generic) ----
+    for ws_path, ws_label in TABPFN_WORKSPACES:
+        meta = find_tabpfn_meta(dataset, ws_path)
+        if meta is None:
+            continue
 
-    # ---- TabPFN RFF ----
-    rff_meta = find_tabpfn_meta(dataset, TABPFN_RFF_ROOT)
-    if rff_meta:
-        rmse = extract_tabpfn_rmse(rff_meta)
+        rmse = extract_tabpfn_rmse(meta)
         rows.append({
             "dataset": dataset,
-            "model": "TabPFN RFF",
+            "model": ws_label,
             "NRMSE": rmse / y_range
         })
 
@@ -151,42 +188,54 @@ df_all = pd.DataFrame(rows)
 if df_all.empty:
     raise RuntimeError("No results collected. Check paths and dataset names.")
 
-
 # ==============================
-# Keep only datasets with TabPFN
+# Keep only datasets present in ALL TabPFN workspaces
 # ==============================
 
-valid_datasets = set(df_all[df_all["model"].isin(["TabPFN Raw", "TabPFN RFF"])]["dataset"])
-df_all = df_all[df_all["dataset"].isin(valid_datasets)].copy()
+# Collect datasets available for each TabPFN label
+datasets_per_tabpfn = {}
 
-if df_all.empty:
-    raise RuntimeError("No dataset contains TabPFN results.")
+for label in args.tabpfn_labels:
+    datasets_per_tabpfn[label] = set(
+        df_all[df_all["model"] == label]["dataset"].unique()
+    )
+
+# Compute strict intersection
+common_datasets = set.intersection(*datasets_per_tabpfn.values())
+
+if not common_datasets:
+    raise RuntimeError(
+        "No dataset has results for ALL TabPFN workspaces. "
+        "Cannot perform a fair comparison."
+    )
+
+# Filter the full dataframe
+df_all = df_all[df_all["dataset"].isin(common_datasets)].copy()
 
 
 # ==============================
 # Pivot table
 # ==============================
 
-pivot_df = df_all.pivot_table(
-    index="model",
-    columns="dataset",
-    values="NRMSE",
-    aggfunc="mean"
-).reindex(MODELS_ORDER)
+pivot_df = (
+    df_all
+    .pivot_table(
+        index="model",
+        columns="dataset",
+        values="NRMSE",
+        aggfunc="mean"
+    )
+    .reindex(MODELS_ORDER)
+)
 
 pivot_df.to_csv(OUTDIR / "nrmse_table.csv")
 
 
 # ==============================
-# Heatmap (fully readable labels)
+# Heatmap (values + best highlight)
 # ==============================
 
-import textwrap
-
-def wrap_label(label, width=18):
-    return "\n".join(textwrap.wrap(label, width=width, break_long_words=False))
-
-fig_w = max(30, 1.4 * pivot_df.shape[1])   # big width per dataset
+fig_w = max(30, 1.4 * pivot_df.shape[1])
 fig_h = max(6, 1.2 * pivot_df.shape[0])
 
 fig, ax = plt.subplots(figsize=(fig_w, fig_h))
@@ -197,20 +246,14 @@ sns.heatmap(
     cmap="viridis",
     linewidths=0.3,
     linecolor="white",
-    cbar_kws={"label": "Normalized RMSE"},
     annot=True,
     fmt=".3f",
-    annot_kws={
-        "fontsize": 7,
-        "ha": "center",
-        "va": "center"
-    }
+    annot_kws={"fontsize": 7},
+    cbar_kws={"label": "NRMSE (lower is better)"}
 )
 
-wrapped_labels = [wrap_label(ds) for ds in pivot_df.columns]
-
 ax.set_xticklabels(
-    wrapped_labels,
+    ax.get_xticklabels(),
     rotation=45,
     ha="right",
     fontsize=8
@@ -223,7 +266,7 @@ ax.set_yticklabels(
     fontweight="bold"
 )
 
-# Highlight best per dataset
+# Highlight best model per dataset
 for j, ds in enumerate(pivot_df.columns):
     col = pivot_df[ds]
     if col.isna().all():
@@ -236,6 +279,45 @@ plt.tight_layout()
 plt.savefig(OUTDIR / "heatmap_nrmse.png", dpi=300)
 plt.close()
 
+
+# ==============================
+# Binary heatmap (best vs others)
+# ==============================
+
+binary = np.zeros_like(pivot_df.values, dtype=int)
+
+for j, ds in enumerate(pivot_df.columns):
+    col = pivot_df[ds]
+    if col.isna().all():
+        continue
+    binary[pivot_df.index.get_loc(col.idxmin()), j] = 1
+
+fig, ax = plt.subplots(figsize=(fig_w, fig_h))
+
+from matplotlib.colors import ListedColormap
+cmap = ListedColormap(["#f5b7b1", "#b6f2c2"])
+
+ax.imshow(binary, aspect="auto", cmap=cmap)
+
+ax.set_xticks(np.arange(len(pivot_df.columns)))
+ax.set_yticks(np.arange(len(pivot_df.index)))
+
+ax.set_xticklabels(pivot_df.columns, rotation=45, ha="right", fontsize=8)
+ax.set_yticklabels(pivot_df.index, fontsize=12, fontweight="bold")
+
+for i in range(pivot_df.shape[0]):
+    for j in range(pivot_df.shape[1]):
+        val = pivot_df.iloc[i, j]
+        if not np.isnan(val):
+            ax.text(j, i, f"{val:.3f}", ha="center", va="center", fontsize=7)
+
+ax.set_title("Best model per dataset (NRMSE)", fontsize=14)
+ax.set_xlim(-0.5, pivot_df.shape[1] - 0.5)
+ax.set_ylim(pivot_df.shape[0] - 0.5, -0.5)
+
+plt.tight_layout()
+plt.savefig(OUTDIR / "binary_heatmap_nrmse.png", dpi=300)
+plt.close()
 
 
 # ==============================
@@ -285,11 +367,8 @@ df_mean_rank.to_csv(OUTDIR / "global_model_ranking.csv")
 # Critical Difference diagram
 # ==============================
 
-def plot_cd(mean_ranks: dict, n_datasets: int, alpha: float = 0.05):
-    """
-    Proper Critical Difference (Nemenyi) diagram, publication-ready.
-    """
-
+def plot_cd(mean_ranks: dict, n_datasets: int):
+    """Plot a Nemenyi Critical Difference diagram."""
     import numpy as np
     import matplotlib.pyplot as plt
 
@@ -297,56 +376,37 @@ def plot_cd(mean_ranks: dict, n_datasets: int, alpha: float = 0.05):
     ranks = np.array(list(mean_ranks.values()))
     k = len(models)
 
-    # Nemenyi critical value (alpha=0.05, large sample approx)
-    q_alpha = 2.569
+    q_alpha = 2.569  # alpha=0.05
     cd = q_alpha * np.sqrt(k * (k + 1) / (6 * n_datasets))
 
-    # Sort by rank
     order = np.argsort(ranks)
     ranks = ranks[order]
     models = [models[i] for i in order]
 
     fig, ax = plt.subplots(figsize=(10, 3))
-
-    # Axis
     ax.set_xlim(min(ranks) - 0.5, max(ranks) + 0.5)
     ax.set_ylim(0, 1)
     ax.get_yaxis().set_visible(False)
-    ax.set_xlabel("Mean rank (lower is better)", fontsize=11)
+    ax.set_xlabel("Mean rank (lower is better)")
 
-    # Plot model points and labels
     y = 0.6
     for r, m in zip(ranks, models):
         ax.plot(r, y, "o", color="black")
-        ax.text(r, y + 0.08, m, ha="center", va="bottom", fontsize=11)
+        ax.text(r, y + 0.08, m, ha="center", va="bottom")
 
-    # Plot CD bar
-    x_start = min(ranks)
-    ax.plot([x_start, x_start + cd], [0.15, 0.15], lw=3, color="black")
-    ax.text(x_start + cd / 2, 0.18, f"CD = {cd:.2f}", ha="center", fontsize=10)
+    ax.plot([min(ranks), min(ranks) + cd], [0.15, 0.15], lw=3, color="black")
+    ax.text(min(ranks) + cd / 2, 0.18, f"CD = {cd:.2f}", ha="center")
 
-    # Plot non-significant groups
-    y_level = 0.45
-    step = 0.07
-
-    for i in range(k):
-        j = i
-        while j < k and ranks[j] - ranks[i] <= cd:
-            j += 1
-        if j - i > 1:
-            ax.plot(
-                [ranks[i], ranks[j - 1]],
-                [y_level, y_level],
-                lw=4,
-                color="black"
-            )
-            y_level -= step
-
-    ax.set_title("Critical Difference Diagram (Nemenyi test)", fontsize=13)
+    ax.set_title("Critical Difference Diagram (Nemenyi)")
 
     return fig
 
-fig = plot_cd(df_mean_rank["mean_rank"].to_dict(), pivot_df.shape[1])
+
+fig = plot_cd(
+    df_mean_rank["mean_rank"].to_dict(),
+    pivot_df.shape[1]
+)
+
 fig.savefig(OUTDIR / "critical_difference_diagram.png", dpi=300, bbox_inches="tight")
 plt.close(fig)
 
