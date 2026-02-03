@@ -1,0 +1,15 @@
+trial,base_name,simple_name,std_name,pca,use_rff,rff_n_components,rff_sigma,val_nrmse_1fold_ycal,val_nrmse_full_ycal,state
+0,asls_baseline,baseline,no_std,pca_adapt_0.25n,False,0,0.0,0.12335922342102965,0.12165908872284242,COMPLETE
+1,asls_baseline,id,no_std,pca_adapt_0.25n,False,0,0.0,0.1233993599519217,0.12141065720078319,COMPLETE
+2,id,SNV,no_std,pca_adapt_0.25n,False,0,0.0,0.12369482790495395,0.12361184265326546,COMPLETE
+3,asls_baseline,savgol,no_std,pca_adapt_0.25n,False,0,0.0,0.12393811695629854,0.12289032129390105,COMPLETE
+4,asls_baseline,detrend,no_std,pca_adapt_0.25n,False,0,0.0,0.12417680445267554,0.12291227488030697,COMPLETE
+5,asls_baseline,id,no_std,pca_adapt_0.10n,False,0,0.0,0.1280096342079686,0.12504098491650256,COMPLETE
+6,asls_baseline,baseline,no_std,pca_0.99,False,0,0.0,0.13073910316597986,0.12896000353670306,COMPLETE
+8,asls_baseline,id,no_std,no_pca,True,234,2.0,0.13160531416031024,0.12628226732145406,COMPLETE
+9,id,SNV,no_std,pca_adapt_0.10n,False,0,0.0,0.1263644192991595,0.12399500798864442,COMPLETE
+10,asls_baseline,id,no_std,no_pca,True,58,0.5,0.1300479365413714,0.12777251446319754,COMPLETE
+11,asls_baseline,baseline,no_std,pca_adapt_0.25n,True,234,0.5,0.13075164107247633,0.1295434290761395,COMPLETE
+14,asls_baseline,baseline,no_std,pca_adapt_0.25n,True,58,2.0,0.1295242693803767,0.12553533152167548,COMPLETE
+17,asls_baseline,id,no_std,no_pca,False,0,0.0,0.13003502303854086,0.12840477097096675,COMPLETE
+18,asls_baseline,detrend,no_std,pca_adapt_0.10n,True,58,2.0,0.13319551805900107,0.12824179297022723,COMPLETE

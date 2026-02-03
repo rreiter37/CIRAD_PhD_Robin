@@ -1,0 +1,10 @@
+{
+  "dataset": "DIESEL_CN_381_ZhengYbase",
+  "best_value_val_nrmse_full_ycal": 0.08456846534007893,
+  "best_params": {
+    "base_choice": "asls_baseline__MSC__no_std",
+    "pca": "pca_adapt_0.25n",
+    "use_rff": false
+  },
+  "n_trials": 20
+}

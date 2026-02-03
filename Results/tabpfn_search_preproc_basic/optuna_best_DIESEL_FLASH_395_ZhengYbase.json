@@ -1,0 +1,12 @@
+{
+  "dataset": "DIESEL_FLASH_395_ZhengYbase",
+  "best_value_val_nrmse_full_ycal": 0.0967599852775301,
+  "best_params": {
+    "base_choice": "asls_baseline__RNV__no_std",
+    "pca": "pca_adapt_0.25n",
+    "use_rff": true,
+    "rff_n_components": 71,
+    "rff_sigma": 2.0
+  },
+  "n_trials": 20
+}

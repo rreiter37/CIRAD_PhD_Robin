@@ -1,0 +1,17 @@
+dataset_id,dataset_type,dataset_name,accuracy,n_train,n_test,n_features,n_classes
+ARABIDOPSIS_CEFE / InOut_1264,ARABIDOPSIS_CEFE,InOut_1264,1.0,884,379,2152,2
+MILK / labels_kenstone70_strat,MILK,labels_kenstone70_strat,1.0,315,135,601,1
+FruitPuree / Strawberry2C_983_Holland_Acc94.3,FruitPuree,Strawberry2C_983_Holland_Acc94.3,0.9873817034700316,666,317,235,2
+COFFEE_orig / CoffeeType_kenstone70_strat,COFFEE_orig,CoffeeType_kenstone70_strat,0.9523809523809524,49,21,601,6
+Wood_Sustainability / C2_511_Davrieux_Acc82,Wood_Sustainability,C2_511_Davrieux_Acc82,0.8823529411764706,358,153,1050,2
+BEEF_Impurity / Beef_Impurity_60_AlJowder,BEEF_Impurity,Beef_Impurity_60_AlJowder,0.8333333333333334,30,30,470,5
+FUSARIUM / ScoreBin_grp70_30_classStrat,FUSARIUM,ScoreBin_grp70_30_classStrat,0.8067226890756303,578,238,2177,2
+PISTACIA / Species_code_grpStrat70_30_bySpecimen,PISTACIA,Species_code_grpStrat70_30_bySpecimen,0.772972972972973,5103,2220,1951,5
+Wood_Sustainability / C5_511_Davrieux_Acc82,Wood_Sustainability,C5_511_Davrieux_Acc82,0.6928104575163399,358,153,1050,5
+FUSARIUM / FinalScoreBin_grp70_30_classStrat,FUSARIUM,FinalScoreBin_grp70_30_classStrat,0.6816608996539792,646,289,2177,2
+ARABIDOPSIS_CEFE / Genotype10_250,ARABIDOPSIS_CEFE,Genotype10_250,0.64,175,75,2152,10
+Cassava / CT2C_1057_CIAT_Acc,Cassava,CT2C_1057_CIAT_Acc,0.5679012345679012,975,81,1050,2
+MALARIA / Sporozoite2C_229_Maia_Acc94.5,MALARIA,Sporozoite2C_229_Maia_Acc94.5,0.5604395604395604,138,91,2151,2
+MALARIA / Oocist2C_333_Maia_Acc87.6,MALARIA,Oocist2C_333_Maia_Acc87.6,0.5188679245283019,227,106,2151,2
+ARABIDOPSIS_CEFE / Group9_1856,ARABIDOPSIS_CEFE,Group9_1856,0.3944444444444444,1260,540,2152,9
+ARABIDOPSIS_CEFE / Group_2185,ARABIDOPSIS_CEFE,Group_2185,0.2946564885496183,1530,655,2152,10

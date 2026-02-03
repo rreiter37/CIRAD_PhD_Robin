@@ -1,0 +1,12 @@
+{
+  "dataset": "Corn_Oil_80_ZhengChenPelegYbaseSplit",
+  "best_value_val_nrmse_full_ycal": 0.07470097120210105,
+  "best_params": {
+    "base_choice": "asls_baseline__id__no_std",
+    "pca": "no_pca",
+    "use_rff": true,
+    "rff_n_components": 128,
+    "rff_sigma": 2.0
+  },
+  "n_trials": 20
+}

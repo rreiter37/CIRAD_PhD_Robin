@@ -1,0 +1,12 @@
+{
+  "dataset": "Cattle_manure_K2O_KS",
+  "best_value_val_nrmse_full_ycal": 0.09109654397443379,
+  "best_params": {
+    "base_choice": "asls_baseline__baseline__std_scaler",
+    "pca": "no_pca",
+    "use_rff": true,
+    "rff_n_components": 222,
+    "rff_sigma": 0.5
+  },
+  "n_trials": 20
+}

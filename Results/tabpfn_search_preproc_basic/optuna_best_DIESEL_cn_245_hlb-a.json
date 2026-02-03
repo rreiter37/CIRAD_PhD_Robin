@@ -1,0 +1,12 @@
+{
+  "dataset": "DIESEL_cn_245_hlb-a",
+  "best_value_val_nrmse_full_ycal": 0.0950121526870189,
+  "best_params": {
+    "base_choice": "id__SNV__no_std",
+    "pca": "no_pca",
+    "use_rff": true,
+    "rff_n_components": 45,
+    "rff_sigma": 2.0
+  },
+  "n_trials": 20
+}

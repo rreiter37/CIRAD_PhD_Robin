@@ -1,0 +1,19 @@
+{
+  "dataset_type": "MILK",
+  "dataset_name": "labels_kenstone70_strat",
+  "n_train": 315,
+  "n_test": 135,
+  "n_features": 601,
+  "n_classes": 1,
+  "classes": [
+    "nan"
+  ],
+  "seed": 42,
+  "n_estimators": 4,
+  "device": "cpu",
+  "metrics": {
+    "accuracy": 1.0,
+    "balanced_accuracy": 1.0,
+    "f1_macro": 1.0
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "dataset_type": "MALARIA",
+  "dataset_name": "Oocist2C_333_Maia_Acc87.6",
+  "n_train": 227,
+  "n_test": 106,
+  "n_features": 2151,
+  "n_classes": 2,
+  "classes": [
+    "0",
+    "1"
+  ],
+  "seed": 42,
+  "n_estimators": 4,
+  "device": "cpu",
+  "metrics": {
+    "accuracy": 0.5188679245283019,
+    "balanced_accuracy": 0.5188679245283019,
+    "f1_macro": 0.5177950227455178,
+    "roc_auc": 0.4948380206479174
+  }
+}

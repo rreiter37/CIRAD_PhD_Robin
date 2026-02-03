@@ -1,0 +1,10 @@
+{
+  "dataset": "ALPINE_P_291_RobustnessFennoscandia",
+  "best_value_val_nrmse_full_ycal": 0.17803741145824417,
+  "best_params": {
+    "base_choice": "id__detrend__no_std",
+    "pca": "pca_adapt_0.25n",
+    "use_rff": false
+  },
+  "n_trials": 20
+}

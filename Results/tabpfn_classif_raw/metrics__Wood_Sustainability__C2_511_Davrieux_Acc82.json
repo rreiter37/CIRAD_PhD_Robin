@@ -1,0 +1,21 @@
+{
+  "dataset_type": "Wood_Sustainability",
+  "dataset_name": "C2_511_Davrieux_Acc82",
+  "n_train": 358,
+  "n_test": 153,
+  "n_features": 1050,
+  "n_classes": 2,
+  "classes": [
+    "0",
+    "1"
+  ],
+  "seed": 42,
+  "n_estimators": 4,
+  "device": "cpu",
+  "metrics": {
+    "accuracy": 0.8823529411764706,
+    "balanced_accuracy": 0.8769311797752809,
+    "f1_macro": 0.8785714285714286,
+    "roc_auc": 0.9332865168539326
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "dataset": "Corn_Starch_80_ZhengChenPelegYbaseSplit",
+  "best_value_val_nrmse_full_ycal": 0.05670045786353003,
+  "best_params": {
+    "base_choice": "asls_baseline__detrend__no_std",
+    "pca": "no_pca",
+    "use_rff": true,
+    "rff_n_components": 32,
+    "rff_sigma": 0.5
+  },
+  "n_trials": 20
+}

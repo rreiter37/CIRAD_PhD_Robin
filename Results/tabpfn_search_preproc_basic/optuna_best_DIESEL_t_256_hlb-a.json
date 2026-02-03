@@ -1,0 +1,12 @@
+{
+  "dataset": "DIESEL_t_256_hlb-a",
+  "best_value_val_nrmse_full_ycal": 0.016970813626970647,
+  "best_params": {
+    "base_choice": "asls_baseline__gaussian__no_std",
+    "pca": "no_pca",
+    "use_rff": true,
+    "rff_n_components": 186,
+    "rff_sigma": 2.0
+  },
+  "n_trials": 20
+}

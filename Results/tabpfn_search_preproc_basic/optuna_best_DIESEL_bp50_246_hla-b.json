@@ -1,0 +1,10 @@
+{
+  "dataset": "DIESEL_bp50_246_hla-b",
+  "best_value_val_nrmse_full_ycal": 0.03688020367287783,
+  "best_params": {
+    "base_choice": "asls_baseline__savgol__std_scaler",
+    "pca": "pca_adapt_0.25n",
+    "use_rff": false
+  },
+  "n_trials": 20
+}

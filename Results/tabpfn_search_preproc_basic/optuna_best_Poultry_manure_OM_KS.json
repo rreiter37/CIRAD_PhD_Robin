@@ -1,0 +1,12 @@
+{
+  "dataset": "Poultry_manure_OM_KS",
+  "best_value_val_nrmse_full_ycal": 0.07534790909504663,
+  "best_params": {
+    "base_choice": "asls_baseline__savgol__std_scaler",
+    "pca": "no_pca",
+    "use_rff": true,
+    "rff_n_components": 40,
+    "rff_sigma": 2.0
+  },
+  "n_trials": 20
+}

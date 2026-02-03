@@ -1,0 +1,10 @@
+{
+  "dataset": "DIESEL_f_251_b-a",
+  "best_value_val_nrmse_full_ycal": 0.11086160799305451,
+  "best_params": {
+    "base_choice": "asls_baseline__savgol__std_scaler",
+    "pca": "pca_adapt_0.25n",
+    "use_rff": false
+  },
+  "n_trials": 20
+}

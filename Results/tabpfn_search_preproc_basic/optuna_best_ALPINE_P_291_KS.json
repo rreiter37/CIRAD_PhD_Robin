@@ -1,0 +1,12 @@
+{
+  "dataset": "ALPINE_P_291_KS",
+  "best_value_val_nrmse_full_ycal": 0.07770360219418487,
+  "best_params": {
+    "base_choice": "asls_baseline__haar__std_scaler",
+    "pca": "no_pca",
+    "use_rff": true,
+    "rff_n_components": 250,
+    "rff_sigma": 2.0
+  },
+  "n_trials": 20
+}

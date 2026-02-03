@@ -1,0 +1,21 @@
+{
+  "dataset_type": "Cassava",
+  "dataset_name": "CT2C_1057_CIAT_Acc",
+  "n_train": 975,
+  "n_test": 81,
+  "n_features": 1050,
+  "n_classes": 2,
+  "classes": [
+    "0",
+    "1"
+  ],
+  "seed": 42,
+  "n_estimators": 4,
+  "device": "cpu",
+  "metrics": {
+    "accuracy": 0.5679012345679012,
+    "balanced_accuracy": 0.55,
+    "f1_macro": 0.5454545454545454,
+    "roc_auc": 0.5067901234567901
+  }
+}

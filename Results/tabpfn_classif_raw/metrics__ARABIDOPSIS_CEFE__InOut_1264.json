@@ -1,0 +1,21 @@
+{
+  "dataset_type": "ARABIDOPSIS_CEFE",
+  "dataset_name": "InOut_1264",
+  "n_train": 884,
+  "n_test": 379,
+  "n_features": 2152,
+  "n_classes": 2,
+  "classes": [
+    "0",
+    "1"
+  ],
+  "seed": 42,
+  "n_estimators": 4,
+  "device": "cpu",
+  "metrics": {
+    "accuracy": 1.0,
+    "balanced_accuracy": 1.0,
+    "f1_macro": 1.0,
+    "roc_auc": 1.0
+  }
+}

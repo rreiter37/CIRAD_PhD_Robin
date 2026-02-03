@@ -1,0 +1,16 @@
+trial,base_name,simple_name,std_name,pca,use_rff,rff_n_components,rff_sigma,val_nrmse_1fold_ycal,val_nrmse_full_ycal,state
+0,asls_baseline,gaussian,std_scaler,no_pca,False,0,0.0,0.1066110433724002,0.09751081375290441,COMPLETE
+1,id,haar,no_std,no_pca,False,0,0.0,0.11522342347227976,0.11863905668439921,COMPLETE
+2,asls_baseline,detrend,no_std,pca_adapt_0.25n,False,0,0.0,0.12229696457650106,0.12958514569057092,COMPLETE
+3,asls_baseline,savgol,no_std,pca_adapt_0.25n,False,0,0.0,0.13152242456967966,0.12591109558883642,COMPLETE
+4,asls_baseline,simplescale,no_std,no_pca,False,0,0.0,0.1395916309150547,0.14083626510139804,COMPLETE
+5,id,haar,no_std,pca_adapt_0.10n,False,0,0.0,0.22081709160971272,0.21931130064072923,COMPLETE
+6,asls_baseline,gaussian,std_scaler,pca_0.99,False,0,0.0,0.12333032462756156,0.12889645206965736,COMPLETE
+8,id,haar,no_std,no_pca,True,240,2.0,0.1270118487091893,0.12706425537198748,COMPLETE
+9,asls_baseline,detrend,no_std,pca_adapt_0.10n,False,0,0.0,0.18100236472491596,0.17077857179476902,COMPLETE
+10,asls_baseline,gaussian,std_scaler,pca_0.99,True,60,0.5,0.11947609465980413,0.11178950979448578,COMPLETE
+14,asls_baseline,gaussian,std_scaler,no_pca,True,240,2.0,0.1179347839342403,0.11294433688265632,COMPLETE
+15,asls_baseline,simplescale,no_std,pca_0.99,True,60,0.5,0.24635435035740527,0.2117952845532666,COMPLETE
+16,asls_baseline,gaussian,std_scaler,no_pca,True,60,0.5,0.11201016705935905,0.11630474687639186,COMPLETE
+17,asls_baseline,gaussian,std_scaler,pca_adapt_0.10n,True,240,2.0,0.135963563962461,0.13035480745762426,COMPLETE
+19,asls_baseline,detrend,no_std,no_pca,False,0,0.0,0.23279059127386828,0.2002585236967275,COMPLETE

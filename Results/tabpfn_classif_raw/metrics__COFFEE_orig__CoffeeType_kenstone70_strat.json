@@ -1,0 +1,25 @@
+{
+  "dataset_type": "COFFEE_orig",
+  "dataset_name": "CoffeeType_kenstone70_strat",
+  "n_train": 49,
+  "n_test": 21,
+  "n_features": 601,
+  "n_classes": 6,
+  "classes": [
+    "Abruzzo",
+    "Calabr",
+    "La Sp",
+    "R",
+    "Tauro",
+    "Torino"
+  ],
+  "seed": 42,
+  "n_estimators": 4,
+  "device": "cpu",
+  "metrics": {
+    "accuracy": 0.9523809523809523,
+    "balanced_accuracy": 0.9444444444444443,
+    "f1_macro": 0.9428571428571427,
+    "roc_auc_ovr_macro": 1.0
+  }
+}

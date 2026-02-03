@@ -1,0 +1,10 @@
+{
+  "dataset": "Corn_Protein_80_ZhengChenPelegYbaseSplit",
+  "best_value_val_nrmse_full_ycal": 0.046729333971633265,
+  "best_params": {
+    "base_choice": "asls_baseline__savgol__std_scaler",
+    "pca": "no_pca",
+    "use_rff": false
+  },
+  "n_trials": 20
+}

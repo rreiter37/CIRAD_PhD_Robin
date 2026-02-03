@@ -1,0 +1,7 @@
+              precision    recall  f1-score   support
+
+         nan     1.0000    1.0000    1.0000       135
+
+    accuracy                         1.0000       135
+   macro avg     1.0000    1.0000    1.0000       135
+weighted avg     1.0000    1.0000    1.0000       135

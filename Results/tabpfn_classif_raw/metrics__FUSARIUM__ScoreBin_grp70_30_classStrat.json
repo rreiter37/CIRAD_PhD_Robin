@@ -1,0 +1,21 @@
+{
+  "dataset_type": "FUSARIUM",
+  "dataset_name": "ScoreBin_grp70_30_classStrat",
+  "n_train": 578,
+  "n_test": 238,
+  "n_features": 2177,
+  "n_classes": 2,
+  "classes": [
+    "0",
+    "1"
+  ],
+  "seed": 42,
+  "n_estimators": 4,
+  "device": "cpu",
+  "metrics": {
+    "accuracy": 0.8067226890756303,
+    "balanced_accuracy": 0.6449175824175823,
+    "f1_macro": 0.6675170068027211,
+    "roc_auc": 0.7898351648351648
+  }
+}

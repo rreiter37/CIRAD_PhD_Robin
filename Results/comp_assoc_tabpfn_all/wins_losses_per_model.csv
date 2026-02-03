@@ -1,0 +1,15 @@
+model,wins,losses
+PLS,11,0
+Ridge,20,0
+LGBM,4,1
+CNN,0,28
+TabPFN No PCA,0,2
+TabPFN PCA 20,1,0
+TabPFN PCA 10,0,1
+TabPFN PCA 0.99,0,4
+TabPFN PCA 30,3,0
+TabPFN PCA 40,0,2
+TabPFN PCA 0.25N,0,0
+TabPFN PCA 0.5N,0,1
+TabPFN PCA 0.75N,1,1
+TabPFN best pp,0,0

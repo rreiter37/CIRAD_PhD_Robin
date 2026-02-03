@@ -1,0 +1,28 @@
+{
+  "dataset_type": "ARABIDOPSIS_CEFE",
+  "dataset_name": "Group9_1856",
+  "n_train": 1260,
+  "n_test": 540,
+  "n_features": 2152,
+  "n_classes": 9,
+  "classes": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8"
+  ],
+  "seed": 42,
+  "n_estimators": 4,
+  "device": "cpu",
+  "metrics": {
+    "accuracy": 0.39444444444444443,
+    "balanced_accuracy": 0.40047699870394904,
+    "f1_macro": 0.4057792680461078,
+    "roc_auc_ovr_macro": 0.8306839500323036
+  }
+}

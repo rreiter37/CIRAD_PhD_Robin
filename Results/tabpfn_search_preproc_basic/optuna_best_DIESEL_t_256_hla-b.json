@@ -1,0 +1,10 @@
+{
+  "dataset": "DIESEL_t_256_hla-b",
+  "best_value_val_nrmse_full_ycal": 0.016941618581150432,
+  "best_params": {
+    "base_choice": "asls_baseline__detrend__std_scaler",
+    "pca": "pca_adapt_0.25n",
+    "use_rff": false
+  },
+  "n_trials": 20
+}
