@@ -1,0 +1,33 @@
+{
+  "dataset_type": "COFFEE_orig",
+  "dataset_name": "CoffeeType_kenstone70_strat",
+  "model_name": "catboost",
+  "n_train": 49,
+  "n_test": 21,
+  "n_features": 601,
+  "n_classes": 7,
+  "classes": [
+    "Abruzzo",
+    "Calabrese",
+    "La Spezia",
+    "Reggio",
+    "Renzo",
+    "Tauro",
+    "Torino"
+  ],
+  "seed": 42,
+  "metrics": {
+    "accuracy": 0.6190476190476191,
+    "balanced_accuracy": 0.619047619047619,
+    "f1_macro": 0.5795918367346938,
+    "roc_auc_ovr_macro": 0.8941798941798942
+  },
+  "model_meta": {
+    "model": "CatBoostClassifier",
+    "params": {
+      "iterations": 200,
+      "depth": 8,
+      "learning_rate": 0.1
+    }
+  }
+}

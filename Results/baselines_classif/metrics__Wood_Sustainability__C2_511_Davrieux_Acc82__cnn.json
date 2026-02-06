@@ -1,0 +1,33 @@
+{
+  "dataset_type": "Wood_Sustainability",
+  "dataset_name": "C2_511_Davrieux_Acc82",
+  "model_name": "cnn",
+  "n_train": 358,
+  "n_test": 153,
+  "n_features": 1050,
+  "n_classes": 2,
+  "classes": [
+    "0",
+    "1"
+  ],
+  "seed": 42,
+  "metrics": {
+    "accuracy": 0.7124183006535948,
+    "balanced_accuracy": 0.7176966292134832,
+    "f1_macro": 0.7103270223752152,
+    "roc_auc": 0.7838834269662921
+  },
+  "model_meta": {
+    "model": "CNN1D(torch)",
+    "params": {
+      "epochs": 50,
+      "batch_size": 64,
+      "lr": 0.001,
+      "weight_decay": 0.0,
+      "hidden_channels": 32,
+      "dropout": 0.2,
+      "standardize": false,
+      "device": "cpu"
+    }
+  }
+}

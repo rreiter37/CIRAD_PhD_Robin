@@ -1,0 +1,27 @@
+{
+  "dataset_type": "Cassava",
+  "dataset_name": "CT2C_1057_CIAT_Acc",
+  "model_name": "plsda_nc20",
+  "n_train": 975,
+  "n_test": 81,
+  "n_features": 1050,
+  "n_classes": 2,
+  "classes": [
+    "0",
+    "1"
+  ],
+  "seed": 42,
+  "metrics": {
+    "accuracy": 0.5802469135802469,
+    "balanced_accuracy": 0.5611111111111111,
+    "f1_macro": 0.5558064516129032,
+    "roc_auc": 0.5160493827160493
+  },
+  "model_meta": {
+    "model": "PLSDA(nirs4all)",
+    "params": {
+      "n_components": 20,
+      "standardize": false
+    }
+  }
+}

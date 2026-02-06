@@ -1,0 +1,38 @@
+{
+  "dataset_type": "COFFEE_orig",
+  "dataset_name": "CoffeeType_kenstone70_strat",
+  "model_name": "cnn",
+  "n_train": 49,
+  "n_test": 21,
+  "n_features": 601,
+  "n_classes": 7,
+  "classes": [
+    "Abruzzo",
+    "Calabrese",
+    "La Spezia",
+    "Reggio",
+    "Renzo",
+    "Tauro",
+    "Torino"
+  ],
+  "seed": 42,
+  "metrics": {
+    "accuracy": 0.09523809523809523,
+    "balanced_accuracy": 0.09523809523809523,
+    "f1_macro": 0.03361344537815126,
+    "roc_auc_ovr_macro": 0.5820105820105821
+  },
+  "model_meta": {
+    "model": "CNN1D(torch)",
+    "params": {
+      "epochs": 50,
+      "batch_size": 64,
+      "lr": 0.001,
+      "weight_decay": 0.0,
+      "hidden_channels": 32,
+      "dropout": 0.2,
+      "standardize": false,
+      "device": "cpu"
+    }
+  }
+}

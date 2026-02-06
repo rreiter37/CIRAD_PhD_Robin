@@ -1,0 +1,39 @@
+{
+  "dataset_type": "ARABIDOPSIS_CEFE",
+  "dataset_name": "Genotype10_250",
+  "model_name": "mlp_128_64",
+  "n_train": 175,
+  "n_test": 75,
+  "n_features": 2152,
+  "n_classes": 10,
+  "classes": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9"
+  ],
+  "seed": 42,
+  "metrics": {
+    "accuracy": 0.3333333333333333,
+    "balanced_accuracy": 0.30813492063492065,
+    "f1_macro": 0.3287462689815631,
+    "roc_auc_ovr_macro": 0.6961907396693822
+  },
+  "model_meta": {
+    "model": "MLPClassifier(sklearn)",
+    "params": {
+      "hidden_layer_sizes": [
+        128,
+        64
+      ],
+      "max_iter": 500,
+      "standardize": false
+    }
+  }
+}

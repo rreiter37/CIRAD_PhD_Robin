@@ -1,0 +1,36 @@
+{
+  "dataset_type": "PISTACIA",
+  "dataset_name": "Species_code_grpStrat70_30_bySpecimen",
+  "model_name": "cnn",
+  "n_train": 5103,
+  "n_test": 2220,
+  "n_features": 1951,
+  "n_classes": 5,
+  "classes": [
+    "PIAAT",
+    "PIALE",
+    "PIARA",
+    "PIATE",
+    "PIAVE"
+  ],
+  "seed": 42,
+  "metrics": {
+    "accuracy": 0.5022522522522522,
+    "balanced_accuracy": 0.3465042996219466,
+    "f1_macro": 0.29983016606927293,
+    "roc_auc_ovr_macro": 0.626434607691074
+  },
+  "model_meta": {
+    "model": "CNN1D(torch)",
+    "params": {
+      "epochs": 50,
+      "batch_size": 64,
+      "lr": 0.001,
+      "weight_decay": 0.0,
+      "hidden_channels": 32,
+      "dropout": 0.2,
+      "standardize": false,
+      "device": "cpu"
+    }
+  }
+}

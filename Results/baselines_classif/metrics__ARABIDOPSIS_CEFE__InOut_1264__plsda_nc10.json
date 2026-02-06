@@ -1,0 +1,27 @@
+{
+  "dataset_type": "ARABIDOPSIS_CEFE",
+  "dataset_name": "InOut_1264",
+  "model_name": "plsda_nc10",
+  "n_train": 884,
+  "n_test": 379,
+  "n_features": 2152,
+  "n_classes": 2,
+  "classes": [
+    "0",
+    "1"
+  ],
+  "seed": 42,
+  "metrics": {
+    "accuracy": 0.9736147757255936,
+    "balanced_accuracy": 0.9798387096774194,
+    "f1_macro": 0.9713295812152021,
+    "roc_auc": 0.9998460970204383
+  },
+  "model_meta": {
+    "model": "PLSDA(nirs4all)",
+    "params": {
+      "n_components": 10,
+      "standardize": false
+    }
+  }
+}

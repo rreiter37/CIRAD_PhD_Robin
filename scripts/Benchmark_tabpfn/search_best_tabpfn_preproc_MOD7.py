@@ -405,6 +405,38 @@ def cleanup_run_dir(workspace: Path, dataset_norm: str, run_name: str) -> None:
             shutil.rmtree(p, ignore_errors=True)
 
 
+# --- Add this helper somewhere in the script (e.g. near other helpers) ---
+def append_or_merge_csv(csv_path: Path, new_df: pd.DataFrame, dedup_subset: list[str] | None) -> None:
+    """
+    Append new rows to an existing CSV without losing previous content.
+    If the CSV already exists, we merge (concat) and optionally drop duplicates
+    (keeping the last occurrence).
+    """
+    if csv_path.exists():
+        old_df = pd.read_csv(csv_path)
+
+        # Align schemas (in case columns evolved)
+        for c in new_df.columns:
+            if c not in old_df.columns:
+                old_df[c] = pd.NA
+        for c in old_df.columns:
+            if c not in new_df.columns:
+                new_df[c] = pd.NA
+
+        # Keep the old column order for stability
+        new_df = new_df[old_df.columns]
+
+        merged = pd.concat([old_df, new_df], ignore_index=True)
+
+        if dedup_subset is not None and len(dedup_subset) > 0:
+            # Keep the most recent row if duplicates exist
+            merged = merged.drop_duplicates(subset=dedup_subset, keep="last")
+
+        merged.to_csv(csv_path, index=False)
+    else:
+        new_df.to_csv(csv_path, index=False)
+
+
 # ===================== No-artifact search workspace helpers ===================== #
 
 def get_tmpfs_root() -> Path:
@@ -636,14 +668,12 @@ def std_preproc_space() -> List[Tuple[str, List]]:
         ("snv+std", [SNV(), StandardScaler()]),
     ]
 
-
 def pca_space_stage1(seed: int) -> List[Tuple[str, Optional[BaseEstimator]]]:
     """Small PCA space for Stage 1."""
     return [
         ("no_pca", None),
         ("pca_adapt_0.25n", PCAAdaptive(fraction=0.25, whiten=True, random_state=seed)),
     ]
-
 
 def pca_space_stage2(seed: int) -> List[Tuple[str, Optional[BaseEstimator]]]:
     """Expanded PCA space for Stage 2."""
@@ -653,7 +683,6 @@ def pca_space_stage2(seed: int) -> List[Tuple[str, Optional[BaseEstimator]]]:
         ("pca_adapt_0.10n", PCAAdaptive(fraction=0.10, whiten=True, random_state=seed)),
         ("pca_adapt_0.25n", PCAAdaptive(fraction=0.25, whiten=True, random_state=seed)),
     ]
-
 
 # ===================== CLI ===================== #
 
@@ -1554,21 +1583,32 @@ def main():
         ))
 
         # Persist intermediate CSVs after each dataset (safe for long runs).
-        df_all = pd.DataFrame([asdict(r) for r in all_results])
-        df_best = pd.DataFrame([asdict(r) for r in best_results])
+    df_all = pd.DataFrame([asdict(r) for r in all_results])
+    df_best = pd.DataFrame([asdict(r) for r in best_results])
 
-        all_csv = outdir / "tabpfn_search_results.csv"
-        best_csv = outdir / "best_tabpfn_per_dataset.csv"
+    all_csv = outdir / "tabpfn_search_results.csv"
+    best_csv = outdir / "best_tabpfn_per_dataset.csv"
 
-        df_all.to_csv(all_csv, index=False)
-        df_best.to_csv(best_csv, index=False)
+    # Merge with existing instead of overwriting:
+    # - all_results: unique per (dataset, stage, config_name, normalizer)
+    append_or_merge_csv(
+        all_csv,
+        df_all,
+        dedup_subset=["dataset", "stage", "config_name", "normalizer"],
+    )
 
-        print(f"\nSaved search results → {all_csv}")
-        print(f"Saved best per dataset → {best_csv}")
-        print(f"Workspace used → {workspace}")
-        if args.no_artifacts_during_search:
-            print("Disk policy: Stage 1/2 ran in temporary workspaces and were deleted immediately (no artifacts saved).")
+    # - best_per_dataset: one row per dataset (keep latest if re-run)
+    append_or_merge_csv(
+        best_csv,
+        df_best,
+        dedup_subset=["dataset"],
+    )
 
+    print(f"\nSaved search results → {all_csv}")
+    print(f"Saved best per dataset → {best_csv}")
+    print(f"Workspace used → {workspace}")
+    if args.no_artifacts_during_search:
+        print("Disk policy: Stage 1/2 ran in temporary workspaces and were deleted immediately (no artifacts saved).")
 
 if __name__ == "__main__":
     main()

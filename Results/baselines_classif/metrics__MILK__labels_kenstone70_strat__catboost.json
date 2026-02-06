@@ -1,0 +1,35 @@
+{
+  "dataset_type": "MILK",
+  "dataset_name": "labels_kenstone70_strat",
+  "model_name": "catboost",
+  "n_train": 315,
+  "n_test": 135,
+  "n_features": 601,
+  "n_classes": 9,
+  "classes": [
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9"
+  ],
+  "seed": 42,
+  "metrics": {
+    "accuracy": 1.0,
+    "balanced_accuracy": 1.0,
+    "f1_macro": 1.0,
+    "roc_auc_ovr_macro": 1.0
+  },
+  "model_meta": {
+    "model": "CatBoostClassifier",
+    "params": {
+      "iterations": 200,
+      "depth": 8,
+      "learning_rate": 0.1
+    }
+  }
+}

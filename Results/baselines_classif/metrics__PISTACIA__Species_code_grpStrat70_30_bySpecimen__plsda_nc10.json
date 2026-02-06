@@ -1,0 +1,30 @@
+{
+  "dataset_type": "PISTACIA",
+  "dataset_name": "Species_code_grpStrat70_30_bySpecimen",
+  "model_name": "plsda_nc10",
+  "n_train": 5103,
+  "n_test": 2220,
+  "n_features": 1951,
+  "n_classes": 5,
+  "classes": [
+    "PIAAT",
+    "PIALE",
+    "PIARA",
+    "PIATE",
+    "PIAVE"
+  ],
+  "seed": 42,
+  "metrics": {
+    "accuracy": 0.5801801801801801,
+    "balanced_accuracy": 0.5075876672347259,
+    "f1_macro": 0.49771029169834946,
+    "roc_auc_ovr_macro": 0.8287373474359064
+  },
+  "model_meta": {
+    "model": "PLSDA(nirs4all)",
+    "params": {
+      "n_components": 10,
+      "standardize": false
+    }
+  }
+}

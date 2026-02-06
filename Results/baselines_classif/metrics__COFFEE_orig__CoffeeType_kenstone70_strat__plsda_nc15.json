@@ -1,0 +1,32 @@
+{
+  "dataset_type": "COFFEE_orig",
+  "dataset_name": "CoffeeType_kenstone70_strat",
+  "model_name": "plsda_nc15",
+  "n_train": 49,
+  "n_test": 21,
+  "n_features": 601,
+  "n_classes": 7,
+  "classes": [
+    "Abruzzo",
+    "Calabrese",
+    "La Spezia",
+    "Reggio",
+    "Renzo",
+    "Tauro",
+    "Torino"
+  ],
+  "seed": 42,
+  "metrics": {
+    "accuracy": 0.9523809523809523,
+    "balanced_accuracy": 0.9523809523809523,
+    "f1_macro": 0.9510204081632653,
+    "roc_auc_ovr_macro": 0.9894179894179894
+  },
+  "model_meta": {
+    "model": "PLSDA(nirs4all)",
+    "params": {
+      "n_components": 15,
+      "standardize": false
+    }
+  }
+}

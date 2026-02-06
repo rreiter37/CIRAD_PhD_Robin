@@ -1,0 +1,30 @@
+{
+  "dataset_type": "BEEF_Impurity",
+  "dataset_name": "Beef_Impurity_60_AlJowder",
+  "model_name": "plsda_nc5",
+  "n_train": 30,
+  "n_test": 30,
+  "n_features": 470,
+  "n_classes": 5,
+  "classes": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4"
+  ],
+  "seed": 42,
+  "metrics": {
+    "accuracy": 0.6,
+    "balanced_accuracy": 0.6,
+    "f1_macro": 0.5683549783549784,
+    "roc_auc_ovr_macro": 0.8819444444444444
+  },
+  "model_meta": {
+    "model": "PLSDA(nirs4all)",
+    "params": {
+      "n_components": 5,
+      "standardize": false
+    }
+  }
+}

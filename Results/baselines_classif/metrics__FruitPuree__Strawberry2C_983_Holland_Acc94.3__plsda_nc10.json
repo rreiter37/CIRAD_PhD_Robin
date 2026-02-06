@@ -1,0 +1,27 @@
+{
+  "dataset_type": "FruitPuree",
+  "dataset_name": "Strawberry2C_983_Holland_Acc94.3",
+  "model_name": "plsda_nc10",
+  "n_train": 666,
+  "n_test": 317,
+  "n_features": 235,
+  "n_classes": 2,
+  "classes": [
+    "0",
+    "1"
+  ],
+  "seed": 42,
+  "metrics": {
+    "accuracy": 0.9495268138801262,
+    "balanced_accuracy": 0.9529057253551442,
+    "f1_macro": 0.9461845344198285,
+    "roc_auc": 0.9814033577270771
+  },
+  "model_meta": {
+    "model": "PLSDA(nirs4all)",
+    "params": {
+      "n_components": 10,
+      "standardize": false
+    }
+  }
+}

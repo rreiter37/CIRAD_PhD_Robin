@@ -1,0 +1,30 @@
+{
+  "dataset_type": "Wood_Sustainability",
+  "dataset_name": "C5_511_Davrieux_Acc82",
+  "model_name": "plsda_nc15",
+  "n_train": 358,
+  "n_test": 153,
+  "n_features": 1050,
+  "n_classes": 5,
+  "classes": [
+    "1",
+    "2",
+    "3",
+    "4",
+    "5"
+  ],
+  "seed": 42,
+  "metrics": {
+    "accuracy": 0.673202614379085,
+    "balanced_accuracy": 0.4756682389937107,
+    "f1_macro": 0.42820683438808105,
+    "roc_auc_ovr_macro": 0.8121396034851953
+  },
+  "model_meta": {
+    "model": "PLSDA(nirs4all)",
+    "params": {
+      "n_components": 15,
+      "standardize": false
+    }
+  }
+}

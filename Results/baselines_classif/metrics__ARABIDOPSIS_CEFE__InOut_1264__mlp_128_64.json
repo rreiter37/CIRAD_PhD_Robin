@@ -1,0 +1,31 @@
+{
+  "dataset_type": "ARABIDOPSIS_CEFE",
+  "dataset_name": "InOut_1264",
+  "model_name": "mlp_128_64",
+  "n_train": 884,
+  "n_test": 379,
+  "n_features": 2152,
+  "n_classes": 2,
+  "classes": [
+    "0",
+    "1"
+  ],
+  "seed": 42,
+  "metrics": {
+    "accuracy": 0.7203166226912929,
+    "balanced_accuracy": 0.7808883279980301,
+    "f1_macro": 0.7197527763826106,
+    "roc_auc": 0.9546294016252155
+  },
+  "model_meta": {
+    "model": "MLPClassifier(sklearn)",
+    "params": {
+      "hidden_layer_sizes": [
+        128,
+        64
+      ],
+      "max_iter": 500,
+      "standardize": false
+    }
+  }
+}

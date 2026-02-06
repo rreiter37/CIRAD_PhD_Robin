@@ -1,0 +1,36 @@
+{
+  "dataset_type": "BEEF_Impurity",
+  "dataset_name": "Beef_Impurity_60_AlJowder",
+  "model_name": "cnn",
+  "n_train": 30,
+  "n_test": 30,
+  "n_features": 470,
+  "n_classes": 5,
+  "classes": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4"
+  ],
+  "seed": 42,
+  "metrics": {
+    "accuracy": 0.26666666666666666,
+    "balanced_accuracy": 0.26666666666666666,
+    "f1_macro": 0.22000000000000003,
+    "roc_auc_ovr_macro": 0.6583333333333333
+  },
+  "model_meta": {
+    "model": "CNN1D(torch)",
+    "params": {
+      "epochs": 50,
+      "batch_size": 64,
+      "lr": 0.001,
+      "weight_decay": 0.0,
+      "hidden_channels": 32,
+      "dropout": 0.2,
+      "standardize": false,
+      "device": "cpu"
+    }
+  }
+}

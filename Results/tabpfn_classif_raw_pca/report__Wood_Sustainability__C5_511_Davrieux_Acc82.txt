@@ -1,0 +1,14 @@
+PCA search: best=pca_adapt_0.25n | n_components=89
+Validation mean accuracy=0.740243 | mean balanced accuracy=0.503823
+
+              precision    recall  f1-score   support
+
+           1     0.7937    0.9434    0.8621        53
+           2     0.0000    0.0000    0.0000        11
+           3     0.0000    0.0000    0.0000         9
+           4     0.6591    0.6042    0.6304        48
+           5     0.6667    0.9375    0.7792        32
+
+    accuracy                         0.7124       153
+   macro avg     0.4239    0.4970    0.4543       153
+weighted avg     0.6211    0.7124    0.6594       153

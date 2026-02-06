@@ -1,0 +1,35 @@
+{
+  "dataset_type": "ARABIDOPSIS_CEFE",
+  "dataset_name": "Genotype10_250",
+  "model_name": "plsda_nc20",
+  "n_train": 175,
+  "n_test": 75,
+  "n_features": 2152,
+  "n_classes": 10,
+  "classes": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9"
+  ],
+  "seed": 42,
+  "metrics": {
+    "accuracy": 0.4666666666666667,
+    "balanced_accuracy": 0.45357142857142857,
+    "f1_macro": 0.41845164381542094,
+    "roc_auc_ovr_macro": 0.8480730669787432
+  },
+  "model_meta": {
+    "model": "PLSDA(nirs4all)",
+    "params": {
+      "n_components": 20,
+      "standardize": false
+    }
+  }
+}

@@ -1,0 +1,13 @@
+              precision    recall  f1-score   support
+
+     Abruzzo     1.0000    1.0000    1.0000         3
+   Calabrese     1.0000    1.0000    1.0000         3
+   La Spezia     1.0000    1.0000    1.0000         3
+      Reggio     1.0000    0.6667    0.8000         3
+       Renzo     0.7500    1.0000    0.8571         3
+       Tauro     1.0000    1.0000    1.0000         3
+      Torino     1.0000    1.0000    1.0000         3
+
+    accuracy                         0.9524        21
+   macro avg     0.9643    0.9524    0.9510        21
+weighted avg     0.9643    0.9524    0.9510        21

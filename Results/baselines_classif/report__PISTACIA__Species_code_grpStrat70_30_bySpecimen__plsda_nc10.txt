@@ -1,0 +1,11 @@
+              precision    recall  f1-score   support
+
+       PIAAT     0.7707    0.7524    0.7614       210
+       PIALE     0.5389    0.7735    0.6353       680
+       PIARA     0.5569    0.2582    0.3528       550
+       PIATE     0.5879    0.7000    0.6390       650
+       PIAVE     0.7000    0.0538    0.1000       130
+
+    accuracy                         0.5802      2220
+   macro avg     0.6309    0.5076    0.4977      2220
+weighted avg     0.5891    0.5802    0.5470      2220

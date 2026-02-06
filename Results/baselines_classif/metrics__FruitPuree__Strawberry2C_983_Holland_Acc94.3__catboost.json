@@ -1,0 +1,28 @@
+{
+  "dataset_type": "FruitPuree",
+  "dataset_name": "Strawberry2C_983_Holland_Acc94.3",
+  "model_name": "catboost",
+  "n_train": 666,
+  "n_test": 317,
+  "n_features": 235,
+  "n_classes": 2,
+  "classes": [
+    "0",
+    "1"
+  ],
+  "seed": 42,
+  "metrics": {
+    "accuracy": 0.9810725552050473,
+    "balanced_accuracy": 0.9832759362892811,
+    "f1_macro": 0.9796794871794872,
+    "roc_auc": 0.9962117950925528
+  },
+  "model_meta": {
+    "model": "CatBoostClassifier",
+    "params": {
+      "iterations": 200,
+      "depth": 8,
+      "learning_rate": 0.1
+    }
+  }
+}

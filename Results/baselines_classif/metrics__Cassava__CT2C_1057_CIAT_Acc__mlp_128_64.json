@@ -1,0 +1,31 @@
+{
+  "dataset_type": "Cassava",
+  "dataset_name": "CT2C_1057_CIAT_Acc",
+  "model_name": "mlp_128_64",
+  "n_train": 975,
+  "n_test": 81,
+  "n_features": 1050,
+  "n_classes": 2,
+  "classes": [
+    "0",
+    "1"
+  ],
+  "seed": 42,
+  "metrics": {
+    "accuracy": 0.5555555555555556,
+    "balanced_accuracy": 0.5,
+    "f1_macro": 0.35714285714285715,
+    "roc_auc": 0.45925925925925926
+  },
+  "model_meta": {
+    "model": "MLPClassifier(sklearn)",
+    "params": {
+      "hidden_layer_sizes": [
+        128,
+        64
+      ],
+      "max_iter": 500,
+      "standardize": false
+    }
+  }
+}

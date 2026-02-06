@@ -1,0 +1,10 @@
+{
+  "dataset": "WOOD_Sustainability_511_Davrieux_RMSE0.092",
+  "best_value_val_nrmse_full_ycal": 0.13104895755451085,
+  "best_params": {
+    "base_choice": "asls_baseline__haar__std_scaler",
+    "pca": "pca_adapt_0.10n",
+    "use_rff": false
+  },
+  "n_trials": 20
+}

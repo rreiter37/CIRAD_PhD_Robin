@@ -1,0 +1,40 @@
+{
+  "dataset_type": "ARABIDOPSIS_CEFE",
+  "dataset_name": "Group9_1856",
+  "model_name": "cnn",
+  "n_train": 1260,
+  "n_test": 540,
+  "n_features": 2152,
+  "n_classes": 9,
+  "classes": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8"
+  ],
+  "seed": 42,
+  "metrics": {
+    "accuracy": 0.14074074074074075,
+    "balanced_accuracy": 0.1111111111111111,
+    "f1_macro": 0.02755120536523473,
+    "roc_auc_ovr_macro": 0.6177407502815673
+  },
+  "model_meta": {
+    "model": "CNN1D(torch)",
+    "params": {
+      "epochs": 50,
+      "batch_size": 64,
+      "lr": 0.001,
+      "weight_decay": 0.0,
+      "hidden_channels": 32,
+      "dropout": 0.2,
+      "standardize": false,
+      "device": "cpu"
+    }
+  }
+}

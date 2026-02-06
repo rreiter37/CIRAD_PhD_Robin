@@ -1,0 +1,36 @@
+{
+  "dataset_type": "ARABIDOPSIS_CEFE",
+  "dataset_name": "Group_2185",
+  "model_name": "catboost",
+  "n_train": 1530,
+  "n_test": 655,
+  "n_features": 2152,
+  "n_classes": 10,
+  "classes": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9"
+  ],
+  "seed": 42,
+  "metrics": {
+    "accuracy": 0.2641221374045801,
+    "balanced_accuracy": 0.25458860470034206,
+    "f1_macro": 0.25958820898210094,
+    "roc_auc_ovr_macro": 0.7282782217656659
+  },
+  "model_meta": {
+    "model": "CatBoostClassifier",
+    "params": {
+      "iterations": 200,
+      "depth": 8,
+      "learning_rate": 0.1
+    }
+  }
+}

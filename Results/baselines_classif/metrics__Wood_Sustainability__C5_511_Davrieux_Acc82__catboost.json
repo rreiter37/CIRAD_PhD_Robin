@@ -1,0 +1,31 @@
+{
+  "dataset_type": "Wood_Sustainability",
+  "dataset_name": "C5_511_Davrieux_Acc82",
+  "model_name": "catboost",
+  "n_train": 358,
+  "n_test": 153,
+  "n_features": 1050,
+  "n_classes": 5,
+  "classes": [
+    "1",
+    "2",
+    "3",
+    "4",
+    "5"
+  ],
+  "seed": 42,
+  "metrics": {
+    "accuracy": 0.6993464052287581,
+    "balanced_accuracy": 0.5182735372593863,
+    "f1_macro": 0.5065704217714824,
+    "roc_auc_ovr_macro": 0.8391964722701785
+  },
+  "model_meta": {
+    "model": "CatBoostClassifier",
+    "params": {
+      "iterations": 200,
+      "depth": 8,
+      "learning_rate": 0.1
+    }
+  }
+}

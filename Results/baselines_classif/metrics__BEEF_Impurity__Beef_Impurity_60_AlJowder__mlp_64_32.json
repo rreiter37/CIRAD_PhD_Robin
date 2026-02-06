@@ -1,0 +1,34 @@
+{
+  "dataset_type": "BEEF_Impurity",
+  "dataset_name": "Beef_Impurity_60_AlJowder",
+  "model_name": "mlp_64_32",
+  "n_train": 30,
+  "n_test": 30,
+  "n_features": 470,
+  "n_classes": 5,
+  "classes": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4"
+  ],
+  "seed": 42,
+  "metrics": {
+    "accuracy": 0.8666666666666667,
+    "balanced_accuracy": 0.8666666666666666,
+    "f1_macro": 0.8721212121212121,
+    "roc_auc_ovr_macro": 0.9597222222222224
+  },
+  "model_meta": {
+    "model": "MLPClassifier(sklearn)",
+    "params": {
+      "hidden_layer_sizes": [
+        64,
+        32
+      ],
+      "max_iter": 500,
+      "standardize": false
+    }
+  }
+}

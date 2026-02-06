@@ -1,0 +1,40 @@
+{
+  "dataset_type": "MILK",
+  "dataset_name": "labels_kenstone70_strat",
+  "model_name": "cnn",
+  "n_train": 315,
+  "n_test": 135,
+  "n_features": 601,
+  "n_classes": 9,
+  "classes": [
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9"
+  ],
+  "seed": 42,
+  "metrics": {
+    "accuracy": 0.3037037037037037,
+    "balanced_accuracy": 0.3037037037037037,
+    "f1_macro": 0.17699214365881033,
+    "roc_auc_ovr_macro": 0.7298765432098766
+  },
+  "model_meta": {
+    "model": "CNN1D(torch)",
+    "params": {
+      "epochs": 50,
+      "batch_size": 64,
+      "lr": 0.001,
+      "weight_decay": 0.0,
+      "hidden_channels": 32,
+      "dropout": 0.2,
+      "standardize": false,
+      "device": "cpu"
+    }
+  }
+}

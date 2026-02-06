@@ -22,3 +22,39 @@ python scripts/Benchmark_tabpfn/visualize_tabpfn_best_preproc.py \
   --csv Results/tabpfn_search_preproc_basic/best_tabpfn_per_dataset.csv \
   --outdir Results/tabpfn_best_preproc_viz \
   --metric final_test_nrmse
+
+
+
+### script to get results on classif datasets with base models
+
+python scripts/Benchmark_tabpfn/run_baselines_classif_on_all.py \
+  --output_dir Results/baselines_classif \
+  --catboost_iterations 200
+
+### script to visualize the results for classification across models
+
+python scripts/Benchmark_tabpfn/plot_classif_accuracy_heatmaps.py \
+  --results_dirs Results/tabpfn_classif_raw Results/baselines_classif \
+  --labels "TabPFN raw" "Baselines" \
+  --keep_common_only \
+  --output_dir Results/comp_classif_tabpfn_vs_baselines
+
+
+### Script to rank the preprocessing families based on tabpfn results across datasets
+python scripts/Benchmark_tabpfn/rank_simple_preproc_stage1.py \
+  --csv_path Results/tabpfn_search_preproc_basic/tabpfn_search_results.csv \
+  --out_dir Results/rank_simple_preproc_tabpfn_stage1 \
+  --metric val_nrmse \
+  --max_methods_plot 25 \
+  --alpha 0.05
+
+
+
+### Script to run the pipeline with pls and ridge on the regression datasets
+
+python scripts/Benchmark_tabpfn/pipeline_pls_ridge.py \
+  --database_detail_xlsx Data/DatabaseDetail.xlsx \
+  --data_root Data/regression \
+  --workspace wk_pls_ridge \
+  --do_final_refit
+

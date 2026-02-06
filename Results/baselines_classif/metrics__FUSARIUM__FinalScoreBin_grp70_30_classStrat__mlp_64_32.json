@@ -1,0 +1,31 @@
+{
+  "dataset_type": "FUSARIUM",
+  "dataset_name": "FinalScoreBin_grp70_30_classStrat",
+  "model_name": "mlp_64_32",
+  "n_train": 646,
+  "n_test": 289,
+  "n_features": 2177,
+  "n_classes": 2,
+  "classes": [
+    "0",
+    "1"
+  ],
+  "seed": 42,
+  "metrics": {
+    "accuracy": 0.5882352941176471,
+    "balanced_accuracy": 0.5,
+    "f1_macro": 0.37037037037037035,
+    "roc_auc": 0.7017795353435492
+  },
+  "model_meta": {
+    "model": "MLPClassifier(sklearn)",
+    "params": {
+      "hidden_layer_sizes": [
+        64,
+        32
+      ],
+      "max_iter": 500,
+      "standardize": false
+    }
+  }
+}

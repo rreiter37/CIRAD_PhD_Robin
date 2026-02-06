@@ -1,0 +1,15 @@
+PCA search: best=pca_adapt_0.25n | n_components=12
+Validation mean accuracy=0.899510 | mean balanced accuracy=0.905556
+
+              precision    recall  f1-score   support
+
+     Abruzzo     1.0000    1.0000    1.0000         3
+      Calabr     1.0000    1.0000    1.0000         3
+       La Sp     1.0000    1.0000    1.0000         3
+           R     1.0000    0.8333    0.9091         6
+       Tauro     0.7500    1.0000    0.8571         3
+      Torino     1.0000    1.0000    1.0000         3
+
+    accuracy                         0.9524        21
+   macro avg     0.9583    0.9722    0.9610        21
+weighted avg     0.9643    0.9524    0.9536        21

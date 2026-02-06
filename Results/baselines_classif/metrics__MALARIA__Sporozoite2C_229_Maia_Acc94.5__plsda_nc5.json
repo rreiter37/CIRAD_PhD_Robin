@@ -1,0 +1,27 @@
+{
+  "dataset_type": "MALARIA",
+  "dataset_name": "Sporozoite2C_229_Maia_Acc94.5",
+  "model_name": "plsda_nc5",
+  "n_train": 138,
+  "n_test": 91,
+  "n_features": 2151,
+  "n_classes": 2,
+  "classes": [
+    "0",
+    "1"
+  ],
+  "seed": 42,
+  "metrics": {
+    "accuracy": 0.6043956043956044,
+    "balanced_accuracy": 0.599802371541502,
+    "f1_macro": 0.5596774193548387,
+    "roc_auc": 0.5968379446640316
+  },
+  "model_meta": {
+    "model": "PLSDA(nirs4all)",
+    "params": {
+      "n_components": 5,
+      "standardize": false
+    }
+  }
+}

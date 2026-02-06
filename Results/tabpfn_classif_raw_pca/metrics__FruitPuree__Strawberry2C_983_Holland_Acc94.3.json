@@ -1,0 +1,34 @@
+{
+  "dataset_type": "FruitPuree",
+  "dataset_name": "Strawberry2C_983_Holland_Acc94.3",
+  "n_train": 666,
+  "n_test": 317,
+  "n_features": 235,
+  "n_classes": 2,
+  "classes": [
+    "0",
+    "1"
+  ],
+  "seed": 42,
+  "n_estimators": 4,
+  "device": "cpu",
+  "metrics": {
+    "accuracy": 0.9873817034700315,
+    "balanced_accuracy": 0.986353852776582,
+    "f1_macro": 0.986353852776582,
+    "roc_auc": 0.9947481704692208
+  },
+  "pca_search": {
+    "n_splits": 3,
+    "candidates": [
+      "no_pca",
+      "pca_adapt_0.25n",
+      "pca_adapt_0.10n",
+      "pca_0.99"
+    ],
+    "best_pca": "no_pca",
+    "best_n_components": null,
+    "best_mean_accuracy": 0.990990990990991,
+    "best_mean_balanced_accuracy": 0.9882670218904396
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "dataset_type": "MALARIA",
+  "dataset_name": "Oocist2C_333_Maia_Acc87.6",
+  "model_name": "mlp_128_64",
+  "n_train": 227,
+  "n_test": 106,
+  "n_features": 2151,
+  "n_classes": 2,
+  "classes": [
+    "0",
+    "1"
+  ],
+  "seed": 42,
+  "metrics": {
+    "accuracy": 0.5,
+    "balanced_accuracy": 0.5,
+    "f1_macro": 0.3333333333333333,
+    "roc_auc": 0.5681737273050909
+  },
+  "model_meta": {
+    "model": "MLPClassifier(sklearn)",
+    "params": {
+      "hidden_layer_sizes": [
+        128,
+        64
+      ],
+      "max_iter": 500,
+      "standardize": false
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "dataset_type": "FUSARIUM",
+  "dataset_name": "ScoreBin_grp70_30_classStrat",
+  "model_name": "plsda_nc5",
+  "n_train": 578,
+  "n_test": 238,
+  "n_features": 2177,
+  "n_classes": 2,
+  "classes": [
+    "0",
+    "1"
+  ],
+  "seed": 42,
+  "metrics": {
+    "accuracy": 0.7983193277310925,
+    "balanced_accuracy": 0.5961538461538461,
+    "f1_macro": 0.6072607260726073,
+    "roc_auc": 0.7800235478806907
+  },
+  "model_meta": {
+    "model": "PLSDA(nirs4all)",
+    "params": {
+      "n_components": 5,
+      "standardize": false
+    }
+  }
+}

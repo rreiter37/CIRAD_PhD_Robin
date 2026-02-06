@@ -1,0 +1,38 @@
+{
+  "dataset_type": "MILK",
+  "dataset_name": "labels_kenstone70_strat",
+  "model_name": "mlp_128_64",
+  "n_train": 315,
+  "n_test": 135,
+  "n_features": 601,
+  "n_classes": 9,
+  "classes": [
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9"
+  ],
+  "seed": 42,
+  "metrics": {
+    "accuracy": 0.3333333333333333,
+    "balanced_accuracy": 0.3333333333333333,
+    "f1_macro": 0.28917890102100624,
+    "roc_auc_ovr_macro": 0.886604938271605
+  },
+  "model_meta": {
+    "model": "MLPClassifier(sklearn)",
+    "params": {
+      "hidden_layer_sizes": [
+        128,
+        64
+      ],
+      "max_iter": 500,
+      "standardize": false
+    }
+  }
+}

@@ -1,0 +1,5 @@
+pca,mean_accuracy,mean_balanced_accuracy,n_components
+no_pca,0.7999999999999999,0.7999999999999999,
+pca_adapt_0.10n,0.6,0.6,5.0
+pca_adapt_0.25n,0.6,0.6,5.0
+pca_0.99,0.5666666666666667,0.5666666666666667,4.0

@@ -1,0 +1,33 @@
+{
+  "dataset_type": "FUSARIUM",
+  "dataset_name": "ScoreBin_grp70_30_classStrat",
+  "model_name": "cnn",
+  "n_train": 578,
+  "n_test": 238,
+  "n_features": 2177,
+  "n_classes": 2,
+  "classes": [
+    "0",
+    "1"
+  ],
+  "seed": 42,
+  "metrics": {
+    "accuracy": 0.7647058823529411,
+    "balanced_accuracy": 0.5,
+    "f1_macro": 0.43333333333333335,
+    "roc_auc": 0.6747448979591837
+  },
+  "model_meta": {
+    "model": "CNN1D(torch)",
+    "params": {
+      "epochs": 50,
+      "batch_size": 64,
+      "lr": 0.001,
+      "weight_decay": 0.0,
+      "hidden_channels": 32,
+      "dropout": 0.2,
+      "standardize": false,
+      "device": "cpu"
+    }
+  }
+}

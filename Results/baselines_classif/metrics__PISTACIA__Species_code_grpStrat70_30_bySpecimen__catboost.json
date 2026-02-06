@@ -1,0 +1,31 @@
+{
+  "dataset_type": "PISTACIA",
+  "dataset_name": "Species_code_grpStrat70_30_bySpecimen",
+  "model_name": "catboost",
+  "n_train": 5103,
+  "n_test": 2220,
+  "n_features": 1951,
+  "n_classes": 5,
+  "classes": [
+    "PIAAT",
+    "PIALE",
+    "PIARA",
+    "PIATE",
+    "PIAVE"
+  ],
+  "seed": 42,
+  "metrics": {
+    "accuracy": 0.6175675675675676,
+    "balanced_accuracy": 0.5096027110144757,
+    "f1_macro": 0.5246070642460009,
+    "roc_auc_ovr_macro": 0.7913736948749804
+  },
+  "model_meta": {
+    "model": "CatBoostClassifier",
+    "params": {
+      "iterations": 200,
+      "depth": 8,
+      "learning_rate": 0.1
+    }
+  }
+}

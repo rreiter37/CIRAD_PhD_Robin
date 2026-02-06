@@ -1,0 +1,35 @@
+{
+  "dataset_type": "ARABIDOPSIS_CEFE",
+  "dataset_name": "Group_2185",
+  "model_name": "plsda_nc5",
+  "n_train": 1530,
+  "n_test": 655,
+  "n_features": 2152,
+  "n_classes": 10,
+  "classes": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9"
+  ],
+  "seed": 42,
+  "metrics": {
+    "accuracy": 0.1633587786259542,
+    "balanced_accuracy": 0.12619784987229316,
+    "f1_macro": 0.07500708842246459,
+    "roc_auc_ovr_macro": 0.6498110951796134
+  },
+  "model_meta": {
+    "model": "PLSDA(nirs4all)",
+    "params": {
+      "n_components": 5,
+      "standardize": false
+    }
+  }
+}

@@ -1,0 +1,14 @@
+PCA search: best=pca_adapt_0.10n | n_components=510
+Validation mean accuracy=0.998824 | mean balanced accuracy=0.998279
+
+              precision    recall  f1-score   support
+
+       PIAAT     0.9946    0.8714    0.9289       210
+       PIALE     0.8539    0.8250    0.8392       680
+       PIARA     0.6880    0.7818    0.7319       550
+       PIATE     0.8173    0.9015    0.8574       650
+       PIAVE     0.9459    0.2692    0.4192       130
+
+    accuracy                         0.8086      2220
+   macro avg     0.8599    0.7298    0.7553      2220
+weighted avg     0.8208    0.8086    0.8018      2220

@@ -24,6 +24,7 @@ import pandas as pd
 from pipeline_tabpfn_classif import (
     DatasetId,
     run_tabpfn_raw_classification,
+    run_tabpfn_classification_with_pca_search,
 )
 
 
@@ -64,6 +65,11 @@ def parse_args() -> argparse.Namespace:
         type=str,
         default=None,
         help="If set, only run a specific dataset_name (within only_type if provided).",
+    )
+    parser.add_argument(
+        "--use_pca_search",
+        action="store_true",
+        help="If set, run TabPFN classification with PCA search on a validation split.",
     )
     return parser.parse_args()
 
@@ -129,14 +135,24 @@ def main() -> None:
         print(f"Path: {ds_path}")
         print("=" * 100)
 
-        payload = run_tabpfn_raw_classification(
-            dataset_id=ds_id,
-            dataset_dir=ds_path,
-            output_dir=output_dir,
-            seed=args.seed,
-            n_estimators=args.n_estimators,
-            ignore_pretraining_limits=True,
-        )
+        if args.use_pca_search:
+            payload = run_tabpfn_classification_with_pca_search(
+                dataset_id=ds_id,
+                dataset_dir=ds_path,
+                output_dir=output_dir,
+                seed=args.seed,
+                n_estimators=args.n_estimators,
+                ignore_pretraining_limits=True,
+            )
+        else:
+            payload = run_tabpfn_raw_classification(
+                dataset_id=ds_id,
+                dataset_dir=ds_path,
+                output_dir=output_dir,
+                seed=args.seed,
+                n_estimators=args.n_estimators,
+                ignore_pretraining_limits=True,
+            )
 
         row = {
             "dataset_type": payload["dataset_type"],

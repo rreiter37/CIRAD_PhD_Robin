@@ -1,0 +1,34 @@
+{
+  "dataset_type": "Wood_Sustainability",
+  "dataset_name": "C5_511_Davrieux_Acc82",
+  "model_name": "mlp_128_64",
+  "n_train": 358,
+  "n_test": 153,
+  "n_features": 1050,
+  "n_classes": 5,
+  "classes": [
+    "1",
+    "2",
+    "3",
+    "4",
+    "5"
+  ],
+  "seed": 42,
+  "metrics": {
+    "accuracy": 0.5620915032679739,
+    "balanced_accuracy": 0.3873820754716981,
+    "f1_macro": 0.3554606732688924,
+    "roc_auc_ovr_macro": 0.7903236556510278
+  },
+  "model_meta": {
+    "model": "MLPClassifier(sklearn)",
+    "params": {
+      "hidden_layer_sizes": [
+        128,
+        64
+      ],
+      "max_iter": 500,
+      "standardize": false
+    }
+  }
+}

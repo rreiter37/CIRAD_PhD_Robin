@@ -1,0 +1,28 @@
+{
+  "dataset_type": "FUSARIUM",
+  "dataset_name": "ScoreBin_grp70_30_classStrat",
+  "model_name": "catboost",
+  "n_train": 578,
+  "n_test": 238,
+  "n_features": 2177,
+  "n_classes": 2,
+  "classes": [
+    "0",
+    "1"
+  ],
+  "seed": 42,
+  "metrics": {
+    "accuracy": 0.7941176470588235,
+    "balanced_accuracy": 0.5995879120879121,
+    "f1_macro": 0.612236076475478,
+    "roc_auc": 0.7970957613814756
+  },
+  "model_meta": {
+    "model": "CatBoostClassifier",
+    "params": {
+      "iterations": 200,
+      "depth": 8,
+      "learning_rate": 0.1
+    }
+  }
+}

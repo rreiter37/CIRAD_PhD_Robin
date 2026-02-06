@@ -1,0 +1,33 @@
+{
+  "dataset_type": "MALARIA",
+  "dataset_name": "Sporozoite2C_229_Maia_Acc94.5",
+  "model_name": "cnn",
+  "n_train": 138,
+  "n_test": 91,
+  "n_features": 2151,
+  "n_classes": 2,
+  "classes": [
+    "0",
+    "1"
+  ],
+  "seed": 42,
+  "metrics": {
+    "accuracy": 0.6483516483516484,
+    "balanced_accuracy": 0.6133069828722002,
+    "f1_macro": 0.5873015873015873,
+    "roc_auc": 0.6409749670619236
+  },
+  "model_meta": {
+    "model": "CNN1D(torch)",
+    "params": {
+      "epochs": 50,
+      "batch_size": 64,
+      "lr": 0.001,
+      "weight_decay": 0.0,
+      "hidden_channels": 32,
+      "dropout": 0.2,
+      "standardize": false,
+      "device": "cpu"
+    }
+  }
+}

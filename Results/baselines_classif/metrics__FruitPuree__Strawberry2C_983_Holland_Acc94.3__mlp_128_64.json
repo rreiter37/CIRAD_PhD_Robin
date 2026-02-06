@@ -1,0 +1,31 @@
+{
+  "dataset_type": "FruitPuree",
+  "dataset_name": "Strawberry2C_983_Holland_Acc94.3",
+  "model_name": "mlp_128_64",
+  "n_train": 666,
+  "n_test": 317,
+  "n_features": 235,
+  "n_classes": 2,
+  "classes": [
+    "0",
+    "1"
+  ],
+  "seed": 42,
+  "metrics": {
+    "accuracy": 0.9116719242902208,
+    "balanced_accuracy": 0.9194575979337064,
+    "f1_macro": 0.9070069566675049,
+    "roc_auc": 0.9580284115368058
+  },
+  "model_meta": {
+    "model": "MLPClassifier(sklearn)",
+    "params": {
+      "hidden_layer_sizes": [
+        128,
+        64
+      ],
+      "max_iter": 500,
+      "standardize": false
+    }
+  }
+}

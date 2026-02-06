@@ -1,0 +1,27 @@
+{
+  "dataset_type": "MALARIA",
+  "dataset_name": "Oocist2C_333_Maia_Acc87.6",
+  "model_name": "plsda_nc5",
+  "n_train": 227,
+  "n_test": 106,
+  "n_features": 2151,
+  "n_classes": 2,
+  "classes": [
+    "0",
+    "1"
+  ],
+  "seed": 42,
+  "metrics": {
+    "accuracy": 0.4528301886792453,
+    "balanced_accuracy": 0.4528301886792453,
+    "f1_macro": 0.44572664983772087,
+    "roc_auc": 0.39836240655037375
+  },
+  "model_meta": {
+    "model": "PLSDA(nirs4all)",
+    "params": {
+      "n_components": 5,
+      "standardize": false
+    }
+  }
+}
