@@ -1,0 +1,20 @@
+{
+  "dataset": "Rd25_CBtestSite",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 1,
+  "tabpfn_device": "cpu",
+  "n_estimators_search": 2,
+  "n_estimators_final": 4,
+  "model_path": "tabpfn-v2.5-regressor-v2.5_real.ckpt",
+  "best_config": {
+    "scaler": "StandardScaler",
+    "baseline": "ASLSBaseline",
+    "simple": "Normalize",
+    "pca": "None"
+  },
+  "best_mean_score": 0.13286141148108194,
+  "best_fold_scores": [
+    0.13286141148108194
+  ]
+}

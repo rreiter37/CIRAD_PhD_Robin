@@ -1,0 +1,20 @@
+{
+  "dataset": "brix_groupSampleID_stratDateVar_balRows",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 1,
+  "tabpfn_device": "cpu",
+  "n_estimators_search": 2,
+  "n_estimators_final": 4,
+  "model_path": "tabpfn-v2.5-regressor-v2.5_real.ckpt",
+  "best_config": {
+    "scaler": "None",
+    "baseline": "ASLSBaseline",
+    "simple": "Baseline",
+    "pca": "PCA_features_0.25"
+  },
+  "best_mean_score": 2.7221245174875457,
+  "best_fold_scores": [
+    2.7221245174875457
+  ]
+}

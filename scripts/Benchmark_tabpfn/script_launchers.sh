@@ -58,3 +58,16 @@ python scripts/Benchmark_tabpfn/pipeline_pls_ridge.py \
   --workspace wk_pls_ridge \
   --do_final_refit
 
+
+### Script to run the final TabPFN pipeline on regression datasets
+
+python scripts/Benchmark_tabpfn/run_tabpfn_final.py \
+  --database_detail_xlsx Data/DatabaseDetail.xlsx \
+  --data_root Data/regression \
+  --output_dir Results/tabpfn_reg_final \
+  --logs_dir Results/tabpfn_reg_final/logs \
+  --summary_csv Results/tabpfn_reg_final/summary_runs.csv \
+  --model_path "tabpfn-v2.5-regressor-v2.5_real.ckpt" \
+  --n_estimators_search 4 \
+  --n_estimators_final 4 \
+  --parallel --n_jobs 12 --use_tmp_dir

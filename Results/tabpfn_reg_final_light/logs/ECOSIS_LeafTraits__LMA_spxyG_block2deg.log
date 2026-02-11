@@ -1,0 +1,10 @@
+CMD:
+/home/robinr/Desktop/VSCode/CIRAD_PhD_Robin/.venv/bin/python scripts/Benchmark_tabpfn/pipeline_tabpfn_final.py --datasets Data/regression/ECOSIS_LeafTraits/LMA_spxyG_block2deg --output_dir Results/tabpfn_reg_final_light --task_type regression --seed 42 --n_splits 1 --n_estimators_search 2 --n_estimators_final 4 --model_path tabpfn-v2.5-regressor-v2.5_real.ckpt --parallel --n_jobs 12 --use_tmp_dir
+
+====================================================================================================
+Dataset: LMA_spxyG_block2deg
+====================================================================================================
+Search configs: 48 | SPXYG folds: 1 | parallel=True n_jobs=12
+TabPFN device: cpu
+Submitted 48 jobs to the process pool.
+Evaluating configs:   0%|          | 0/48 [00:00<?, ?cfg/s]

@@ -1,0 +1,14 @@
+CMD:
+/home/robinr/Desktop/VSCode/CIRAD_PhD_Robin/.venv/bin/python scripts/Benchmark_tabpfn/pipeline_tabpfn_final.py --datasets Data/regression/BEER/Beer_OriginalExtract_60_KS --output_dir Results/tabpfn_reg_final_light --task_type regression --seed 42 --n_splits 1 --n_estimators_search 2 --n_estimators_final 4 --model_path tabpfn-v2.5-regressor-v2.5_real.ckpt --parallel --n_jobs 12 --use_tmp_dir
+
+====================================================================================================
+Dataset: Beer_OriginalExtract_60_KS
+====================================================================================================
+Search configs: 48 | SPXYG folds: 1 | parallel=True n_jobs=12
+TabPFN device: cpu
+Submitted 48 jobs to the process pool.
+Evaluating configs:   0%|          | 0/48 [00:00<?, ?cfg/s]Evaluating configs:   2%|▏         | 1/48 [01:23<1:05:22, 83.46s/cfg]Evaluating configs:   6%|▋         | 3/48 [01:24<16:23, 21.85s/cfg]  Evaluating configs:  10%|█         | 5/48 [01:25<07:56, 11.09s/cfg]Evaluating configs:  15%|█▍        | 7/48 [01:26<04:31,  6.61s/cfg]Evaluating configs:  19%|█▉        | 9/48 [01:27<02:47,  4.30s/cfg]Evaluating configs:  23%|██▎       | 11/48 [01:28<01:49,  2.95s/cfg]Evaluating configs:  25%|██▌       | 12/48 [01:40<01:46,  2.95s/cfg]Evaluating configs:  27%|██▋       | 13/48 [02:47<08:49, 15.11s/cfg]Evaluating configs:  29%|██▉       | 14/48 [02:49<07:09, 12.62s/cfg]Evaluating configs:  33%|███▎      | 16/48 [02:50<04:23,  8.24s/cfg]Evaluating configs:  38%|███▊      | 18/48 [02:51<02:47,  5.60s/cfg]Evaluating configs:  42%|████▏     | 20/48 [02:52<01:51,  3.99s/cfg]Evaluating configs:  46%|████▌     | 22/48 [02:55<01:22,  3.17s/cfg]Evaluating configs:  50%|█████     | 24/48 [02:56<00:58,  2.42s/cfg]Evaluating configs:  52%|█████▏    | 25/48 [04:15<06:14, 16.27s/cfg]Evaluating configs:  54%|█████▍    | 26/48 [04:16<04:47, 13.08s/cfg]Evaluating configs:  60%|██████    | 29/48 [04:18<02:19,  7.33s/cfg]Evaluating configs:  65%|██████▍   | 31/48 [04:19<01:29,  5.25s/cfg]Evaluating configs:  73%|███████▎  | 35/48 [04:20<00:37,  2.88s/cfg]Evaluating configs:  75%|███████▌  | 36/48 [04:40<00:34,  2.88s/cfg]Evaluating configs:  77%|███████▋  | 37/48 [05:40<02:14, 12.24s/cfg]Evaluating configs:  81%|████████▏ | 39/48 [05:42<01:23,  9.27s/cfg]Evaluating configs:  85%|████████▌ | 41/48 [05:43<00:47,  6.80s/cfg]Evaluating configs:  90%|████████▉ | 43/48 [05:44<00:24,  4.99s/cfg]Evaluating configs:  94%|█████████▍| 45/48 [05:44<00:10,  3.64s/cfg]Evaluating configs: 100%|██████████| 48/48 [05:45<00:00,  7.19s/cfg]
+✅ Best config (CV): {'scaler': 'None', 'baseline': 'ASLSBaseline', 'simple': 'Normalize', 'pca': 'None'} | mean_score=0.133178
+✅ Saved: Beer_OriginalExtract_60_KS__search_results.csv, Beer_OriginalExtract_60_KS__best_config.json, Beer_OriginalExtract_60_KS__final_predictions.csv
+
+DONE.

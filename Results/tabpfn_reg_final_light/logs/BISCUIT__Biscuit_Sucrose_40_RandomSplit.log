@@ -1,0 +1,14 @@
+CMD:
+/home/robinr/Desktop/VSCode/CIRAD_PhD_Robin/.venv/bin/python scripts/Benchmark_tabpfn/pipeline_tabpfn_final.py --datasets Data/regression/BISCUIT/Biscuit_Sucrose_40_RandomSplit --output_dir Results/tabpfn_reg_final_light --task_type regression --seed 42 --n_splits 1 --n_estimators_search 2 --n_estimators_final 4 --model_path tabpfn-v2.5-regressor-v2.5_real.ckpt --parallel --n_jobs 12 --use_tmp_dir
+
+====================================================================================================
+Dataset: Biscuit_Sucrose_40_RandomSplit
+====================================================================================================
+Search configs: 48 | SPXYG folds: 1 | parallel=True n_jobs=12
+TabPFN device: cpu
+Submitted 48 jobs to the process pool.
+Evaluating configs:   0%|          | 0/48 [00:00<?, ?cfg/s]Evaluating configs:   2%|▏         | 1/48 [01:24<1:06:01, 84.28s/cfg]Evaluating configs:   6%|▋         | 3/48 [01:25<16:44, 22.33s/cfg]  Evaluating configs:   8%|▊         | 4/48 [01:26<10:55, 14.89s/cfg]Evaluating configs:  15%|█▍        | 7/48 [01:26<04:10,  6.12s/cfg]Evaluating configs:  19%|█▉        | 9/48 [01:27<02:35,  3.99s/cfg]Evaluating configs:  23%|██▎       | 11/48 [01:28<01:45,  2.84s/cfg]Evaluating configs:  25%|██▌       | 12/48 [01:40<01:42,  2.84s/cfg]Evaluating configs:  27%|██▋       | 13/48 [02:46<08:32, 14.63s/cfg]Evaluating configs:  29%|██▉       | 14/48 [02:49<07:00, 12.36s/cfg]Evaluating configs:  35%|███▌      | 17/48 [02:50<03:38,  7.06s/cfg]Evaluating configs:  42%|████▏     | 20/48 [02:51<02:02,  4.38s/cfg]Evaluating configs:  46%|████▌     | 22/48 [02:53<01:32,  3.54s/cfg]Evaluating configs:  50%|█████     | 24/48 [02:58<01:16,  3.19s/cfg]Evaluating configs:  52%|█████▏    | 25/48 [04:14<05:50, 15.25s/cfg]Evaluating configs:  58%|█████▊    | 28/48 [04:15<03:00,  9.03s/cfg]Evaluating configs:  65%|██████▍   | 31/48 [04:15<01:37,  5.74s/cfg]Evaluating configs:  69%|██████▉   | 33/48 [04:17<01:07,  4.48s/cfg]Evaluating configs:  73%|███████▎  | 35/48 [04:20<00:47,  3.62s/cfg]Evaluating configs:  75%|███████▌  | 36/48 [04:23<00:43,  3.62s/cfg]Evaluating configs:  77%|███████▋  | 37/48 [05:40<03:12, 17.47s/cfg]Evaluating configs:  81%|████████▏ | 39/48 [05:41<01:43, 11.49s/cfg]Evaluating configs:  88%|████████▊ | 42/48 [05:42<00:40,  6.69s/cfg]Evaluating configs:  92%|█████████▏| 44/48 [05:43<00:19,  4.83s/cfg]Evaluating configs: 100%|██████████| 48/48 [05:43<00:00,  7.16s/cfg]
+✅ Best config (CV): {'scaler': 'None', 'baseline': 'None', 'simple': 'StandardNormalVariate', 'pca': 'None'} | mean_score=0.835374
+✅ Saved: Biscuit_Sucrose_40_RandomSplit__search_results.csv, Biscuit_Sucrose_40_RandomSplit__best_config.json, Biscuit_Sucrose_40_RandomSplit__final_predictions.csv
+
+DONE.
