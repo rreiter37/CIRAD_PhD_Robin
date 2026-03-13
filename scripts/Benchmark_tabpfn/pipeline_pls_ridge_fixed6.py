@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 """
 Run NIRS4ALL pipelines for Ridge and PLS on multiple regression datasets, with:
-- Cartesian preprocessing search (includes optional scaling in the search space)
-- Fine-tuning (n_trials) for each model
+- Cartesian preprocessing search using the final NIRS search space discussed for PLS and Ridge- Fine-tuning (n_trials) for each model
+- Shape correction block: None / ASLSBaseline / selected Savitzky-Golay variants / Gaussian(1,2)
+- Scatter correction block: None / SNV / EMSC
+- Final representation block: None / Haar / AreaNormalization
 - Dataset discovery from an Excel file (DatabaseDetail.xlsx)
 - Dataset files are used *as-is* from the provided directory (no normalization/copy of CSVs).
 - Optional final refit on full Xtrain/Ytrain using the best preprocessing + hyperparams (from validation),
@@ -39,7 +41,6 @@ import pandas as pd
 
 from sklearn.base import clone
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.linear_model import Ridge
 from sklearn.cross_decomposition import PLSRegression
 from sklearn.metrics import mean_squared_error, r2_score
@@ -129,8 +130,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--n_trials",
         type=int,
-        default=20,
-        help="Number of optimization trials for each model.",
+        default=10,
+        help="Number of Optuna trials for each model and preprocessing configuration.",
     )
 
     # Model selection
@@ -382,14 +383,28 @@ def build_pipeline(
     pls_max_components: int,
     only_model: str = "Both",
 ) -> List[Dict[str, Any]]:
-    """Build a NIRS4ALL pipeline with cartesian preprocessing search and two models (PLS + Ridge)."""
+    """Build a NIRS4ALL pipeline with the final cartesian preprocessing search space for PLS and Ridge."""
     preprocessing_cartesian = {
-        "_cartesian_": [
-            {"_or_": [None, StandardScaler(), MinMaxScaler()]},  # keep scaling options
-            {"_or_": [None, ASLSBaseline(), Detrend()]},
-            {"_or_": [None, StandardNormalVariate(), EMSC()]},
-            {"_or_": [None, SavitzkyGolay(window_length=15), Gaussian(order=1, sigma=2)]},
-            {"_or_": [None, Haar(), AreaNormalization()]},
+        "_cartesian_": [{"_or_": [None,
+                                  ASLSBaseline(),
+                                  SavitzkyGolay(window_length=11, polyorder=2, deriv=1),
+                                  SavitzkyGolay(window_length=15, polyorder=2, deriv=1),
+                                  SavitzkyGolay(window_length=21, polyorder=2, deriv=1),
+                                  SavitzkyGolay(window_length=15, polyorder=3, deriv=2),
+                                  SavitzkyGolay(window_length=21, polyorder=3, deriv=2),
+                                  Gaussian(order=1, sigma=2),
+                                  ]
+            },
+            {"_or_": [None,
+                      StandardNormalVariate(),
+                      EMSC(),
+                      ]
+            },
+            {"_or_": [None,
+                      Haar(),
+                      AreaNormalization(),
+                      ]
+            },
         ]
     }
 
@@ -416,7 +431,7 @@ def build_pipeline(
                 "model": PLSRegression(),
                 "name": "PLS",
                 "finetune_params": {
-                    "n_trials": n_trials,
+                    "n_trials": int(n_trials),
                     "verbose": 0,
                     "approach": "grouped",
                     "eval_mode": "avg",
@@ -437,9 +452,12 @@ def build_pipeline(
                 "model": Ridge(random_state=random_state),
                 "name": "Ridge",
                 "finetune_params": {
-                    "n_trials": n_trials,
+                    "n_trials": int(n_trials),
                     "approach": "grouped",
                     "eval_mode": "avg",
+                    "sample": "tpe",
+                    "eval_metric": "rmse",
+                    "metric": "rmse",
                     "model_params": {
                         "alpha": ("log_float", 1e-3, 100.0),
                     },
@@ -490,12 +508,6 @@ def _parse_preprocessings_string(s: str) -> List[Any]:
         return any(any(sub in t for sub in subs) for t in tokens_l)
 
     out: List[Any] = []
-
-    # Scaling (sklearn)
-    if has_any(["standardscaler", "stdscaler", "standard_scaler", "std", "zscore"]):
-        out.append(StandardScaler())
-    elif has_any(["minmaxscaler", "minmax_scaler", "minmax"]):
-        out.append(MinMaxScaler())
 
     # Baseline / detrend
     if has_any(["asls", "baseline"]):

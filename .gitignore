@@ -48,8 +48,13 @@ charts/
 **/_binaries/
 **/binaries/
 
+**/preds/
+**/logs/
+
 # Model artifacts
 *.pkl
 *.pt
 *.ckpt
 *.pth
+*.joblib
+*.log

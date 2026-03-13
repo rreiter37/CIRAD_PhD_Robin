@@ -2,21 +2,23 @@
 # -*- coding: utf-8 -*-
 
 """
-tabpfn_cartesian_spxyg_cv3_refit.py
+pipeline_catboost_final.py
 
-Cartesian hyperparameter search around TabPFN with:
-- Deterministic gpu or cpu-parallel evaluation (ProcessPoolExecutor)
-- 3-fold SPXYG split for model selection
-- Final refit on the full training set with the best hyperparameters
-- Final prediction on Xtest
+Same pipeline logic as pipeline_tabpfn_final.py, but using CatBoost instead of TabPFN.
 
-Search space (cartesian product):
-1) shape preproc: None OR ASLSBaseline OR {SavitzkyGolay with various configs}
-2) scatter preproc: None OR SNV OR EMSC
-3) PCA: None OR PCA_features_0.25 (PCA with n_components=25% of features, whiten=True)
+What this script does (per dataset folder):
+- Cartesian search over preprocessing configurations using SPXYG K-fold CV on the training set
+- Select best preprocessing configuration (based on CV metric)
+- Refit on the full training set with the best configuration
+- Predict on Xtest and save final predictions + (optional) fitted pipeline
+
+Artifacts (relative to --output_dir):
+- <dataset>__search_results.csv
+- <dataset>__best_config.json
+- <dataset>__final_predictions.csv
 
 Notes:
-- The script assumes dataset folders contain Xtrain.csv, Ytrain.csv, Xtest.csv, optionally Ytest.csv.
+- CSV convention: ';' separator and '.' decimal.
 """
 
 from __future__ import annotations
@@ -37,11 +39,7 @@ import numpy as np
 import pandas as pd
 import re
 
-import torch
-
-# Parquet storage for predictions (much lighter than CSV)
-import pyarrow as pa
-import pyarrow.parquet as pq
+import torch  # used only for determinism helpers (consistent with your existing style)
 
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.pipeline import Pipeline
@@ -53,10 +51,11 @@ from nirs4all.operators.splitters import SPXYGFold
 import nirs4all.operators.transforms as pp
 from nirs4all.operators.transforms import ASLSBaseline
 
+# CatBoost
+from catboost import CatBoostRegressor, CatBoostClassifier
 
-# TabPFN
-from tabpfn import TabPFNRegressor, TabPFNClassifier
-
+# Global list to store all predictions before writing to parquet
+ALL_PREDS = []
 
 # ==============================
 # Determinism helpers
@@ -76,52 +75,6 @@ def set_deterministic(seed: int) -> None:
 
 
 # ==============================
-# TabPFN device safety (RTX 50xx guard)
-# Inspired by your existing code style in baseline/pipelines.
-# ==============================
-
-# ==============================
-# TabPFN device helpers
-# ==============================
-
-def get_safe_tabpfn_device() -> str:
-    """
-    Returns 'cuda' if the GPU architecture is supported by TabPFN CUDA kernels,
-    otherwise falls back to 'cpu' to prevent kernel crashes.
-    """
-    if not torch.cuda.is_available():
-        return "cpu"
-
-    major, minor = torch.cuda.get_device_capability(0)
-
-    # Conservative fallback for very recent architectures that may not be
-    # supported by the installed TabPFN/PyTorch CUDA stack.
-    if major >= 9:
-        return "cpu"
-
-    return "cuda"
-
-
-def resolve_tabpfn_device(force_gpu: bool = False) -> str:
-    """
-    Resolve the device used by TabPFN.
-
-    - If force_gpu is False, use the conservative safe-device logic.
-    - If force_gpu is True, force CUDA when available.
-    """
-    if force_gpu:
-        if not torch.cuda.is_available():
-            raise RuntimeError(
-                "The flag --gpu was provided, but no CUDA device is available."
-            )
-        return "cuda"
-
-    return get_safe_tabpfn_device()
-
-
-
-
-# ==============================
 # I/O helpers
 # ==============================
 
@@ -134,8 +87,9 @@ def read_csv_strict(path: Path) -> pd.DataFrame:
 
 def load_y_series(path: Path) -> pd.Series:
     df = read_csv_strict(path)
-    # Ytrain/Ytest in your files are one-column with header 'x'
+    # Ytrain/Ytest are one-column in your project
     return df.iloc[:, 0]
+
 
 def load_dataset_folder(folder: Path):
     xtr = read_csv_strict(folder / "Xtrain.csv")
@@ -145,9 +99,6 @@ def load_dataset_folder(folder: Path):
     yte_path = folder / "Ytest.csv"
     yte = load_y_series(yte_path) if yte_path.exists() else None
     return xtr, ytr, xte, yte
-
-
-
 
 
 # ==============================
@@ -177,91 +128,6 @@ def build_preproc_tag(cfg: "SearchConfig") -> str:
     return _sanitize_token(tag)
 
 
-def save_fold_predictions(
-    base_outdir: Path,
-    dataset_name: str,
-    split_name: str,
-    preproc_tag: str,
-    fold_id: int,
-    y_true: Optional[np.ndarray],
-    y_pred: np.ndarray,
-) -> Path:
-    """
-    Save a (y_true, y_pred) vector pair for one split (valid/test) and one fold.
-
-    Output layout (relative to the results output_dir):
-        preds/<dataset_name>/<valid|test>/<preproc_tag>_fold_<k>_preds.csv
-
-    The CSV format follows your project convention: ';' separator and '.' decimal.
-    """
-    split_name = "valid" if str(split_name).lower().startswith("v") else "test"
-
-    outdir = Path(base_outdir) / "preds" / str(dataset_name) / split_name
-    outdir.mkdir(parents=True, exist_ok=True)
-
-    fname = f"{preproc_tag}_fold_{int(fold_id)}_preds.csv"
-    fpath = outdir / fname
-
-    df = pd.DataFrame({"y_pred": np.asarray(y_pred).reshape(-1)})
-    if y_true is not None:
-        df.insert(0, "y_true", np.asarray(y_true).reshape(-1))
-
-    df.to_csv(fpath, sep=";", decimal=".", index=False)
-    return fpath
-
-
-def append_predictions_to_parquet(
-    base_outdir: Path,
-    dataset_name: str,
-    split_name: str,
-    preproc_tag: str,
-    fold_id: int,
-    y_true: Optional[np.ndarray],
-    y_pred: np.ndarray,
-):
-    """
-    Append predictions to a single Parquet file per dataset.
-
-    Output file:
-        preds/<dataset_name>/predictions.parquet
-
-    Each row stores:
-        dataset, split, fold, preproc_tag, row_id, y_true, y_pred
-    """
-
-    split_name = "valid" if str(split_name).lower().startswith("v") else "test"
-
-    parquet_dir = Path(base_outdir) / "preds" / str(dataset_name)
-    parquet_dir.mkdir(parents=True, exist_ok=True)
-
-    parquet_path = parquet_dir / "predictions.parquet"
-
-    y_pred = np.asarray(y_pred).reshape(-1)
-
-    if y_true is not None:
-        y_true = np.asarray(y_true).reshape(-1)
-    else:
-        y_true = np.full(len(y_pred), np.nan)
-
-    df = pd.DataFrame({
-        "dataset": dataset_name,
-        "split": split_name,
-        "fold": int(fold_id),
-        "preproc_tag": preproc_tag,
-        "row_id": np.arange(len(y_pred)),
-        "y_true": y_true,
-        "y_pred": y_pred,
-    })
-
-    table = pa.Table.from_pandas(df)
-
-    if parquet_path.exists():
-        existing = pq.read_table(parquet_path)
-        table = pa.concat_tables([existing, table])
-
-    pq.write_table(table, parquet_path, compression="zstd")
-
-
 
 # ==============================
 # PCA_features(fraction) transformer
@@ -271,9 +137,8 @@ class PCAFeaturesFraction(BaseEstimator, TransformerMixin):
     """
     PCA where n_components is a fraction of the number of input features:
         n_components = clamp(int(fraction * n_features), 1, n_features)
-
-    This matches your requested PCA_features(x%) definition.
     """
+
     def __init__(self, fraction: float = 0.25, whiten: bool = True, random_state: int = 42):
         self.fraction = float(fraction)
         self.whiten = bool(whiten)
@@ -284,8 +149,7 @@ class PCAFeaturesFraction(BaseEstimator, TransformerMixin):
         X = np.asarray(X)
         n_samples, n_features = X.shape
 
-        # Fraction of features, but PCA is constrained by the training fold size:
-        # n_components must be <= min(n_samples, n_features).
+        # n_components must be <= min(n_samples, n_features)
         n_comp = int(self.fraction * n_features)
         n_comp = max(1, min(n_comp, n_features, n_samples))
 
@@ -356,7 +220,7 @@ def build_transformers(cfg: SearchConfig, seed: int) -> List[Tuple[str, Any]]:
     if cfg.scatter == "SNV":
         steps.append(("snv", pp.StandardNormalVariate()))
     elif cfg.scatter == "EMSC":
-        steps.append(("emsc", pp.EMSC()))
+        steps.append(("emsc", pp.nirs.ExtendedMultiplicativeScatterCorrection()))
     elif cfg.scatter == "None":
         pass
     else:
@@ -364,7 +228,7 @@ def build_transformers(cfg: SearchConfig, seed: int) -> List[Tuple[str, Any]]:
 
     # 3) Optional PCA
     if cfg.pca == "PCA_features_0.25":
-        steps.append(("pca", PCAFeaturesFraction(fraction=0.25, whiten=True, random_state=seed)))
+        steps.append(("pca", PCAFeaturesFraction(fraction=0.25, whiten=True, random_state=int(seed))))
     elif cfg.pca != "None":
         raise ValueError(f"Unknown PCA preprocessing: {cfg.pca}")
 
@@ -372,7 +236,13 @@ def build_transformers(cfg: SearchConfig, seed: int) -> List[Tuple[str, Any]]:
 
 
 def enumerate_search_space() -> List[SearchConfig]:
-    """Enumerate the full cartesian product deterministically."""
+    """
+    Cartesian product used for TabPFN and CatBoost:
+
+      {None, ASLSBaseline, SG(11,2,1), SG(15,2,1), SG(21,2,1), SG(15,3,2), SG(21,3,2)}
+      x {None, SNV, EMSC}
+      x {None, PCA_0.25F}
+    """
     shapes = [
         "None",
         "ASLSBaseline",
@@ -394,51 +264,45 @@ def enumerate_search_space() -> List[SearchConfig]:
 
 
 # ==============================
-# CV evaluation
+# Model factory (CatBoost)
 # ==============================
+
+def make_model(task_type: str, seed: int, n_estimators: int) -> Any:
+    """
+    Build a CatBoost model with deterministic-ish settings.
+
+    - We map n_estimators_* args to CatBoost 'iterations'
+    - We force CPU and thread_count=1 for reproducibility across machines
+    """
+    common = dict(
+        iterations=int(n_estimators),
+        random_seed=int(seed),
+        task_type="GPU",
+        devices="0",
+        verbose=False,
+        allow_writing_files=False,
+    )
+
+    if task_type == "regression":
+        return CatBoostRegressor(loss_function="RMSE", **common)
+
+    return CatBoostClassifier(loss_function="Logloss", **common)
+
+
+def score_one_split(task_type: str, y_true: np.ndarray, y_pred: np.ndarray) -> float:
+    """Compute the metric for a single split (loss-like: minimize)."""
+    if task_type == "regression":
+        rmse = math.sqrt(mean_squared_error(y_true, y_pred))
+        return float(rmse)  # minimize RMSE
+    acc = accuracy_score(y_true, y_pred)
+    return float(-acc)     # minimize (-ACC) == maximize ACC
+
 
 @dataclass
 class EvalResult:
     config: Dict[str, Any]
     mean_score: float
     fold_scores: List[float]
-
-
-def make_model(
-    task_type: str,
-    seed: int,
-    n_estimators: int,
-    model_path: Optional[str],
-    device: str,
-) -> Any:
-    """Create a TabPFN model (regressor or classifier)."""
-    ModelCls = TabPFNRegressor if task_type == "regression" else TabPFNClassifier
-    kwargs = dict(
-        n_estimators=int(n_estimators),
-        device=device,
-        random_state=int(seed),
-        ignore_pretraining_limits=True,
-    )
-    if model_path is not None and str(model_path).strip():
-        kwargs["model_path"] = str(model_path)
-
-    return ModelCls(**kwargs)
-
-
-def score_one_split(
-    task_type: str,
-    y_true: np.ndarray,
-    y_pred: np.ndarray,
-) -> float:
-    """Compute the metric for a single split."""
-    if task_type == "regression":
-        rmse = math.sqrt(mean_squared_error(y_true, y_pred))
-        # We minimize RMSE -> use +RMSE as "loss-like" score
-        return float(rmse)
-    else:
-        acc = accuracy_score(y_true, y_pred)
-        # We maximize ACC -> use -ACC as "loss-like" score
-        return float(-acc)
 
 
 def cv_evaluate_config(
@@ -448,15 +312,12 @@ def cv_evaluate_config(
     seed: int,
     n_splits: int,
     n_estimators: int,
-    model_path: Optional[str],
     outdir: Path,
     dataset_name: str,
-    device: str,
     tmp_root: Optional[Path] = None,
 ) -> EvalResult:
     """
     Evaluate a configuration with SPXYG K-fold CV on the training set.
-    Uses a local temporary folder if provided (useful to avoid collisions).
     """
     set_deterministic(seed)
 
@@ -465,15 +326,9 @@ def cv_evaluate_config(
     y = y_train.to_numpy()
 
     split = SPXYGFold(n_splits=int(n_splits), random_state=int(seed))
-
-    # SPXYGFold is designed for NIRS spectra; we use its split indices.
-    # It exposes a sklearn-like API in nirs4all; we rely on split.split(X, y).
-
     folds = list(split.split(X, y))
 
-    # Build a stable tag for saving prediction vectors on disk.
     preproc_tag = build_preproc_tag(cfg)
-
     fold_scores: List[float] = []
 
     for fold_id, (tr_idx, va_idx) in enumerate(folds):
@@ -481,57 +336,42 @@ def cv_evaluate_config(
         ytr, yva = y[tr_idx], y[va_idx]
 
         steps = build_transformers(cfg, seed=seed)
-
-        model = make_model(
-            task_type=task_type,
-            seed=seed,
-            n_estimators=n_estimators,
-            model_path=model_path,
-            device=device,
-        )
+        model = make_model(task_type=task_type, seed=seed, n_estimators=n_estimators)
         pipe = Pipeline(steps + [("model", model)])
 
         # Fit and predict
         pipe.fit(Xtr, ytr)
         yhat = pipe.predict(Xva)
 
-        # Save validation predictions for this fold.
-        append_predictions_to_parquet(
-            base_outdir=outdir,
-            dataset_name=dataset_name,
-            split_name="valid",
-            preproc_tag=preproc_tag,
-            fold_id=fold_id,
-            y_true=yva,
-            y_pred=yhat,
-        )
+        # Save validation predictions for this fold
+        for i in range(len(yhat)):
+            ALL_PREDS.append({
+                "dataset": dataset_name,
+                "split": "valid",
+                "fold": fold_id,
+                "config": preproc_tag,
+                "y_true": float(yva[i]),
+                "y_pred": float(yhat[i])
+            })
 
-        # Save test predictions for this fold (model trained on the fold's training subset).
+        # Save test predictions for this fold (model trained on the fold's training subset)
         yhat_test = pipe.predict(X_test.to_numpy())
-        append_predictions_to_parquet(
-            base_outdir=outdir,
-            dataset_name=dataset_name,
-            split_name="test",
-            preproc_tag=preproc_tag,
-            fold_id=fold_id,
-            y_true=(y_test.to_numpy() if y_test is not None else None),
-            y_pred=yhat_test,
-        )
+        if y_test is not None:
+            for i in range(len(yhat_test)):
+                ALL_PREDS.append({
+                    "dataset": dataset_name,
+                    "split": "test",
+                    "fold": fold_id,
+                    "config": preproc_tag,
+                    "y_true": float(y_test.to_numpy()[i]),
+                    "y_pred": float(yhat_test[i])
+                })
 
         fold_scores.append(score_one_split(task_type, yva, yhat))
 
     mean_score = float(np.mean(fold_scores))
+    return EvalResult(config=asdict(cfg), mean_score=mean_score, fold_scores=fold_scores)
 
-    return EvalResult(
-        config=asdict(cfg),
-        mean_score=mean_score,
-        fold_scores=fold_scores,
-    )
-
-
-# ==============================
-# Final refit + predict
-# ==============================
 
 def refit_and_predict_best(
     dataset_folder: Path,
@@ -539,9 +379,7 @@ def refit_and_predict_best(
     task_type: str,
     seed: int,
     n_estimators: int,
-    model_path: Optional[str],
     outdir: Path,
-    device: str,
 ) -> None:
     """Refit the best pipeline on full train and predict on Xtest; save artifacts."""
     set_deterministic(seed)
@@ -550,13 +388,7 @@ def refit_and_predict_best(
     X_train, y_train, X_test, y_test = load_dataset_folder(dataset_folder)
 
     steps = build_transformers(best_cfg, seed=seed)
-    model = make_model(
-        task_type=task_type,
-        seed=seed,
-        n_estimators=n_estimators,
-        model_path=model_path,
-        device=device,
-    )
+    model = make_model(task_type=task_type, seed=seed, n_estimators=n_estimators)
     pipe = Pipeline(steps + [("model", model)])
 
     pipe.fit(X_train.to_numpy(), y_train.to_numpy())
@@ -564,43 +396,37 @@ def refit_and_predict_best(
 
     pred_df = pd.DataFrame({"y_pred": np.asarray(y_pred).reshape(-1)})
     if y_test is not None and len(y_test) == len(pred_df):
-        pred_df["y_true"] = np.asarray(y_test).reshape(-1)
+        pred_df.insert(0, "y_true", np.asarray(y_test).reshape(-1))
 
     pred_path = outdir / f"{dataset_folder.name}__final_predictions.csv"
     pred_df.to_csv(pred_path, sep=";", decimal=".", index=False)
 
-    # Optional: save pipeline
+    # Optional: save fitted pipeline
     try:
         import joblib
         joblib.dump(pipe, outdir / f"{dataset_folder.name}__final_pipeline.joblib")
     except Exception:
-        # If joblib fails (e.g., due to TabPFN internals), skip saving the object.
         pass
 
+
 def worker_eval_one_config(payload: Dict[str, Any]) -> EvalResult:
-    """
-    Top-level worker function (must be picklable for multiprocessing).
-    It receives a serializable payload dict and returns an EvalResult.
-    """
+    """Picklable worker for multiprocessing."""
     dataset_folder = Path(payload["dataset_folder"])
-    cfg_dict = payload["cfg"]
-    cfg = SearchConfig(**cfg_dict)
+    cfg = SearchConfig(**payload["cfg"])
 
     task_type = payload["task_type"]
     seed = int(payload["seed"])
     n_splits = int(payload["n_splits"])
     n_estimators = int(payload["n_estimators_search"])
-    model_path = payload["model_path"]
     use_tmp_dir = bool(payload["use_tmp_dir"])
     dataset_name = payload["dataset_name"]
     outdir = Path(payload["outdir"])
-    device = str(payload["device"])
 
     set_deterministic(seed)
 
     tmp_root = None
     if use_tmp_dir:
-        tmp_root = Path(tempfile.mkdtemp(prefix=f"tabpfn_search_{dataset_name}_"))
+        tmp_root = Path(tempfile.mkdtemp(prefix=f"catboost_search_{dataset_name}_"))
 
     try:
         return cv_evaluate_config(
@@ -610,11 +436,9 @@ def worker_eval_one_config(payload: Dict[str, Any]) -> EvalResult:
             seed=seed,
             n_splits=n_splits,
             n_estimators=n_estimators,
-            model_path=model_path,
             outdir=outdir,
             dataset_name=dataset_name,
             tmp_root=tmp_root,
-            device=device,
         )
     finally:
         if tmp_root is not None and tmp_root.exists():
@@ -630,33 +454,24 @@ def parse_args() -> argparse.Namespace:
 
     p.add_argument("--datasets", nargs="+", required=True,
                    help="List of dataset folder paths (each must contain Xtrain.csv/Ytrain.csv/Xtest.csv).")
-    p.add_argument("--exclude_datasets", nargs="*", default=None,
-                   help="Optional list of dataset folder names to exclude from --datasets before running the search.")
-
-    p.add_argument("--output_dir", type=str, default="Results/tabpfn_cartesian_search",
+    p.add_argument("--output_dir", type=str, default="Results/catboost_cartesian_search",
                    help="Output directory for CSV/JSON/predictions.")
-
     p.add_argument("--task_type", type=str, default="regression", choices=["regression", "classification"],
-                   help="Task type for TabPFN model.")
+                   help="Task type for CatBoost model.")
 
     p.add_argument("--seed", type=int, default=42, help="Random seed.")
     p.add_argument("--n_splits", type=int, default=3, help="Number of SPXYG folds for search (default: 3).")
 
-    p.add_argument("--n_estimators_search", type=int, default=4,
-                   help="TabPFN n_estimators during CV search.")
-    p.add_argument("--n_estimators_final", type=int, default=8,
-                   help="TabPFN n_estimators for the final refit.")
+    # Keep same flag names as TabPFN pipeline for drop-in replacement.
+    p.add_argument("--n_estimators_search", type=int, default=200,
+                   help="CatBoost iterations during CV search.")
+    p.add_argument("--n_estimators_final", type=int, default=500,
+                   help="CatBoost iterations for the final refit.")
 
-    p.add_argument("--model_path", type=str, default="tabpfn-v2.5-regressor-v2.5_real.ckpt",
-                   help="TabPFN checkpoint path (e.g., tabpfn-v2.5-regressor-v2.5_real.ckpt).")
-    
-    p.add_argument("--gpu", action="store_true",
-                   help="Force TabPFN to use CUDA if available.")
     p.add_argument("--parallel", action="store_true",
                    help="Enable parallel evaluation of the cartesian search.")
     p.add_argument("--n_jobs", type=int, default=1,
                    help="Number of worker processes if --parallel is enabled.")
-
     p.add_argument("--use_tmp_dir", action="store_true",
                    help="If set, each worker uses an isolated temp dir (recommended).")
 
@@ -666,40 +481,23 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     set_deterministic(int(args.seed))
-    tabpfn_device = resolve_tabpfn_device(force_gpu=bool(args.gpu))
 
     outdir = Path(args.output_dir)
     outdir.mkdir(parents=True, exist_ok=True)
 
-    model_path = args.model_path.strip() if isinstance(args.model_path, str) else ""
-    model_path = model_path if model_path else None
-
     space = enumerate_search_space()
 
-    excluded_datasets = {str(x).strip() for x in (args.exclude_datasets or [])}
-    datasets_to_run = [
-        ds for ds in args.datasets
-        if Path(ds).name.strip() not in excluded_datasets
-    ]
-
-    if excluded_datasets:
-        print(f"Excluded dataset names: {sorted(excluded_datasets)}")
-        print(f"Remaining datasets to run: {len(datasets_to_run)}/{len(args.datasets)}")
-
-    for ds in datasets_to_run:
+    for ds in args.datasets:
         dataset_folder = Path(ds)
         if not dataset_folder.exists():
             raise FileNotFoundError(str(dataset_folder))
 
+        print("\n" + "=" * 100)
+        print(f"DATASET: {dataset_folder.name}")
         print("=" * 100)
-        print(f"Dataset: {dataset_folder.name}")
-        print("=" * 100)
-        print(f"Search configs: {len(space)} | SPXYG folds: {args.n_splits} | parallel={args.parallel} n_jobs={args.n_jobs}")
-        print(f"TabPFN device: {tabpfn_device}")
 
         results: List[EvalResult] = []
 
-        # Build serializable payloads (required for multiprocessing).
         payloads: List[Dict[str, Any]] = []
         for cfg in space:
             payloads.append({
@@ -710,38 +508,31 @@ def main() -> None:
                 "seed": int(args.seed),
                 "n_splits": int(args.n_splits),
                 "n_estimators_search": int(args.n_estimators_search),
-                "model_path": model_path,
                 "use_tmp_dir": bool(args.use_tmp_dir),
                 "outdir": str(outdir),
-                "device": tabpfn_device,
             })
 
         if args.parallel and int(args.n_jobs) > 1:
-            # Parallel evaluation: submit only top-level picklable function + pure-data payload.
             with concurrent.futures.ProcessPoolExecutor(max_workers=int(args.n_jobs)) as ex:
                 futs = [ex.submit(worker_eval_one_config, pl) for pl in payloads]
-
                 print(f"Submitted {len(futs)} jobs to the process pool.", flush=True)
 
                 with tqdm(
                     total=len(futs),
                     desc="Evaluating configs",
                     unit="cfg",
-                    file=sys.stderr,          # tqdm renders reliably in logs
+                    file=sys.stderr,
                     dynamic_ncols=True,
                     mininterval=0.5,
-                    disable=False,          # Always show progress bar in this script
+                    disable=False,
                 ) as pbar:
                     for fut in concurrent.futures.as_completed(futs):
                         results.append(fut.result())
                         pbar.update(1)
-
         else:
-            # Sequential evaluation
             for pl in payloads:
                 results.append(worker_eval_one_config(pl))
 
-        # Convert to DataFrame and select best
         df = pd.DataFrame([{
             **r.config,
             "mean_score": r.mean_score,
@@ -770,10 +561,9 @@ def main() -> None:
                     "task_type": args.task_type,
                     "seed": int(args.seed),
                     "n_splits": int(args.n_splits),
-                    "tabpfn_device": tabpfn_device,
+                    "model": "CatBoost",
                     "n_estimators_search": int(args.n_estimators_search),
                     "n_estimators_final": int(args.n_estimators_final),
-                    "model_path": model_path,
                     "best_config": asdict(best_cfg),
                     "best_mean_score": float(best_row["mean_score"]),
                     "best_fold_scores": json.loads(best_row["fold_scores"]),
@@ -784,21 +574,24 @@ def main() -> None:
 
         print(f"✅ Best config (CV): {asdict(best_cfg)} | mean_score={float(best_row['mean_score']):.6f}")
 
-        # Final refit + predict on Xtest
+        # Final refit + predict
         refit_and_predict_best(
             dataset_folder=dataset_folder,
             best_cfg=best_cfg,
             task_type=args.task_type,
             seed=int(args.seed),
             n_estimators=int(args.n_estimators_final),
-            model_path=model_path,
             outdir=outdir,
-            device=tabpfn_device,
         )
 
-        print(f"✅ Saved: {res_csv.name}, {best_json.name}, {dataset_folder.name}__final_predictions.csv")
+        if ALL_PREDS:
+            preds_df = pd.DataFrame(ALL_PREDS)
+            parquet_path = outdir / "all_predictions.parquet"
+            preds_df.to_parquet(parquet_path, index=False)
 
-    print("\nDONE.")
+            print(f"Saved predictions parquet: {parquet_path}")
+
+        print("✅ Final refit done. Saved final predictions.")
 
 
 if __name__ == "__main__":

@@ -2,20 +2,21 @@
 # -*- coding: utf-8 -*-
 
 """
-run_tabpfn_final_on_excel.py
+run_catboost_final_on_excel.py
 
-Run scripts/Benchmark_tabpfn/pipeline_tabpfn_final.py on multiple regression datasets
-listed in Data/DatabaseDetail.xlsx.
+Same launcher logic as run_tabpfn_final.py, but calling pipeline_catboost_final.py.
 
-Expected dataset layout:
+Expected dataset layout (regression by default):
     Data/regression/<Database>/<Dataset>/
         Xtrain.csv, Ytrain.csv, Xtest.csv, Ytest.csv
 
 This launcher:
 - Reads DatabaseDetail.xlsx and discovers dataset folders (columns: "Database", "Dataset").
 - Skips missing/invalid folders.
-- Runs pipeline_tabpfn_final.py dataset-by-dataset (safer than batching all datasets in one call).
+- Runs pipeline_catboost_final.py dataset-by-dataset (safer than batching all datasets in one call).
 - Writes one log file per dataset and a summary CSV.
+
+All comments are in English (per your requirement).
 """
 
 from __future__ import annotations
@@ -28,7 +29,7 @@ import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional, Tuple, Dict, Any
+from typing import List, Optional, Tuple
 
 import pandas as pd
 from tqdm.auto import tqdm
@@ -54,16 +55,8 @@ def discover_datasets_from_excel(
     data_root: Path,
     databases_filter: Optional[List[str]] = None,
     datasets_filter: Optional[List[str]] = None,
-    exclude_datasets: Optional[List[str]] = None,
 ) -> List[Tuple[str, str, Path]]:
-    """
-    Discover dataset folders from DatabaseDetail.xlsx.
-
-    The Excel is expected to have two columns:
-      - "Database"
-      - "Dataset"
-    (same convention used in your other pipelines).
-    """
+    """Discover dataset folders from DatabaseDetail.xlsx."""
     if not xlsx_path.exists():
         raise FileNotFoundError(f"Database detail file not found: {xlsx_path}")
 
@@ -80,10 +73,6 @@ def discover_datasets_from_excel(
     if datasets_filter:
         df = df[df["Dataset"].astype(str).isin(set(datasets_filter))]
 
-    if exclude_datasets:
-        excluded = {str(x).strip() for x in exclude_datasets}
-        df = df[~df["Dataset"].astype(str).str.strip().isin(excluded)]
-
     out: List[Tuple[str, str, Path]] = []
     seen = set()
 
@@ -97,10 +86,8 @@ def discover_datasets_from_excel(
             continue
         seen.add(key)
 
-        # Validate required files
         missing_files = [f for f in REQUIRED_FILES if not (folder / f).exists()]
         if missing_files:
-            # Keep it silent-ish; the launcher will print a global summary anyway.
             continue
 
         out.append((db, ds, folder))
@@ -117,21 +104,12 @@ def build_pipeline_cmd(
     n_splits: int,
     n_estimators_search: int,
     n_estimators_final: int,
-    model_path: str,
     parallel: bool,
     n_jobs: int,
     use_tmp_dir: bool,
-    gpu: bool,
     extra_args: List[str],
 ) -> List[str]:
-    """
-    Build the command line to call pipeline_tabpfn_final.py for a single dataset.
-
-    We run one dataset per process call to:
-    - isolate failures,
-    - keep per-dataset logs,
-    - avoid massive batched stdout.
-    """
+    """Build the command line to call pipeline_catboost_final.py for a single dataset."""
     cmd = [
         sys.executable,
         str(pipeline_script),
@@ -151,33 +129,17 @@ def build_pipeline_cmd(
         str(int(n_estimators_final)),
     ]
 
-    # model_path is optional in pipeline_tabpfn_final.py; only pass if non-empty.
-    if model_path.strip():
-        cmd += ["--model_path", model_path.strip()]
-
     if parallel:
         cmd += ["--parallel", "--n_jobs", str(int(n_jobs))]
 
     if use_tmp_dir:
         cmd += ["--use_tmp_dir"]
 
-    if gpu:
-        cmd += ["--gpu"]
-
-    # Forward any extra args that you might add later to pipeline_tabpfn_final.py.
-    # Example: extra args could include future flags like "--some_new_flag".
     cmd += list(extra_args)
-
     return cmd
 
 
-def run_one_dataset(
-    db: str,
-    ds: str,
-    folder: Path,
-    cmd: List[str],
-    logs_dir: Path,
-) -> RunRow:
+def run_one_dataset(db: str, ds: str, folder: Path, cmd: List[str], logs_dir: Path) -> RunRow:
     """Run one dataset and capture stdout+stderr to a dedicated log file."""
     logs_dir.mkdir(parents=True, exist_ok=True)
     log_path = logs_dir / f"{db}__{ds}.log"
@@ -211,7 +173,6 @@ def run_one_dataset(
         )
     except Exception as e:
         elapsed = time.time() - t0
-        # In case of launcher-level crash (rare), still produce a row.
         with open(log_path, "a", encoding="utf-8") as f:
             f.write("\n[LAUNCHER ERROR]\n")
             f.write(repr(e) + "\n")
@@ -228,27 +189,14 @@ def run_one_dataset(
 
 
 def append_run_row_to_csv(summary_csv: Path, row: RunRow) -> None:
-    """
-    Append exactly one run row to the summary CSV.
-
-    Why this exists:
-    - We want the launcher to be restartable without losing previous results.
-    - If `summary_csv` already exists in the same output directory, we append new rows
-      instead of overwriting the file.
-
-    Notes:
-    - We write one row at a time (mode='a') so long runs can be resumed safely.
-    - The header is written only when the file does not exist or is empty.
-    """
+    """Append exactly one run row to the summary CSV."""
     summary_csv.parent.mkdir(parents=True, exist_ok=True)
 
-    # Decide whether we need to write the header.
     write_header = True
     if summary_csv.exists():
         try:
             write_header = summary_csv.stat().st_size == 0
         except OSError:
-            # If the file is temporarily unavailable, default to no header to avoid duplication.
             write_header = False
 
     df_one = pd.DataFrame([row.__dict__])
@@ -262,51 +210,42 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--database_detail_xlsx", type=str, default="Data/DatabaseDetail.xlsx",
                    help="Path to DatabaseDetail.xlsx.")
     p.add_argument("--data_root", type=str, default="Data/regression",
-                   help="Root folder with regression datasets: Data/regression/<Database>/<Dataset>/")
+                   help="Root folder with datasets: Data/<task>/<Database>/<Dataset>/")
     p.add_argument("--databases", nargs="*", default=None,
                    help="Optional list of database names to include.")
     p.add_argument("--datasets_include", nargs="*", default=None,
                    help="Optional list of dataset names to include.")
-    p.add_argument("--exclude_datasets", nargs="*", default=None,
-                   help="Optional list of dataset names to exclude from the datasets discovered in DatabaseDetail.xlsx.")
     p.add_argument("--after_dataset", type=str, default=None,
                    help="If provided, skip all datasets before this dataset name in DATA_PATH.")
 
-    # Where pipeline_tabpfn_final.py is located
-    p.add_argument("--pipeline_script", type=str, default="scripts/Benchmark_tabpfn/pipeline_tabpfn_final.py",
-                   help="Path to pipeline_tabpfn_final.py.")
+    # Where pipeline_catboost_final.py is located
+    p.add_argument("--pipeline_script", type=str, default="scripts/Benchmark_tabpfn/pipeline_catboost_final.py",
+                   help="Path to pipeline_catboost_final.py.")
 
     # Output
-    p.add_argument("--output_dir", type=str, default="Results/tabpfn_reg_final_batch",
-                   help="Output directory passed to pipeline_tabpfn_final.py.")
-    p.add_argument("--logs_dir", type=str, default="Results/tabpfn_reg_final_batch/logs",
+    p.add_argument("--output_dir", type=str, default="Results/catboost_reg_final",
+                   help="Output directory passed to pipeline_catboost_final.py.")
+    p.add_argument("--logs_dir", type=str, default="Results/catboost_reg_final/logs",
                    help="Directory for per-dataset logs.")
-    p.add_argument("--summary_csv", type=str, default="Results/tabpfn_reg_final_batch/summary_runs.csv",
+    p.add_argument("--summary_csv", type=str, default="Results/catboost_reg_final/summary_runs.csv",
                    help="CSV summarizing launcher runs.")
 
-    # Pipeline args (mirrors pipeline_tabpfn_final.py)
+    # Pipeline args (mirrors pipeline_catboost_final.py)
     p.add_argument("--task_type", type=str, default="regression", choices=["regression", "classification"])
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--n_splits", type=int, default=3)
-    p.add_argument("--n_estimators_search", type=int, default=4)
-    p.add_argument("--n_estimators_final", type=int, default=4)
-    
-    p.add_argument("--model_path", type=str, default="tabpfn-v2.5-regressor-v2.5_real.ckpt",
-                   help="TabPFN checkpoint path.")
-    
-    p.add_argument("--gpu", action="store_true",
-                   help="Forward --gpu to pipeline_tabpfn_final.py to force CUDA usage.")
+    p.add_argument("--n_estimators_search", type=int, default=200)
+    p.add_argument("--n_estimators_final", type=int, default=500)
     p.add_argument("--parallel", action="store_true",
-                   help="Forward --parallel to pipeline_tabpfn_final.py (parallel inside each dataset search).")
+                   help="Forward --parallel to pipeline_catboost_final.py (parallel inside each dataset search).")
     p.add_argument("--n_jobs", type=int, default=1,
-                   help="Forward --n_jobs to pipeline_tabpfn_final.py (workers inside each dataset search).")
-    
+                   help="Forward --n_jobs to pipeline_catboost_final.py (workers inside each dataset search).")
     p.add_argument("--use_tmp_dir", action="store_true",
-                   help="Forward --use_tmp_dir to pipeline_tabpfn_final.py.")
+                   help="Forward --use_tmp_dir to pipeline_catboost_final.py.")
 
     # Advanced: forward unknown args to the pipeline script (future-proofing)
     p.add_argument("--extra", nargs=argparse.REMAINDER, default=[],
-                   help="Extra arguments forwarded to pipeline_tabpfn_final.py (must come last).")
+                   help="Extra arguments forwarded to pipeline_catboost_final.py (must come last).")
     return p.parse_args()
 
 
@@ -323,22 +262,19 @@ def main() -> None:
     if not pipeline_script.exists():
         raise FileNotFoundError(f"pipeline script not found: {pipeline_script}")
 
-    # Discover datasets
     datasets = discover_datasets_from_excel(
         xlsx_path=xlsx_path,
         data_root=data_root,
         databases_filter=args.databases,
         datasets_filter=args.datasets_include,
-        exclude_datasets=args.exclude_datasets,
     )
-    
-    # ===================== AFTER_DATASET LOGIC ===================== #
+
+    # AFTER_DATASET logic (same behavior as your TabPFN launcher)
     if args.after_dataset is not None:
         target = str(args.after_dataset).strip()
 
-        # Find the first occurrence of the target dataset name and keep it + all following ones.
         start_idx = None
-        for i, (db, ds, folder) in enumerate(datasets):
+        for i, (db, ds, _) in enumerate(datasets):
             if str(ds).strip() == target:
                 start_idx = i
                 break
@@ -359,7 +295,6 @@ def main() -> None:
         if len(datasets) > 10:
             print("   ...")
 
-
     print(f"Selected datasets (valid folders): {len(datasets)}")
     for (db, ds, folder) in datasets[:10]:
         print(f"  • {db}/{ds} -> {folder}")
@@ -370,20 +305,14 @@ def main() -> None:
     logs_dir.mkdir(parents=True, exist_ok=True)
     summary_csv.parent.mkdir(parents=True, exist_ok=True)
 
-    # If the summary already exists, we keep it and append new rows.
     if summary_csv.exists() and summary_csv.stat().st_size > 0:
         try:
             existing_df = pd.read_csv(summary_csv)
             print(f"Existing summary CSV found with {len(existing_df)} rows: {summary_csv}")
         except Exception:
-            # If parsing fails (e.g., partial write), we still append new rows.
             print(f"Existing summary CSV found (unreadable), will append anyway: {summary_csv}")
 
-    rows: List[RunRow] = []
-
-    # Run sequentially (recommended).
-    # Reason: pipeline_tabpfn_final.py can already use multiprocessing inside a dataset,
-    # and running multiple datasets in parallel often explodes RAM/CPU and makes logs unreadable.
+    # Run sequentially (recommended). The pipeline can already do internal parallelism per dataset.
     for db, ds, folder in tqdm(datasets, desc="Datasets", unit="ds"):
         cmd = build_pipeline_cmd(
             pipeline_script=pipeline_script,
@@ -394,11 +323,9 @@ def main() -> None:
             n_splits=args.n_splits,
             n_estimators_search=args.n_estimators_search,
             n_estimators_final=args.n_estimators_final,
-            model_path=args.model_path,
             parallel=bool(args.parallel),
             n_jobs=int(args.n_jobs),
             use_tmp_dir=bool(args.use_tmp_dir),
-            gpu=bool(args.gpu),
             extra_args=list(args.extra),
         )
 
@@ -408,14 +335,10 @@ def main() -> None:
         print("CMD:", " ".join(shlex.quote(x) for x in cmd), flush=True)
 
         row = run_one_dataset(db=db, ds=ds, folder=folder, cmd=cmd, logs_dir=logs_dir)
-        rows.append(row)
 
         print(f"-> status={row.status} returncode={row.returncode} elapsed={row.elapsed_sec:.1f}s")
         print(f"-> log: {row.log_path}")
 
-        # Persist summary after each dataset (safer for long runs).
-        # Append mode ensures we do NOT overwrite previous runs if the same output
-        # directory is reused across multiple launcher executions.
         append_run_row_to_csv(summary_csv=summary_csv, row=row)
 
     print("\nDONE.")
