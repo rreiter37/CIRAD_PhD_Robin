@@ -1,0 +1,25 @@
+{
+  "dataset": "LMA_spxyG_block2deg",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 1,
+  "model": "TabPFN",
+  "n_estimators_search": 16,
+  "n_estimators_final": 16,
+  "best_config": {
+    "shape": "None",
+    "scatter": "None",
+    "pca": "None"
+  },
+  "best_mean_score": 22.192536591233083,
+  "best_fold_scores": [
+    22.192536591233083
+  ],
+  "best_model_params": {
+    "n_estimators": 16,
+    "device": "cpu",
+    "model_path": "tabpfn-v2.5-regressor-v2.5_real.ckpt",
+    "source": "converted_from_tabpfn_raw"
+  },
+  "conversion_notes": "Synthetic compatibility artifact created from TabPFN raw outputs. No CV search was performed; mean_score and fold scores come from the single raw test run when available."
+}
