@@ -1,0 +1,22 @@
+{
+  "dataset": "LUCAS_pH_Organic_1763_LiuRandomOrganic",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "tabpfn_device": "cpu",
+  "n_estimators_search": 4,
+  "n_estimators_final": 16,
+  "model_path": "tabpfn-v2.5-regressor-v2.5_real.ckpt",
+  "best_config": {
+    "scaler": "None",
+    "baseline": "ASLSBaseline",
+    "simple": "SavitzkyGolay",
+    "pca": "None"
+  },
+  "best_mean_score": 0.34076515663824797,
+  "best_fold_scores": [
+    0.32427662493277387,
+    0.33537614842275026,
+    0.36264269655921977
+  ]
+}

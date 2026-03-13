@@ -1,0 +1,20 @@
+{
+  "dataset": "All_manure_Total_N_SPXY_strat_Manure_type",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 1,
+  "tabpfn_device": "cpu",
+  "n_estimators_search": 2,
+  "n_estimators_final": 4,
+  "model_path": "tabpfn-v2.5-regressor-v2.5_real.ckpt",
+  "best_config": {
+    "scaler": "None",
+    "baseline": "ASLSBaseline",
+    "simple": "None",
+    "pca": "PCA_features_0.25"
+  },
+  "best_mean_score": 0.8631264843180592,
+  "best_fold_scores": [
+    0.8631264843180592
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "dataset": "Quartz_spxy70",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "model": "CatBoost",
+  "n_estimators_search": 200,
+  "n_estimators_final": 500,
+  "best_config": {
+    "scaler": "StandardScaler",
+    "baseline": "None",
+    "simple": "Gaussian",
+    "pca": "None"
+  },
+  "best_mean_score": 0.011844693937986586,
+  "best_fold_scores": [
+    0.008672524999104253,
+    0.010626380378859043,
+    0.016235176435996455
+  ]
+}

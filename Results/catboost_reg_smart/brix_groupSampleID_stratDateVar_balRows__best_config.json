@@ -1,0 +1,20 @@
+{
+  "dataset": "brix_groupSampleID_stratDateVar_balRows",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "model": "CatBoost",
+  "n_estimators_search": 200,
+  "n_estimators_final": 500,
+  "best_config": {
+    "shape": "SG_11_2_1",
+    "scatter": "None",
+    "pca": "None"
+  },
+  "best_mean_score": 3.2665280233281266,
+  "best_fold_scores": [
+    3.20174213093289,
+    3.2686688083785778,
+    3.329173130672912
+  ]
+}

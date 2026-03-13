@@ -1,0 +1,21 @@
+{
+  "dataset": "Chla+b_spxyG_block2deg",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "model": "CatBoost",
+  "n_estimators_search": 200,
+  "n_estimators_final": 500,
+  "best_config": {
+    "scaler": "None",
+    "baseline": "ASLSBaseline",
+    "simple": "Baseline",
+    "pca": "None"
+  },
+  "best_mean_score": 14.204125913666074,
+  "best_fold_scores": [
+    20.786114193328576,
+    10.007285149523652,
+    11.818978398145992
+  ]
+}

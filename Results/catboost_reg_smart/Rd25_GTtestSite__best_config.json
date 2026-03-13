@@ -1,0 +1,20 @@
+{
+  "dataset": "Rd25_GTtestSite",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "model": "CatBoost",
+  "n_estimators_search": 200,
+  "n_estimators_final": 500,
+  "best_config": {
+    "shape": "SG_15_2_1",
+    "scatter": "SNV",
+    "pca": "None"
+  },
+  "best_mean_score": 0.2038393184281662,
+  "best_fold_scores": [
+    0.19682775490647675,
+    0.21458689110236123,
+    0.20010330927566064
+  ]
+}

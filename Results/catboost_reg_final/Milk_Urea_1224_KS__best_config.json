@@ -1,0 +1,21 @@
+{
+  "dataset": "Milk_Urea_1224_KS",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "model": "CatBoost",
+  "n_estimators_search": 200,
+  "n_estimators_final": 500,
+  "best_config": {
+    "scaler": "None",
+    "baseline": "None",
+    "simple": "SavitzkyGolay",
+    "pca": "PCA_features_0.25"
+  },
+  "best_mean_score": 4.5682559675988275,
+  "best_fold_scores": [
+    4.550970918999679,
+    4.5285162027717405,
+    4.625280781025062
+  ]
+}

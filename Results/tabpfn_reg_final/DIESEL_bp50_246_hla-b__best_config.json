@@ -1,0 +1,22 @@
+{
+  "dataset": "DIESEL_bp50_246_hla-b",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "tabpfn_device": "cpu",
+  "n_estimators_search": 4,
+  "n_estimators_final": 16,
+  "model_path": "tabpfn-v2.5-regressor-v2.5_real.ckpt",
+  "best_config": {
+    "scaler": "StandardScaler",
+    "baseline": "None",
+    "simple": "Normalize",
+    "pca": "None"
+  },
+  "best_mean_score": 4.111840929869198,
+  "best_fold_scores": [
+    3.8803474691479938,
+    4.29726072487449,
+    4.15791459558511
+  ]
+}

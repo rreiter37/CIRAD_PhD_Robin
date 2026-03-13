@@ -1,0 +1,20 @@
+{
+  "dataset": "grapevine_chloride_556_KS",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "model": "CatBoost",
+  "n_estimators_search": 200,
+  "n_estimators_final": 500,
+  "best_config": {
+    "shape": "SG_21_3_2",
+    "scatter": "None",
+    "pca": "None"
+  },
+  "best_mean_score": 1020.4217963098505,
+  "best_fold_scores": [
+    921.9028320637117,
+    1051.2244847671263,
+    1088.1380720987133
+  ]
+}

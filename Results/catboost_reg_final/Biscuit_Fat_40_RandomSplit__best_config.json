@@ -1,0 +1,21 @@
+{
+  "dataset": "Biscuit_Fat_40_RandomSplit",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "model": "CatBoost",
+  "n_estimators_search": 200,
+  "n_estimators_final": 500,
+  "best_config": {
+    "scaler": "None",
+    "baseline": "ASLSBaseline",
+    "simple": "StandardNormalVariate",
+    "pca": "None"
+  },
+  "best_mean_score": 0.9592681033379913,
+  "best_fold_scores": [
+    0.8994345714748408,
+    0.9044281760730529,
+    1.0739415624660802
+  ]
+}

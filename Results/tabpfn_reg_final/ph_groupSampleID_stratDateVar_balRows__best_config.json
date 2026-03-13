@@ -1,0 +1,22 @@
+{
+  "dataset": "ph_groupSampleID_stratDateVar_balRows",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "tabpfn_device": "cpu",
+  "n_estimators_search": 4,
+  "n_estimators_final": 16,
+  "model_path": "tabpfn-v2.5-regressor-v2.5_real.ckpt",
+  "best_config": {
+    "scaler": "None",
+    "baseline": "ASLSBaseline",
+    "simple": "SavitzkyGolay",
+    "pca": "None"
+  },
+  "best_mean_score": 0.2108888797898704,
+  "best_fold_scores": [
+    0.2097988358856058,
+    0.21400386550057246,
+    0.20886393798343295
+  ]
+}

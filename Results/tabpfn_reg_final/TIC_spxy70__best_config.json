@@ -1,0 +1,22 @@
+{
+  "dataset": "TIC_spxy70",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "tabpfn_device": "cpu",
+  "n_estimators_search": 4,
+  "n_estimators_final": 16,
+  "model_path": "tabpfn-v2.5-regressor-v2.5_real.ckpt",
+  "best_config": {
+    "scaler": "None",
+    "baseline": "None",
+    "simple": "StandardNormalVariate",
+    "pca": "None"
+  },
+  "best_mean_score": 5.554082865494173,
+  "best_fold_scores": [
+    6.123513163521554,
+    5.231857999332735,
+    5.306877433628231
+  ]
+}

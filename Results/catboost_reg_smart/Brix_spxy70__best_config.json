@@ -1,0 +1,20 @@
+{
+  "dataset": "Brix_spxy70",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "model": "CatBoost",
+  "n_estimators_search": 200,
+  "n_estimators_final": 500,
+  "best_config": {
+    "shape": "SG_15_3_2",
+    "scatter": "SNV",
+    "pca": "None"
+  },
+  "best_mean_score": 0.8087562106978804,
+  "best_fold_scores": [
+    0.933371013912859,
+    0.8413098775476981,
+    0.651587740633084
+  ]
+}

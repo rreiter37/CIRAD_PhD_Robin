@@ -1,0 +1,20 @@
+{
+  "dataset": "Chla+b_spxyG_species",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "model": "CatBoost",
+  "n_estimators_search": 200,
+  "n_estimators_final": 500,
+  "best_config": {
+    "shape": "SG_15_3_2",
+    "scatter": "None",
+    "pca": "None"
+  },
+  "best_mean_score": 11.562043382773075,
+  "best_fold_scores": [
+    7.870596547989228,
+    10.45360523201254,
+    16.361928368317457
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "dataset": "DIESEL_bp50_246_hla-b",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "model": "CatBoost",
+  "n_estimators_search": 200,
+  "n_estimators_final": 500,
+  "best_config": {
+    "scaler": "None",
+    "baseline": "ASLSBaseline",
+    "simple": "Gaussian",
+    "pca": "None"
+  },
+  "best_mean_score": 7.5412511170809085,
+  "best_fold_scores": [
+    7.158486111341344,
+    5.7887272954191,
+    9.67653994448228
+  ]
+}

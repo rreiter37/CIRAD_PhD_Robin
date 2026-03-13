@@ -1,0 +1,2 @@
+dataset;task_type;seed;tabpfn_device;n_estimators;model_path;has_ytest;test_metric_name;test_metric_value
+LUCAS_SOC_Cropland_8731_NocitaKS;regression;42;cpu;16;tabpfn-v2.5-regressor-v2.5_real.ckpt;True;rmse;3.752188635667292

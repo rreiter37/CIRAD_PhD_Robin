@@ -1,10 +1,32 @@
 CMD:
-/home/robinr/Desktop/VSCode/CIRAD_PhD_Robin/.venv/bin/python scripts/Benchmark_tabpfn/pipeline_tabpfn_final.py --datasets Data/regression/ALPINE/ALPINE_N_552_KS --output_dir Results/tabpfn_reg_final --task_type regression --seed 42 --n_splits 3 --n_estimators_search 4 --n_estimators_final 4 --model_path tabpfn-v2.5-regressor-v2.5_real.ckpt --parallel --n_jobs 12 --use_tmp_dir
+/home/robinr/Desktop/VSCode/CIRAD_PhD_Robin/.venv/bin/python scripts/Benchmark_tabpfn/pipeline_tabpfn_final.py --datasets Data/regression/ALPINE/ALPINE_N_552_KS --output_dir Results/tabpfn_reg_final --task_type regression --seed 42 --n_splits 3 --n_estimators_search 4 --n_estimators_final 16 --model_path tabpfn-v2.5-regressor-v2.5_real.ckpt --parallel --n_jobs 18 --use_tmp_dir
 
 ====================================================================================================
 Dataset: ALPINE_N_552_KS
 ====================================================================================================
-Search configs: 48 | SPXYG folds: 3 | parallel=True n_jobs=12
+Search configs: 48 | SPXYG folds: 3 | parallel=True n_jobs=18
 TabPFN device: cpu
 Submitted 48 jobs to the process pool.
-Evaluating configs:   0%|          | 0/48 [00:00<?, ?cfg/s]Evaluating configs:   2%|▏         | 1/48 [13:59<10:57:24, 839.24s/cfg]Evaluating configs:   4%|▍         | 2/48 [14:06<4:28:02, 349.61s/cfg] Evaluating configs:   6%|▋         | 3/48 [14:08<2:23:07, 190.84s/cfg]Evaluating configs:   8%|▊         | 4/48 [14:12<1:25:52, 117.10s/cfg]Evaluating configs:  12%|█▎        | 6/48 [14:17<39:34, 56.55s/cfg]   Evaluating configs:  15%|█▍        | 7/48 [28:11<3:04:31, 270.04s/cfg]Evaluating configs:  17%|█▋        | 8/48 [28:14<2:09:51, 194.78s/cfg]Evaluating configs:  19%|█▉        | 9/48 [28:28<1:32:50, 142.84s/cfg]Evaluating configs:  21%|██        | 10/48 [41:51<3:32:02, 334.81s/cfg]Evaluating configs:  23%|██▎       | 11/48 [55:45<4:56:44, 481.20s/cfg]Evaluating configs:  23%|██▎       | 11/48 [56:54<3:11:25, 310.41s/cfg]
+Evaluating configs:   0%|          | 0/48 [00:00<?, ?cfg/s]Evaluating configs:   2%|▏         | 1/48 [21:03<16:29:37, 1263.36s/cfg]Evaluating configs:   4%|▍         | 2/48 [21:04<6:39:23, 520.94s/cfg]  Evaluating configs:   6%|▋         | 3/48 [21:07<3:33:18, 284.40s/cfg]Evaluating configs:  10%|█         | 5/48 [21:08<1:28:32, 123.55s/cfg]Evaluating configs:  15%|█▍        | 7/48 [21:14<47:38, 69.71s/cfg]   Evaluating configs:  17%|█▋        | 8/48 [21:27<37:22, 56.05s/cfg]Evaluating configs:  19%|█▉        | 9/48 [21:36<28:35, 43.99s/cfg]Evaluating configs:  21%|██        | 10/48 [41:55<3:47:39, 359.45s/cfg]Evaluating configs:  23%|██▎       | 11/48 [42:12<2:43:07, 264.53s/cfg]Evaluating configs:  25%|██▌       | 12/48 [42:20<1:54:56, 191.58s/cfg]Evaluating configs:  27%|██▋       | 13/48 [42:23<1:20:02, 137.23s/cfg]Evaluating configs:  29%|██▉       | 14/48 [1:02:22<4:13:25, 447.21s/cfg]Evaluating configs:  31%|███▏      | 15/48 [1:02:47<2:57:37, 322.96s/cfg]Evaluating configs:  33%|███▎      | 16/48 [1:22:49<5:10:53, 582.94s/cfg]Evaluating configs:  35%|███▌      | 17/48 [1:43:02<6:38:01, 770.37s/cfg]Evaluating configs:  38%|███▊      | 18/48 [2:42:21<13:20:39, 1601.32s/cfg]Evaluating configs:  40%|███▉      | 19/48 [2:42:33<9:04:35, 1126.76s/cfg] Evaluating configs:  42%|████▏     | 20/48 [2:42:39<6:09:24, 791.59s/cfg] Evaluating configs:  44%|████▍     | 21/48 [2:42:46<4:10:28, 556.63s/cfg]Evaluating configs:  46%|████▌     | 22/48 [2:42:54<2:50:01, 392.35s/cfg]Evaluating configs:  50%|█████     | 24/48 [2:42:59<1:25:04, 212.70s/cfg]Evaluating configs:  52%|█████▏    | 25/48 [2:43:00<1:01:26, 160.27s/cfg]Evaluating configs:  54%|█████▍    | 26/48 [2:43:12<44:28, 121.32s/cfg]  Evaluating configs:  56%|█████▋    | 27/48 [3:03:26<2:26:31, 418.65s/cfg]Evaluating configs:  58%|█████▊    | 28/48 [3:03:33<1:41:08, 303.40s/cfg]Evaluating configs:  60%|██████    | 29/48 [3:03:45<1:09:42, 220.12s/cfg]Evaluating configs:  62%|██████▎   | 30/48 [3:03:58<48:02, 160.16s/cfg]  Evaluating configs:  65%|██████▍   | 31/48 [3:04:05<32:38, 115.20s/cfg]Evaluating configs:  67%|██████▋   | 32/48 [3:04:08<21:55, 82.24s/cfg] Evaluating configs:  69%|██████▉   | 33/48 [3:04:13<14:48, 59.23s/cfg]Evaluating configs:  71%|███████   | 34/48 [3:04:16<09:56, 42.63s/cfg]Evaluating configs:  73%|███████▎  | 35/48 [3:04:17<06:31, 30.13s/cfg]Evaluating configs:  75%|███████▌  | 36/48 [3:04:29<04:56, 24.68s/cfg]Evaluating configs:  77%|███████▋  | 37/48 [3:17:00<44:21, 241.99s/cfg]Evaluating configs:  79%|███████▉  | 38/48 [3:17:02<28:23, 170.31s/cfg]Evaluating configs:  81%|████████▏ | 39/48 [3:17:14<18:25, 122.81s/cfg]Evaluating configs:  83%|████████▎ | 40/48 [3:17:22<11:47, 88.43s/cfg] Evaluating configs:  85%|████████▌ | 41/48 [3:25:16<23:48, 204.02s/cfg]Evaluating configs:  88%|████████▊ | 42/48 [3:39:11<39:18, 393.09s/cfg]Evaluating configs:  90%|████████▉ | 43/48 [3:56:55<49:31, 594.26s/cfg]Evaluating configs:  92%|█████████▏| 44/48 [3:57:02<27:52, 418.20s/cfg]Evaluating configs:  94%|█████████▍| 45/48 [3:57:04<14:39, 293.33s/cfg]Evaluating configs:  96%|█████████▌| 46/48 [3:57:07<06:52, 206.33s/cfg]Evaluating configs:  98%|█████████▊| 47/48 [3:58:33<02:50, 170.05s/cfg]Evaluating configs: 100%|██████████| 48/48 [3:58:33<00:00, 298.19s/cfg]
+✅ Best config (CV): {'scaler': 'None', 'baseline': 'ASLSBaseline', 'simple': 'StandardNormalVariate', 'pca': 'None'} | mean_score=0.291761
+Traceback (most recent call last):
+  File "/home/robinr/Desktop/VSCode/CIRAD_PhD_Robin/scripts/Benchmark_tabpfn/pipeline_tabpfn_final.py", line 576, in <module>
+    main()
+  File "/home/robinr/Desktop/VSCode/CIRAD_PhD_Robin/scripts/Benchmark_tabpfn/pipeline_tabpfn_final.py", line 560, in main
+    refit_and_predict_best(
+  File "/home/robinr/Desktop/VSCode/CIRAD_PhD_Robin/scripts/Benchmark_tabpfn/pipeline_tabpfn_final.py", line 356, in refit_and_predict_best
+    y_pred = pipe.predict(X_test.to_numpy())
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/robinr/Desktop/VSCode/CIRAD_PhD_Robin/.venv/lib/python3.12/site-packages/sklearn/pipeline.py", line 787, in predict
+    Xt = transform.transform(Xt)
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/robinr/Desktop/VSCode/CIRAD_PhD_Robin/.venv/lib/python3.12/site-packages/sklearn/utils/_set_output.py", line 319, in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/robinr/Desktop/VSCode/nirs4all/nirs4all/operators/transforms/nirs.py", line 1756, in transform
+    return pybaseline_correction(X_out, method=self.method, **self.method_params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/robinr/Desktop/VSCode/nirs4all/nirs4all/operators/transforms/nirs.py", line 1567, in pybaseline_correction
+    corrected[i] = spectra[i] - baseline
+                   ~~~~~~~~~~~^~~~~~~~~~
+TypeError: unsupported operand type(s) for -: 'str' and 'float'

@@ -1,0 +1,20 @@
+{
+  "dataset": "Malaria_Sporozoite_229_Maia",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "model": "CatBoost",
+  "n_estimators_search": 200,
+  "n_estimators_final": 500,
+  "best_config": {
+    "shape": "SG_21_3_2",
+    "scatter": "None",
+    "pca": "None"
+  },
+  "best_mean_score": 21407.88296907691,
+  "best_fold_scores": [
+    15823.055420453835,
+    21954.092140130124,
+    26446.50134664677
+  ]
+}

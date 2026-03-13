@@ -1,0 +1,22 @@
+{
+  "dataset": "Beef_Marbling_RandomSplit",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "tabpfn_device": "cpu",
+  "n_estimators_search": 4,
+  "n_estimators_final": 16,
+  "model_path": "tabpfn-v2.5-regressor-v2.5_real.ckpt",
+  "best_config": {
+    "scaler": "StandardScaler",
+    "baseline": "ASLSBaseline",
+    "simple": "Normalize",
+    "pca": "PCA_features_0.25"
+  },
+  "best_mean_score": 64.47222068106139,
+  "best_fold_scores": [
+    65.96133677555929,
+    59.9801562237462,
+    67.47516904387865
+  ]
+}

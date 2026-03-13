@@ -1,0 +1,21 @@
+{
+  "dataset": "Biscuit_Sucrose_40_RandomSplit",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "model": "CatBoost",
+  "n_estimators_search": 200,
+  "n_estimators_final": 500,
+  "best_config": {
+    "scaler": "None",
+    "baseline": "None",
+    "simple": "StandardNormalVariate",
+    "pca": "None"
+  },
+  "best_mean_score": 2.0936585351271835,
+  "best_fold_scores": [
+    2.2259121812721108,
+    2.4840542166281336,
+    1.5710092074813071
+  ]
+}

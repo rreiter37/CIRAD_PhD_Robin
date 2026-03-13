@@ -1,0 +1,20 @@
+{
+  "dataset": "Beef_Marbling_RandomSplit",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "model": "CatBoost",
+  "n_estimators_search": 200,
+  "n_estimators_final": 500,
+  "best_config": {
+    "shape": "SG_15_3_2",
+    "scatter": "None",
+    "pca": "None"
+  },
+  "best_mean_score": 63.303732672997434,
+  "best_fold_scores": [
+    63.301814037359286,
+    57.89990138906545,
+    68.70948259256758
+  ]
+}

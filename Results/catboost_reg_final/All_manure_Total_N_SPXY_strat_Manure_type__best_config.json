@@ -1,0 +1,21 @@
+{
+  "dataset": "All_manure_Total_N_SPXY_strat_Manure_type",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "model": "CatBoost",
+  "n_estimators_search": 200,
+  "n_estimators_final": 500,
+  "best_config": {
+    "scaler": "None",
+    "baseline": "ASLSBaseline",
+    "simple": "None",
+    "pca": "None"
+  },
+  "best_mean_score": 2.4642799154301387,
+  "best_fold_scores": [
+    1.945930258497135,
+    2.6762355523690875,
+    2.7706739354241936
+  ]
+}

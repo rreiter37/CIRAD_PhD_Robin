@@ -1,0 +1,20 @@
+{
+  "dataset": "ALPINE_P_291_KS",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "model": "CatBoost",
+  "n_estimators_search": 200,
+  "n_estimators_final": 500,
+  "best_config": {
+    "shape": "SG_11_2_1",
+    "scatter": "SNV",
+    "pca": "None"
+  },
+  "best_mean_score": 0.07981529275393219,
+  "best_fold_scores": [
+    0.08136765837634646,
+    0.08036994055267094,
+    0.07770827933277917
+  ]
+}

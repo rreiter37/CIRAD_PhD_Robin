@@ -1,0 +1,21 @@
+{
+  "dataset": "Rice_Amylose_313_YbasedSplit",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "model": "CatBoost",
+  "n_estimators_search": 200,
+  "n_estimators_final": 500,
+  "best_config": {
+    "scaler": "None",
+    "baseline": "ASLSBaseline",
+    "simple": "SavitzkyGolay",
+    "pca": "None"
+  },
+  "best_mean_score": 4.0067328137616,
+  "best_fold_scores": [
+    3.9205547410047337,
+    4.032541232807026,
+    4.06710246747304
+  ]
+}

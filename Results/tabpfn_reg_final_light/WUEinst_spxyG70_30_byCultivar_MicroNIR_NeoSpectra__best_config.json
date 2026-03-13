@@ -1,0 +1,20 @@
+{
+  "dataset": "WUEinst_spxyG70_30_byCultivar_MicroNIR_NeoSpectra",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 1,
+  "tabpfn_device": "cpu",
+  "n_estimators_search": 2,
+  "n_estimators_final": 4,
+  "model_path": "tabpfn-v2.5-regressor-v2.5_real.ckpt",
+  "best_config": {
+    "scaler": "StandardScaler",
+    "baseline": "ASLSBaseline",
+    "simple": "Baseline",
+    "pca": "PCA_features_0.25"
+  },
+  "best_mean_score": 1.1175759644171914,
+  "best_fold_scores": [
+    1.1175759644171914
+  ]
+}

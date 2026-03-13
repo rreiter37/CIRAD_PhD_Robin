@@ -1,0 +1,13 @@
+category,option,wins
+baseline,ASLSBaseline,33
+baseline,None,26
+pca,None,30
+pca,PCA_features_0.25,29
+scaler,None,48
+scaler,StandardScaler,11
+simple,StandardNormalVariate,18
+simple,SavitzkyGolay,14
+simple,None,10
+simple,Normalize,9
+simple,Gaussian,5
+simple,Baseline,3

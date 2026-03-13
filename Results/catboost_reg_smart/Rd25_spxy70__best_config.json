@@ -1,0 +1,20 @@
+{
+  "dataset": "Rd25_spxy70",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "model": "CatBoost",
+  "n_estimators_search": 200,
+  "n_estimators_final": 500,
+  "best_config": {
+    "shape": "SG_15_2_1",
+    "scatter": "SNV",
+    "pca": "None"
+  },
+  "best_mean_score": 0.2148948599000995,
+  "best_fold_scores": [
+    0.23390771309514982,
+    0.20939261184388808,
+    0.20138425476126048
+  ]
+}

@@ -1,0 +1,2 @@
+dataset;task_type;seed;tabpfn_device;n_estimators;model_path;has_ytest;test_metric_name;test_metric_value
+MP_spxyG;regression;42;cpu;16;tabpfn-v2.5-regressor-v2.5_real.ckpt;True;rmse;0.019986569364308884

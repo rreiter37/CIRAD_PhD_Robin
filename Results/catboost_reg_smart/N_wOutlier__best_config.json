@@ -1,0 +1,20 @@
+{
+  "dataset": "N_wOutlier",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "model": "CatBoost",
+  "n_estimators_search": 200,
+  "n_estimators_final": 500,
+  "best_config": {
+    "shape": "SG_15_2_1",
+    "scatter": "None",
+    "pca": "None"
+  },
+  "best_mean_score": 0.2748582071365953,
+  "best_fold_scores": [
+    0.2752406868948785,
+    0.26868790537825754,
+    0.2806460291366498
+  ]
+}

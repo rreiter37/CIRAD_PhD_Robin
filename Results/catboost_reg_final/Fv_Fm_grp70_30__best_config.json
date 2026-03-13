@@ -1,0 +1,21 @@
+{
+  "dataset": "Fv_Fm_grp70_30",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "model": "CatBoost",
+  "n_estimators_search": 200,
+  "n_estimators_final": 500,
+  "best_config": {
+    "scaler": "None",
+    "baseline": "ASLSBaseline",
+    "simple": "SavitzkyGolay",
+    "pca": "None"
+  },
+  "best_mean_score": 0.03621688547475343,
+  "best_fold_scores": [
+    0.03275848408544349,
+    0.03333727196120701,
+    0.04255490037760978
+  ]
+}

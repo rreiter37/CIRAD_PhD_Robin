@@ -1,0 +1,21 @@
+{
+  "dataset": "Rd25_CBtestSite",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "model": "CatBoost",
+  "n_estimators_search": 200,
+  "n_estimators_final": 500,
+  "best_config": {
+    "scaler": "StandardScaler",
+    "baseline": "ASLSBaseline",
+    "simple": "Baseline",
+    "pca": "None"
+  },
+  "best_mean_score": 0.18881996122256114,
+  "best_fold_scores": [
+    0.17744965727398823,
+    0.1829057987486938,
+    0.20610442764500134
+  ]
+}

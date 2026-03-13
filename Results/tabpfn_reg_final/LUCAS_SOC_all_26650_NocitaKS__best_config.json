@@ -1,0 +1,22 @@
+{
+  "dataset": "LUCAS_SOC_all_26650_NocitaKS",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "tabpfn_device": "cpu",
+  "n_estimators_search": 4,
+  "n_estimators_final": 16,
+  "model_path": "tabpfn-v2.5-regressor-v2.5_real.ckpt",
+  "best_config": {
+    "scaler": "StandardScaler",
+    "baseline": "None",
+    "simple": "Gaussian",
+    "pca": "None"
+  },
+  "best_mean_score": 21.44036717058377,
+  "best_fold_scores": [
+    21.51474334258371,
+    22.004807640687787,
+    20.801550528479808
+  ]
+}

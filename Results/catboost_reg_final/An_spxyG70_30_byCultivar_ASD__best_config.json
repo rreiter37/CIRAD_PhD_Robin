@@ -1,0 +1,21 @@
+{
+  "dataset": "An_spxyG70_30_byCultivar_ASD",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "model": "CatBoost",
+  "n_estimators_search": 200,
+  "n_estimators_final": 500,
+  "best_config": {
+    "scaler": "None",
+    "baseline": "None",
+    "simple": "None",
+    "pca": "None"
+  },
+  "best_mean_score": 3.1020323682243656,
+  "best_fold_scores": [
+    2.9177062384507755,
+    3.3557088120015766,
+    3.032682054220744
+  ]
+}

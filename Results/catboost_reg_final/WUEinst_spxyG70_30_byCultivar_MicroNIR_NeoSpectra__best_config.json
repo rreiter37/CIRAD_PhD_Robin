@@ -1,0 +1,21 @@
+{
+  "dataset": "WUEinst_spxyG70_30_byCultivar_MicroNIR_NeoSpectra",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "model": "CatBoost",
+  "n_estimators_search": 200,
+  "n_estimators_final": 500,
+  "best_config": {
+    "scaler": "None",
+    "baseline": "ASLSBaseline",
+    "simple": "Gaussian",
+    "pca": "None"
+  },
+  "best_mean_score": 1.8614428026208587,
+  "best_fold_scores": [
+    1.714087019877805,
+    1.9991559516038273,
+    1.8710854363809435
+  ]
+}

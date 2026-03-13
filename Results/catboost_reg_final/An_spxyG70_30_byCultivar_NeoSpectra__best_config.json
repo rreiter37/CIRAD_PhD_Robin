@@ -1,0 +1,21 @@
+{
+  "dataset": "An_spxyG70_30_byCultivar_NeoSpectra",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "model": "CatBoost",
+  "n_estimators_search": 200,
+  "n_estimators_final": 500,
+  "best_config": {
+    "scaler": "None",
+    "baseline": "ASLSBaseline",
+    "simple": "StandardNormalVariate",
+    "pca": "None"
+  },
+  "best_mean_score": 3.3306090408261753,
+  "best_fold_scores": [
+    3.472014636032581,
+    3.1222466218646354,
+    3.3975658645813103
+  ]
+}

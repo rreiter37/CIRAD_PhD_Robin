@@ -1,0 +1,20 @@
+{
+  "dataset": "Milk_Lactose_1224_KS",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "model": "CatBoost",
+  "n_estimators_search": 200,
+  "n_estimators_final": 500,
+  "best_config": {
+    "shape": "SG_15_2_1",
+    "scatter": "SNV",
+    "pca": "PCA_features_0.25"
+  },
+  "best_mean_score": 0.08142233883949354,
+  "best_fold_scores": [
+    0.07646912839934851,
+    0.08167304279669413,
+    0.086124845322438
+  ]
+}

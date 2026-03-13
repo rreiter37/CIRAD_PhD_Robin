@@ -1,0 +1,21 @@
+{
+  "dataset": "LUCAS_SOC_Cropland_8731_NocitaKS",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "model": "CatBoost",
+  "n_estimators_search": 200,
+  "n_estimators_final": 500,
+  "best_config": {
+    "scaler": "None",
+    "baseline": "None",
+    "simple": "Normalize",
+    "pca": "PCA_features_0.25"
+  },
+  "best_mean_score": 9.556740357339544,
+  "best_fold_scores": [
+    9.616589327159057,
+    9.741094603732172,
+    9.312537141127404
+  ]
+}

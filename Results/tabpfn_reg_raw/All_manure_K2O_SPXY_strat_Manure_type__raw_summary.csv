@@ -1,0 +1,2 @@
+dataset;task_type;seed;tabpfn_device;n_estimators;model_path;has_ytest;test_metric_name;test_metric_value
+All_manure_K2O_SPXY_strat_Manure_type;regression;42;cpu;16;tabpfn-v2.5-regressor-v2.5_real.ckpt;True;rmse;2.6794924697514872

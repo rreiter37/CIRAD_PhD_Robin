@@ -1,0 +1,21 @@
+{
+  "dataset": "Corn_Oil_80_ZhengChenPelegYbaseSplit",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "model": "CatBoost",
+  "n_estimators_search": 200,
+  "n_estimators_final": 500,
+  "best_config": {
+    "scaler": "None",
+    "baseline": "ASLSBaseline",
+    "simple": "StandardNormalVariate",
+    "pca": "None"
+  },
+  "best_mean_score": 0.10017948369383149,
+  "best_fold_scores": [
+    0.09618662615506506,
+    0.09642402390335461,
+    0.1079278010230748
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "dataset": "An_spxyG70_30_byCultivar_NeoSpectra",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "tabpfn_device": "cpu",
+  "n_estimators_search": 4,
+  "n_estimators_final": 16,
+  "model_path": "tabpfn-v2.5-regressor-v2.5_real.ckpt",
+  "best_config": {
+    "scaler": "StandardScaler",
+    "baseline": "None",
+    "simple": "Gaussian",
+    "pca": "None"
+  },
+  "best_mean_score": 3.3916655744447652,
+  "best_fold_scores": [
+    3.5528147028815495,
+    2.9435122314900077,
+    3.678669788962738
+  ]
+}

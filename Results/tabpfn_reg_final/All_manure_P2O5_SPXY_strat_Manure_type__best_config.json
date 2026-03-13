@@ -1,0 +1,22 @@
+{
+  "dataset": "All_manure_P2O5_SPXY_strat_Manure_type",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "tabpfn_device": "cpu",
+  "n_estimators_search": 4,
+  "n_estimators_final": 16,
+  "model_path": "tabpfn-v2.5-regressor-v2.5_real.ckpt",
+  "best_config": {
+    "scaler": "StandardScaler",
+    "baseline": "None",
+    "simple": "Normalize",
+    "pca": "PCA_features_0.25"
+  },
+  "best_mean_score": 3.174698417811804,
+  "best_fold_scores": [
+    3.1663587390138264,
+    2.8063354023236875,
+    3.5514011120978988
+  ]
+}

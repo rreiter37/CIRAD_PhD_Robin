@@ -1,0 +1,22 @@
+{
+  "dataset": "C_woOutlier",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "tabpfn_device": "cpu",
+  "n_estimators_search": 4,
+  "n_estimators_final": 16,
+  "model_path": "tabpfn-v2.5-regressor-v2.5_real.ckpt",
+  "best_config": {
+    "scaler": "None",
+    "baseline": "ASLSBaseline",
+    "simple": "StandardNormalVariate",
+    "pca": "None"
+  },
+  "best_mean_score": 0.9809656687306246,
+  "best_fold_scores": [
+    0.8036353854661147,
+    0.987744424795844,
+    1.1515171959299153
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "dataset": "WOOD_N_402_Olale",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "model": "CatBoost",
+  "n_estimators_search": 200,
+  "n_estimators_final": 500,
+  "best_config": {
+    "shape": "None",
+    "scatter": "None",
+    "pca": "None"
+  },
+  "best_mean_score": 0.04898471666651464,
+  "best_fold_scores": [
+    0.04524055480407013,
+    0.04688871548249742,
+    0.054824879712976365
+  ]
+}

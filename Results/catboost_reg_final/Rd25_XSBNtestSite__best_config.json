@@ -1,0 +1,21 @@
+{
+  "dataset": "Rd25_XSBNtestSite",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "model": "CatBoost",
+  "n_estimators_search": 200,
+  "n_estimators_final": 500,
+  "best_config": {
+    "scaler": "None",
+    "baseline": "ASLSBaseline",
+    "simple": "Normalize",
+    "pca": "None"
+  },
+  "best_mean_score": 0.20131956686749994,
+  "best_fold_scores": [
+    0.19717127425181696,
+    0.21216893534105458,
+    0.1946184910096282
+  ]
+}

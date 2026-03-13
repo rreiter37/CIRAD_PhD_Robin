@@ -1,0 +1,21 @@
+{
+  "dataset": "Malaria_Oocist_333_Maia",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "model": "CatBoost",
+  "n_estimators_search": 200,
+  "n_estimators_final": 500,
+  "best_config": {
+    "scaler": "None",
+    "baseline": "ASLSBaseline",
+    "simple": "Gaussian",
+    "pca": "None"
+  },
+  "best_mean_score": 5580.153416770702,
+  "best_fold_scores": [
+    4838.072408882247,
+    4841.96145204227,
+    7060.42638938759
+  ]
+}

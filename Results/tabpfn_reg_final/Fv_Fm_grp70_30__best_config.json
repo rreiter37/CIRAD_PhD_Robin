@@ -1,0 +1,22 @@
+{
+  "dataset": "Fv_Fm_grp70_30",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "tabpfn_device": "cpu",
+  "n_estimators_search": 4,
+  "n_estimators_final": 16,
+  "model_path": "tabpfn-v2.5-regressor-v2.5_real.ckpt",
+  "best_config": {
+    "scaler": "StandardScaler",
+    "baseline": "ASLSBaseline",
+    "simple": "SavitzkyGolay",
+    "pca": "PCA_features_0.25"
+  },
+  "best_mean_score": 0.03609519543915279,
+  "best_fold_scores": [
+    0.03432866999281608,
+    0.03158683238262844,
+    0.04237008394201384
+  ]
+}

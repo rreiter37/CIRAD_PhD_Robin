@@ -1,0 +1,22 @@
+{
+  "dataset": "V25_spxyG",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "tabpfn_device": "cpu",
+  "n_estimators_search": 4,
+  "n_estimators_final": 16,
+  "model_path": "tabpfn-v2.5-regressor-v2.5_real.ckpt",
+  "best_config": {
+    "scaler": "None",
+    "baseline": "ASLSBaseline",
+    "simple": "Gaussian",
+    "pca": "None"
+  },
+  "best_mean_score": 0.15481386942655373,
+  "best_fold_scores": [
+    0.1832193514130454,
+    0.13774191497542945,
+    0.14348034189118627
+  ]
+}

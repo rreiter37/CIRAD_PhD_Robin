@@ -1,0 +1,21 @@
+{
+  "dataset": "MP_spxyG",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "model": "CatBoost",
+  "n_estimators_search": 200,
+  "n_estimators_final": 500,
+  "best_config": {
+    "scaler": "None",
+    "baseline": "ASLSBaseline",
+    "simple": "StandardNormalVariate",
+    "pca": "None"
+  },
+  "best_mean_score": 0.011567887231963907,
+  "best_fold_scores": [
+    0.012617301890549482,
+    0.011231929933971378,
+    0.010854429871370865
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "dataset": "All_manure_MgO_SPXY_strat_Manure_type",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "tabpfn_device": "cpu",
+  "n_estimators_search": 4,
+  "n_estimators_final": 16,
+  "model_path": "tabpfn-v2.5-regressor-v2.5_real.ckpt",
+  "best_config": {
+    "scaler": "StandardScaler",
+    "baseline": "None",
+    "simple": "SavitzkyGolay",
+    "pca": "PCA_features_0.25"
+  },
+  "best_mean_score": 1.0937934097312814,
+  "best_fold_scores": [
+    0.9889313291012666,
+    1.2209289189954242,
+    1.0715199810971532
+  ]
+}

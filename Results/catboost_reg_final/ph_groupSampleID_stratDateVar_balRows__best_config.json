@@ -1,0 +1,21 @@
+{
+  "dataset": "ph_groupSampleID_stratDateVar_balRows",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "model": "CatBoost",
+  "n_estimators_search": 200,
+  "n_estimators_final": 500,
+  "best_config": {
+    "scaler": "None",
+    "baseline": "ASLSBaseline",
+    "simple": "Baseline",
+    "pca": "None"
+  },
+  "best_mean_score": 0.2503804851160305,
+  "best_fold_scores": [
+    0.2463078871634603,
+    0.2521336520493904,
+    0.25269991613524084
+  ]
+}

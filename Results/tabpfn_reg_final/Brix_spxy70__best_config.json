@@ -1,0 +1,22 @@
+{
+  "dataset": "Brix_spxy70",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "tabpfn_device": "cpu",
+  "n_estimators_search": 4,
+  "n_estimators_final": 16,
+  "model_path": "tabpfn-v2.5-regressor-v2.5_real.ckpt",
+  "best_config": {
+    "scaler": "None",
+    "baseline": "None",
+    "simple": "Normalize",
+    "pca": "PCA_features_0.25"
+  },
+  "best_mean_score": 0.7590111432478404,
+  "best_fold_scores": [
+    1.001537993512055,
+    0.6032507123893687,
+    0.6722447238420977
+  ]
+}

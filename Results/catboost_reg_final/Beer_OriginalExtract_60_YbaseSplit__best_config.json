@@ -1,0 +1,21 @@
+{
+  "dataset": "Beer_OriginalExtract_60_YbaseSplit",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "model": "CatBoost",
+  "n_estimators_search": 200,
+  "n_estimators_final": 500,
+  "best_config": {
+    "scaler": "None",
+    "baseline": "ASLSBaseline",
+    "simple": "SavitzkyGolay",
+    "pca": "None"
+  },
+  "best_mean_score": 1.2759328665503595,
+  "best_fold_scores": [
+    0.9352408869358675,
+    1.3505562487346914,
+    1.5420014639805195
+  ]
+}

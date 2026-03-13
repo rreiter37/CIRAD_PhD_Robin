@@ -1,0 +1,22 @@
+{
+  "dataset": "grapevine_chloride_556_KS",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "tabpfn_device": "cpu",
+  "n_estimators_search": 4,
+  "n_estimators_final": 16,
+  "model_path": "tabpfn-v2.5-regressor-v2.5_real.ckpt",
+  "best_config": {
+    "scaler": "None",
+    "baseline": "None",
+    "simple": "StandardNormalVariate",
+    "pca": "None"
+  },
+  "best_mean_score": 903.8272248609637,
+  "best_fold_scores": [
+    892.2886409370611,
+    895.9034937321082,
+    923.2895399137218
+  ]
+}

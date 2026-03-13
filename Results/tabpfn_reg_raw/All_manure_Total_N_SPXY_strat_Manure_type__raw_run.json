@@ -1,0 +1,11 @@
+{
+  "dataset": "All_manure_Total_N_SPXY_strat_Manure_type",
+  "task_type": "regression",
+  "seed": 42,
+  "tabpfn_device": "cpu",
+  "n_estimators": 16,
+  "model_path": "tabpfn-v2.5-regressor-v2.5_real.ckpt",
+  "has_ytest": true,
+  "test_metric_name": "rmse",
+  "test_metric_value": 1.7949795563783153
+}

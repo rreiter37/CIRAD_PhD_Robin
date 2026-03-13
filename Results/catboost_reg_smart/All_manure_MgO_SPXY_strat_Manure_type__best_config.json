@@ -1,0 +1,20 @@
+{
+  "dataset": "All_manure_MgO_SPXY_strat_Manure_type",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "model": "CatBoost",
+  "n_estimators_search": 200,
+  "n_estimators_final": 500,
+  "best_config": {
+    "shape": "SG_21_2_1",
+    "scatter": "SNV",
+    "pca": "None"
+  },
+  "best_mean_score": 1.2610218278560839,
+  "best_fold_scores": [
+    1.254215835107303,
+    1.4239510105677196,
+    1.1048986378932288
+  ]
+}

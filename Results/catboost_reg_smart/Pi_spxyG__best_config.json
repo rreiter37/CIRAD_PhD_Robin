@@ -1,0 +1,20 @@
+{
+  "dataset": "Pi_spxyG",
+  "task_type": "regression",
+  "seed": 42,
+  "n_splits": 3,
+  "model": "CatBoost",
+  "n_estimators_search": 200,
+  "n_estimators_final": 500,
+  "best_config": {
+    "shape": "SG_11_2_1",
+    "scatter": "SNV",
+    "pca": "None"
+  },
+  "best_mean_score": 0.04246806700198491,
+  "best_fold_scores": [
+    0.04289213769863837,
+    0.038864657791818635,
+    0.045647405515497716
+  ]
+}
