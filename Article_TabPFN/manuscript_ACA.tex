@@ -1,0 +1,1494 @@
+% =====================================================================
+%  ACA-ADAPTED VERSION of the arXiv v1 manuscript.
+%  - All original text is preserved verbatim.
+%  - Every change/addition for Analytica Chimica Acta is delimited by
+%       % >>> ACA: ...        (start)
+%       % <<< ACA             (end)
+%  - Sections intentionally left EMPTY (to be filled with experiments
+%    or author-specific information) use the \TODO{...} box.
+%  - For the FINAL submission, Elsevier "Your Paper Your Way" allows this
+%    free format for first submission; the final camera-ready can switch
+%    to \documentclass{elsarticle} with \bibliographystyle{elsarticle-num}.
+% =====================================================================
+
+\documentclass{article}
+
+% Language setting
+% Replace `english' with e.g. `spanish' to change the document language
+\usepackage[english]{babel}
+
+% Set page size and margins
+% Replace `letterpaper' with`a4paper' for UK/EU standard size
+\usepackage[letterpaper,top=2cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
+
+% Useful packages
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{authblk}
+\usepackage{graphicx}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+\usepackage{enumitem}
+\usepackage{color}
+\usepackage{subcaption}
+\usepackage{ifthen}
+\usepackage{comment}
+\usepackage{longtable}
+\usepackage{pdflscape}
+\usepackage{makecell}
+\usepackage{ragged2e}
+\usepackage{multirow}
+\usepackage{siunitx}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{xurl}
+
+% To display figures properly in the article
+\usepackage{float}
+\usepackage[section]{placeins}
+\usepackage{afterpage}
+\usepackage{flafter}
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\bottomfraction}{0.8}
+\renewcommand{\textfraction}{0.07}
+\renewcommand{\floatpagefraction}{0.8}
+\renewcommand{\dbltopfraction}{0.9}
+\renewcommand{\dblfloatpagefraction}{0.8}
+\renewcommand{\arraystretch}{1.12}
+\setcounter{topnumber}{3}
+\setcounter{bottomnumber}{2}
+\setcounter{totalnumber}{4}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{longtable}
+\usepackage{needspace}
+
+\newcolumntype{L}[1]{>{\RaggedRight\arraybackslash}p{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
+
+\newcolumntype{L}[1]{>{\RaggedRight\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\Centering\arraybackslash}p{#1}}
+\newcolumntype{R}[1]{>{\RaggedLeft\arraybackslash}p{#1}}
+
+\title{Tabular foundation models for robust calibration of near-infrared chemical sensing data}
+
+\author[1,2]{Robin Reiter}
+\author[1,2]{Denis Cornet}
+\author[3]{Fabien Michel}
+\author[1,2]{Lauriane Rouan}
+\author[1,2]{Gregory Beurier}
+
+\affil[1]{CIRAD, UMR AGAP Institut, F-34398 Montpellier, France}
+\affil[2]{UMR AGAP Institut, Université de Montpellier, CIRAD, INRAE, Institut Agro, Montpellier, France}
+\affil[3]{LIRMM, Université de Montpellier, CNRS, Montpellier, France}
+
+\begin{document}
+
+%----------------------------------------------------------------------------------------
+%    COMMENTS COMMANDS
+\newboolean{showcomments}
+\setboolean{showcomments}{true}
+\ifthenelse{\boolean{showcomments}}
+{ \newcommand{\mynote}[3]{
+     \fbox{\bfseries\sffamily\scriptsize#1}
+       {\small$\blacktriangleright$\textsf{\textcolor{#3}{{\em #2}\bf }}$\blacktriangleleft$}}}
+       { \newcommand{\mynote}[2]{}}
+
+\newcommand{\denis}[1]{\mynote{Denis}{#1}{magenta}}
+\newcommand{\lauriane}[1]{\mynote{Lauriane}{#1}{blue}}
+\newcommand{\fab}[1]{\mynote{Fab}{#1}{red}}
+\newcommand{\robin}[1]{\mynote{Robin}{#1}{brown}}
+\newcommand{\greg}[1]{\mynote{Greg}{#1}{orange}}
+
+% >>> ACA: visual marker for sections intentionally left empty (to be filled
+%          with experiments or author-specific information). Remove before final submission.
+\newcommand{\TODO}[1]{\par\medskip\noindent\fbox{\parbox{0.95\linewidth}{\small\textbf{[À COMPLÉTER / TO BE COMPLETED]}\\[2pt] \textit{#1}}}\par\medskip}
+% <<< ACA
+%----------------------------------------------------------------------------------------
+
+\maketitle 
+
+\begin{abstract}
+Near-infrared spectroscopy is increasingly used as a rapid, non-destructive chemical sensing technology for the analysis of food, pharmaceutical, biological, and environmental samples. However, the practical deployment of NIR sensors still depends on calibration models able to handle high-dimensional, collinear spectra, limited sample sizes, preprocessing dependence, spectral outliers, and extrapolation beyond the calibration domain. Here, we evaluate whether tabular foundation models can provide a new calibration strategy for NIR chemical sensing. We benchmark TabPFN on 66 NIR datasets covering 54 regression and 12 classification tasks, and compare direct inference on raw spectra with preprocessing-optimized inference against PLS/PLS-DA, Ridge, Catboost, and one-dimensional convolutional neural networks. The study uses a unified validation framework in which preprocessing and model selection are performed exclusively on calibration data before external test evaluation. In regression, preprocessing-optimized TabPFN achieves the best overall average rank and significantly outperforms PLS, CatBoost, TabPFN on raw spectra, and CNN-1D, while remaining statistically comparable to Ridge. In classification, TabPFN applied directly to raw spectra provides the best average rank, with performance close to the optimized variant. Robustness analyses show that TabPFN provides strong average predictive performance but that its advantage decreases on spectral outliers and extrapolated samples, where classical chemometric models remain competitive. These results suggest that tabular foundation models can complement established chemometric workflows for NIR chemical sensing, especially in small- to medium-sized calibration settings, while highlighting the need for spectroscopy-specific priors and uncertainty-aware deployment strategies.
+\end{abstract}
+
+% >>> ACA: Keywords are required by Analytica Chimica Acta (1 to 7, in English; single words preferred,
+%          avoid keywords built with "and"/"of"). Adjust as you see fit.
+\vspace{0.5em}
+\noindent\textbf{Keywords:} near-infrared spectroscopy; chemometrics; multivariate calibration; foundation model; TabPFN; spectral preprocessing
+% <<< ACA
+
+% >>> ACA: HIGHLIGHTS must be submitted as a SEPARATE editable file (file name containing "highlights"),
+%          as 3 to 5 bullet points of at most ~85 characters each. Suggested skeleton to move out of
+%          this manuscript and into highlights.docx / highlights.tex (edit freely, do not exceed length):
+%            - Tabular foundation model TabPFN benchmarked for NIR calibration on 66 datasets
+%            - Preprocessing-optimized TabPFN reaches the best mean rank in regression
+%            - Raw-spectra TabPFN is already strong for NIR classification
+%            - Its advantage shrinks on spectral outliers and extrapolated samples
+%            - Training-free in-context inference complements classical chemometrics
+% <<< ACA
+
+
+
+
+\section{Introduction}
+
+Near-infrared spectroscopy (NIRS) is widely used as a rapid and non-destructive analytical technique for the characterization of complex samples across domains such as agri-food analysis \cite{nirs_food_analysis, Pandiselvam2022NIRFood}, pharmaceutical manufacturing \cite{jamrogiewicz_application_2012}, biomedical sensing \cite{nirs_biomedical_sensing}, and environmental monitoring \cite{nirs_environmental_monitoring}. In these applications, the central objective is to convert spectral measurements into reliable predictions of chemical composition, physical properties, or class membership through appropriate calibration models. 
+
+~
+
+Indeed, NIRS data present several statistical challenges. Spectra are typically high-dimensional, strongly collinear, and often available only for relatively small sample sizes. In addition, the measured signal is affected by multiple physical perturbations such as scattering, path-length variability, and instrumental drift. These characteristics make model design and preprocessing critical components of spectroscopic analysis \cite{Rinnan2009Preprocessing}.
+
+~
+
+Historically, NIRS calibration has relied on chemometric models such as Partial Least Squares (PLS) \cite{Wold2001PLS} and its variants, which remain widely used due to their robustness, interpretability, and ability to handle collinearity through latent variable projections. More recently, machine learning approaches have been introduced to capture complex relationships between spectra and target variables \cite{ li_near-infrared_2025, liu_predicting_2026, Pasquini2018NIR,Zhang2022NIRReview}. Among them, regularized linear models such as Ridge regression \cite{hoerl_ridge_1970} provide a simple yet strong baseline by stabilizing estimation in high-dimensional settings, while ensemble methods such as gradient boosting (e.g., Catboost \cite{Prokhorenkova2019CatBoost}) offer flexible nonlinear modeling with strong empirical performance on tabular data. Deep learning models, in particular one-dimensional convolutional neural networks, have also been explored to exploit the ordered structure of spectra, although they typically require careful tuning and sufficient data \cite{nicon_yam, Mishra2022DLNIR}.
+
+~
+
+Despite these advances, a fundamental trade-off remains. Classical chemometric models are attractive because they are simple, well established, and particularly suited to highly collinear, small-sample spectroscopic settings. However, they may remain limited when the relationship between spectra and target variables departs from a predominantly linear structure \cite{limits_linear_nirs}. By contrast, modern machine-learning and deep-learning methods can capture more complex nonlinear patterns, but they often require more extensive hyperparameter tuning and may be more sensitive to dataset size \cite{cat_vs_dl_tabular, dl_nirs_complex_tuning}.
+
+~
+
+A promising direction is offered by Prior-Data Fitted Networks (PFNs), a class of models that have first been introduced by Müller \textit{et al.} in 2021 \cite{muller_transformers_2024}. Their concept relies on pre-training a large transformer, i.e. a neural-network architecture based on self-attention mechanisms for modeling dependencies between input elements \cite{Vaswani2017Attention}, across multiple synthetic datasets to solve classification or regression problems in many contexts. Consequently, unlike classical machine learning approaches, PFNs are calibrated in advance and do not need any parameter optimization when given an unseen dataset. Predictions are performed in a single forward-pass through the pre-trained network. More precisely, both features and targets of the new dataset are taken as input of the pre-trained model. The test targets are masked to avoid data leakage. The model predicts a probability distribution for every test sample (see Supplementary Material for additional details). PFNs quickly showed satisfactory predictive performances for regression and classification tasks, along with major gains in computation time in a wide range of applications.
+
+~ 
+
+PFNs' most notable instance is TabPFN \cite{hollmann_tabpfn_2023, Hollmann2025TabPFN}. TabPFN can be considered as a tabular foundation model, as described by Grinsztajn \textit{et al.} (2026) \cite{grinsztajn_tabpfn-25_2026}. This model is an effective construction of a PFN specialized for real-world tabular data, that is to say for data typical of what one encounters in practice. Indeed, it is specifically designed to handle common problems encountered with real tabular datasets, including uninformative features, categorical features, outliers or missing values. TabPFN can be defined as a pre-trained transformer across around 100 million synthetic datasets, all generated via a distribution of Structural Causal Models. Its most recent published version \cite{grinsztajn_tabpfn-25_2026} achieved state of the art performances, yielding in a few seconds predictions outperforming tree-based models like Catboost \cite{Prokhorenkova2019CatBoost}, and reaching the accuracy of the most advanced ensemble methods \cite{Erickson2020AutoGluon} tuned for 4 hours. Due to its training on small to medium sized synthetic datasets, TabPFN performs especially well on datasets of up to 50,000 samples and 2,000 features.
+
+~
+
+% >>> ACA-EDIT [narrative]: tension paragraph tightened and ended on the through-line seed (transfer of priors + in which regimes it helps). Still a question, no result.
+% --- ORIGINAL (commented; uncomment to revert) ---
+% However, it remains unclear whether the statistical priors learned by such tabular foundation models transfer effectively to spectroscopic datasets, which exhibit strong wavelength correlations and domain-specific variability structures. This question is further motivated by the structural differences between NIRS data and typical tabular datasets. In tabular settings, features are usually treated as unordered variables with heterogeneous semantics across columns. In contrast, NIRS spectra exhibit a strong ordering and smoothness along the wavelength axis, with adjacent variables being highly correlated and carrying redundant information. This induces an intricate structure that is not explicitly encoded in standard tabular representations. As a result, it is not obvious whether models designed under generic tabular priors, such as TabPFN, can fully exploit the underlying spectral organization or whether this mismatch may limit their performance.
+% --- REPLACEMENT ---
+However, it remains unclear whether the statistical priors learned by such tabular foundation models transfer effectively to spectroscopic data, which exhibit strong wavelength correlations and domain-specific variability structures. In typical tabular settings, features are unordered variables with heterogeneous semantics across columns; in contrast, NIR spectra are strongly ordered and smooth along the wavelength axis, with adjacent variables highly correlated and largely redundant---an intricate structure that standard tabular representations do not explicitly encode. As a result, it is not obvious whether a model built on generic tabular priors can exploit this spectral organization, nor, if it can, in which data regimes it would actually help relative to established chemometric methods.
+% <<< ACA-EDIT
+
+~
+
+% >>> ACA-EDIT [points 2 & 5]: intro de-duplicated (a single "First/Second/Third") and the contributions
+%     reframed around a "training-free calibration engine" for ACA. The unique framework elements (strict
+%     calibration/test separation; structured preprocessing search) are folded into the contributions.
+%     No result is stated before the Results section.
+% --- ORIGINAL (commented; uncomment these lines and delete the replacement to revert) ---
+% In this study, we investigate this question through a large-scale benchmark study on multiple NIRS datasets covering both regression and classification tasks. TabPFN is compared against representative baselines including classical chemometric models, regularized linear models, tree-based ensemble methods, and neural architectures adapted to spectral data.
+%
+% Beyond this general objective, the study is designed to address the specific challenges of NIRS modeling through a controlled and reproducible experimental framework. First, we construct a large and heterogeneous benchmark gathering a wide range of datasets, covering different sample sizes, dimensional regimes, and application domains. Second, we define a unified evaluation protocol in which preprocessing selection and hyperparameter optimization are performed jointly using cross-validation, while preserving a strict separation with an independent test set. Third, we introduce a structured preprocessing search strategy reflecting the physical and statistical nature of spectral transformations, allowing a fair comparison across models without exhaustive enumeration of all possible pipelines.
+%
+% The contributions of this work are threefold. First, we provide a large-scale evaluation of a tabular foundation model as a calibration engine for NIR chemical sensing data. Second, we quantify how preprocessing affects this model relative to established chemometric and machine-learning baselines. Third, we assess its behavior under practically important deployment conditions, including spectral outliers and extrapolation beyond the calibration domain.
+%
+% These elements collectively aim to bridge the gap between the conceptual promise of tabular foundation models and their effective use in applied spectroscopy.
+% --- REPLACEMENT ---
+% >>> ACA-EDIT [narrative]: aim recast to state the through-line ("not only whether ... but where it helps"). Supersedes the points 2 & 5 wording (kept below to revert).
+% --- PREVIOUS (points 2 & 5; uncomment to revert) ---
+% In this study, we investigate this question through a large-scale benchmark on multiple NIRS datasets covering both regression and classification tasks. The benchmark is deliberately large and heterogeneous in sample size, dimensionality, and application domain, and all models are evaluated under a unified protocol in which preprocessing selection and hyperparameter optimization are performed jointly by cross-validation while the test set is kept strictly separated.
+% --- REPLACEMENT ---
+In this study, we therefore ask not only whether a tabular foundation model can calibrate NIR spectra, but where it helps relative to established methods. We address this through a large-scale benchmark on multiple NIRS datasets covering both regression and classification tasks. The benchmark is deliberately large and heterogeneous in sample size, dimensionality, and application domain, and all models are evaluated under a unified protocol in which preprocessing selection and hyperparameter optimization are performed jointly by cross-validation while the test set is kept strictly separated.
+% <<< ACA-EDIT
+
+~
+
+We make three contributions. First, we provide a large-scale evaluation of a tabular foundation model as a training-free calibration engine for NIR chemical sensing data, benchmarked on 66 datasets against representative baselines: classical chemometric models, regularized linear models, tree-based ensemble methods, and convolutional neural networks. Second, using a structured preprocessing search reflecting the physical and statistical nature of spectral transformations, we quantify how preprocessing affects this fixed model relative to established chemometric and machine-learning baselines. Third, we assess its behavior under practically important deployment conditions, including spectral outliers and extrapolation beyond the calibration domain. Together, these elements aim to bridge the gap between the conceptual promise of tabular foundation models and their effective use in applied spectroscopy.
+% <<< ACA-EDIT
+
+
+
+\section{Materials and Methods} \label{sec:experimental_setup}
+
+% >>> ACA-EDIT [narrative]: section chapeau tying every methodological choice to the through-line. New text (no original to revert).
+Our benchmark is built around a single question: where does a training-free tabular foundation model help for NIR calibration, and where might established methods remain preferable? Each design choice below serves this question: a unified protocol for a fair test of the general claim, a raw-versus-optimized contrast to isolate the role of spectroscopic preprocessing, and dedicated analyses at the edges of the calibration domain.
+% <<< ACA-EDIT
+
+\subsection{Datasets} \label{datasets}
+
+The benchmark was designed to cover a broad range of NIRS prediction problems representative of current applied chemometric practice. To this end, we assembled a multi-dataset collection spanning heterogeneous analytical contexts, sample types, target variables, and number of features. Fig.~\ref{fig:dataset_diversity} illustrates this diversity in terms of shape and scope. The objective was not to focus on a specific application domain, but rather to evaluate model behaviour across a diversified set of realistic NIRS calibration tasks. The benchmark includes quantitative prediction of chemical or physicochemical properties such as moisture, protein, starch, amylose, oil, carotenoids, dry matter, or related quality traits, as well as classification tasks associated with sample identity, origin, or condition. Several datasets share a common \texttt{database} of spectra, only differing in the associated target variable. 
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.92\textwidth]{Figures/dataset_diversity.png}
+    \caption{Scatter plot representing the diversity of datasets in sample sizes and number of variables. Pie chart showing the diversity of application domains related to the benchmark.}
+    \label{fig:dataset_diversity}
+\end{figure}
+
+~
+
+The benchmark is intentionally heterogeneous with respect to sample size and dimensionality, which is particularly important in NIRS. In the present benchmark, the regression collection comprises 54 datasets, with a median size of 402 samples and a median dimensionality of 1003 variables, while the classification collection comprises 12 datasets, with a median size of 876 samples and a median dimensionality of 2151 variables. Across the full benchmark, dataset size ranges from 56 to 8731 samples, and the number of spectral variables ranges from 125 to 4200, reflecting the diversity of NIRS settings encountered in practice. The datasets also cover a wide variety of response scales, levels of between-sample variability, and calibration/test configurations. Such diversity is essential for a fair benchmark, since the relative strengths of chemometric, machine-learning, and foundation-model approaches may vary substantially across dataset regimes.
+
+~
+
+Whenever available, we preserved the train/test split protocol originally associated with each dataset in order to remain consistent with established evaluation practice. Otherwise, deterministic external splits were constructed using a \textit{Sample set Partitioning based on joint X-Y distances} (SPXY) \cite{Galvao2005KS}, or its stratified variant for classification. This design ensures that model comparison is performed under realistic validation settings while keeping the final test set strictly excluded from model and preprocessing selection. 
+
+~
+
+No explicit removal of outliers was performed during dataset construction or model evaluation. All samples were kept in their original form in both calibration and test sets. Spectral outliers are instead identified \emph{a posteriori} on the test sets only, and their impact on model performance was examined through a dedicated robustness analysis (see Section~\ref{sec:robustness}).
+
+~
+
+A complete dataset-by-dataset description of the benchmark is provided in the Supplementary Material (Tables~\ref{tab:dataset_description_long_regression} and~\ref{tab:dataset_description_long_classification}).
+
+
+
+\FloatBarrier
+
+\subsection{Compared models}
+
+All experiments involving TabPFN were conducted using TabPFN-2.5 \cite{grinsztajn_tabpfn-25_2026}, the version of the model released in November 2025 by Prior Labs. More specifically, the default checkpoint was used in all runs, which corresponds to the real-data fine-tuned variant of TabPFN-2.5 (internally referred to as \texttt{v2.5-real} in the \texttt{tabpfn} Python package).
+
+~
+
+A meaningful evaluation of TabPFN in NIRS requires comparison against a baseline reflecting the main modeling strategies used in chemometrics and applied machine learning. In particular, the benchmark should cover (i) classical linear approaches, (ii) nonlinear machine learning methods, and (iii) deep learning architectures adapted to spectral data.
+
+~
+
+For regression tasks, we therefore considered four representative predictors: Partial Least Squares (PLS), Ridge regression, CatBoost, and a one-dimensional convolutional neural network (CNN-1D) \cite{nicon_yam}. PLS was included as the main chemometric reference due to its widespread use and robustness in handling collinearity through latent variables. Ridge provides a simple yet strong regularized linear baseline. CatBoost represents nonlinear tree-based ensemble methods, known for their strong performance on tabular data. Finally, CNN-1D captures deep learning approaches specifically adapted to one-dimensional spectral signals by exploiting the ordered structure of wavelengths.
+
+~
+
+For classification tasks, the baseline was adapted to include PLS-DA, the variant of PLS specifically designed for classification, CatBoost, and a classification version of the same CNN-1D architecture. This choice preserves the same logic as in regression while focusing on methods commonly used or readily adaptable to discriminant problems in spectroscopy.
+
+~
+
+In the present benchmark, a CNN-1D architecture was used as the representative of deep learning baselines because it combines two desirable properties for spectroscopy. First, unlike generic multilayer perceptrons, it explicitly exploits the ordered structure of spectral variables. Second, unlike larger deep architectures, it remains relatively lightweight and therefore usable on the small- to medium-sized datasets typically encountered in NIRS. This makes it a meaningful comparison point for TabPFN: both approaches aim to provide strong predictive performance beyond classical linear chemometrics, but they rely on very different learning paradigms. Whereas the CNN-1D must be trained and tuned on each dataset, TabPFN operates through training-free in-context inference once pretrained.
+
+~
+
+All experiments were conducted within the \texttt{nirs4all} framework \cite{beurier2025nirs4all}, an open-source Python package that provides unified tools for NIRS dataset management, preprocessing pipeline construction, model calibration, cross-validation, and evaluation. The CNN-1D architecture used as the deep learning baseline in this benchmark is part of the model collection integrated in this library.
+
+~
+
+This setup allows us to assess whether a foundation model pretrained on large collections of synthetic tabular tasks can compete with, or even surpass the baseline of carefully trained models on the set of NIRS datasets that we gathered.
+
+
+
+
+
+\subsection{Preprocessing Search Space} \label{preprocs}
+
+Preprocessing is a central component of NIRS modeling, as raw spectra are affected by multiple physical perturbations such as light scattering, baseline drift, and instrumental noise. Rather than detailing each method individually, we consider representative transformations from the main preprocessing families commonly used in chemometrics \cite{Rinnan2009Preprocessing}.
+
+~
+
+Baseline effects are addressed using Asymmetric Least Squares (ASLS) \cite{eilers_baseline_2005}, which corrects slowly varying background distortions.
+
+~
+
+Scatter effects, arising from multiplicative and additive variations in light propagation, are handled using Standard Normal Variate (SNV) \cite{barnes_standard_1989} and Extended Multiplicative Signal Correction (EMSC) \cite{Martens1991EMSC}.
+
+~
+
+Noise reduction and derivative-based feature enhancement are performed using Savitzky--Golay (SG) filters \cite{Savitzky1964SG}, with several configurations combining different window sizes, polynomial orders, and derivative orders. For linear models, an additional Gaussian smoothing option is included.
+
+~
+
+We also consider global transformations aimed at improving signal representation. These include area normalization, Orthogonal Signal Correction (OSC) \cite{wold_orthogonal_1998}, and the Haar transform, which provides a multiresolution decomposition of the signal:
+\begin{equation}
+x = \sum_{k} \langle x, \psi_k \rangle \psi_k,
+\end{equation}
+where $(\psi_k)_k$ denotes the Haar wavelet basis.
+
+~
+
+% >>> ACA-EDIT [point 3]: PCA-25% rationale stated once (the original repeated the same justification twice in the same paragraph).
+% --- ORIGINAL (commented; uncomment to revert) ---
+% Finally, dimensionality reduction and feature scaling are incorporated depending on the model. For TabPFN and CatBoost, an optional PCA step is applied, retaining $25\%$ of the original features. The $25\%$ threshold was selected as a pragmatic compromise after preliminary experiments showing that variance-based PCA thresholds often retained very few components in highly collinear spectra, occasionally removing low-variance but chemically informative directions. Since the objective was not to optimize PCA itself but to provide a controlled redundancy-reduction option across many datasets, a fixed feature-retention ratio was preferred. This choice is motivated by the strong collinearity of NIRS spectra: variance-based PCA often retains only a few components, potentially discarding predictive but low-variance information. Retaining a fixed proportion of features provides a more balanced trade-off, as supported by preliminary experiments. For linear models, two additional feature scaling methods (StandardScaler and MinMaxScaler) are also considered.
+% --- REPLACEMENT ---
+Finally, dimensionality reduction and feature scaling are incorporated depending on the model. For TabPFN and CatBoost, an optional PCA step is applied, retaining $25\%$ of the original features. This threshold was selected as a pragmatic compromise after preliminary experiments: because NIRS spectra are strongly collinear, variance-based PCA thresholds often retain very few components and may discard low-variance but chemically informative directions. Since the objective was not to optimize PCA itself but to provide a controlled redundancy-reduction option across many datasets, a fixed feature-retention ratio was preferred. For linear models, two additional feature scaling methods (StandardScaler and MinMaxScaler) are also considered.
+% <<< ACA-EDIT
+
+~
+
+Overall, this preprocessing space covers the main families used in NIRS while remaining computationally tractable, enabling a fair comparison across models and datasets.
+
+
+
+\subsubsection{Design of preprocessing search spaces}
+
+Rather than exploring all preprocessing combinations exhaustively, we adopt a two-stage hierarchical search strategy that reflects the structure of NIRS signal processing \cite{Rinnan2009Preprocessing}.
+
+~
+
+The first stage focuses on transformations that directly address physical perturbations in the spectra such as baseline drift, scattering and instrumental noise. A Cartesian product of baseline-derivative methods and scatter correction methods is explored. For each model and dataset, configurations are evaluated by cross-validation, and only the top three pipelines are retained.
+
+~
+
+In the second stage, additional transformations are applied to improve predictive performance from a statistical perspective (dimensionality reduction, normalization, feature scaling). This phase operates only on the reduced set of candidates from the first stage, which significantly limits computational cost.
+
+~
+
+This hierarchical design provides three key advantages: (i) it reflects the physical interpretation of preprocessing in spectroscopy, (ii) it avoids exploring redundant or poorly interpretable pipelines, and (iii) it ensures tractability in a large-scale multi-dataset benchmark.
+
+~
+
+In addition, slightly larger search spaces are allocated to linear models (PLS and Ridge). This asymmetric tuning effort reflects practical chemometric usage rather than an attempt to maximize every model equally. Linear models are known to be highly sensitive to preprocessing and latent-variable or regularization choices, whereas TabPFN and CatBoost are commonly used with comparatively robust default settings. Nevertheless, this design implies that the comparison should be interpreted as a realistic workflow-level benchmark rather than as an exhaustive search for the theoretical optimum of each model.
+
+~
+
+The resulting preprocessing search spaces, together with the associated hyperparameter optimization strategies, are summarized in Table~\ref{tab:unified_search_space}.
+
+
+
+
+
+\subsection{Hyperparameter and Preprocessing Optimization}
+
+For each dataset, the available samples were first divided into a calibration set and an independent test set. The test set was kept strictly untouched throughout model and preprocessing selection.
+
+~
+
+Model selection was performed exclusively on the calibration set using a three-fold cross-validation procedure based on SPXY \cite{Galvao2005KS}. The same validation scheme was used jointly for preprocessing selection and hyperparameter optimization throughout the benchmark. Candidate models were therefore defined as complete pipelines combining preprocessing steps and model hyperparameters.
+
+~
+
+For each complete preprocessing configuration constructed from the predefined search space described above, all candidate hyperparameter configurations were evaluated on the calibration set using the predefined validation splits. The validation scores were averaged across folds, and the hyperparameter configuration yielding the best mean validation performance was retained for this preprocessing configuration.
+
+~
+
+This procedure was repeated for every candidate preprocessing configuration. At the end of the search, each preprocessing configuration was therefore associated with its own best hyperparameter configuration. For each dataset, the final model corresponded to the complete pipeline — including both preprocessing steps and hyperparameters — that achieved the highest mean cross-validation score across folds. Once this optimal pipeline had been identified, the model was retrained on the full calibration set using the selected preprocessing and hyperparameter configuration, and its final predictive performance was evaluated once on the independent test set.
+
+~
+
+This protocol ensures that preprocessing choice and hyperparameter tuning are performed in a fully consistent way within the calibration data only, while preserving a strict separation between model selection and final external evaluation.
+
+~
+
+The hyperparameter optimization strategy was to keep the comparison realistic from an applied NIRS perspective, that is, to tune each method according to procedures consistent with its practical use while keeping the overall benchmark computationally tractable.
+
+~
+
+For PLS, the number of latent components was optimized within the range ${1,\dots,30}$. For each candidate preprocessing pipeline, all candidate values were evaluated under the predefined validation scheme, and the number of latent components minimizing the mean validation RMSE was retained.
+
+~
+
+For Ridge and CNN-1D, hyperparameter optimization was performed with Optuna \cite{akiba_2019_optuna} using a Tree-structured Parzen Estimator (TPE) sampler \cite{bergstra_2011_tpe}, with 30 trials per preprocessing pipeline. TPE is a sequential model-based optimization method that builds probabilistic models of promising and non-promising regions of the search space, and then samples new candidate configurations preferentially in regions expected to yield better objective values. In practice, it provides a more efficient alternative to exhaustive grid search when the search space is continuous or high-dimensional.
+
+~
+
+For TabPFN and CatBoost, no additional hyperparameter optimization was performed beyond the predefined ensemble settings used during model selection and final refitting. This choice was motivated by two considerations. First, the benchmark already involves a large preprocessing search over many datasets, so keeping TabPFN and CatBoost hyperparameters fixed helps maintain a reasonable overall computational cost. Second, these methods are known to achieve strong performance with near-default settings, which is consistent with the results reported later in this study.
+
+~
+
+A practical limitation of the CNN-1D baseline should nevertheless be emphasized. In the present benchmark, this model is tuned within a predefined \texttt{nirs4all} hyperparameter search space, including architectural choices such as kernel sizes, convolutional widths, and related structural parameters (for more details see Supplementary Material). As a consequence, for some of the smallest datasets in the benchmark, these architectural constraints make CNN-1D training unfeasible. In such cases, no exploitable result was obtained for CNN-1D specifically.
+
+
+~
+
+A compact summary of these model-specific optimization rules, together with the preprocessing search spaces, is provided in Table~\ref{tab:unified_search_space}.
+
+\begin{table}[!htbp]
+\centering
+\caption{Summary of preprocessing search spaces and hyperparameter optimization strategies for each model. Preprocessing spaces are expressed as Cartesian products of transformation sets, with Phase-2 applied only to the top-3 pipelines retained from Phase-1. \textit{None} means no preprocessing is applied at that step. The total number of configurations corresponds to the number of evaluated preprocessing pipelines, computed from the hierarchical two-phase search (full Phase-1 search followed by Phase-2 expansion of the top-3 retained pipelines), multiplied by the number of hyperparameter configurations and the number of cross-validation folds.}
+\label{tab:unified_search_space}
+\footnotesize
+\renewcommand{\arraystretch}{2.8}
+\setlength{\tabcolsep}{4pt}
+
+\begin{tabularx}{\textwidth}{
+>{\centering\arraybackslash}p{1.35cm}
+>{\raggedright\arraybackslash}X
+>{\raggedright\arraybackslash}X
+>{\raggedright\arraybackslash}p{2.0cm}
+>{\raggedright\arraybackslash}p{1.7cm}
+>{\raggedright\arraybackslash}p{2.2cm}
+>{\raggedright\arraybackslash}p{1.8cm}}
+\toprule
+Model & Phase 1: signal correction & Phase 2: representation / scaling & Hyperparameter search & Optimization method & Final training setting & Total configurations per dataset \\
+\midrule
+
+\multirow[c]{3}{*}{\centering TabPFN}
+& \multirow[c]{3}{=}{\makecell[l]{
+$\{\texttt{None},$ \\
+$\texttt{ASLSBaseline},$ \\
+$\texttt{SavGol(11,2,1)},$ \\
+$\texttt{SavGol(15,2,1)},$ \\
+$\texttt{SavGol(21,2,1)},$ \\
+$\texttt{SavGol(15,3,2)},$ \\
+$\texttt{SavGol(21,3,2)}\}$ \\
+$\times$ \\
+$\{\texttt{None},$ \\
+$\texttt{SNV},$ \\
+$\texttt{EMSC}\}$
+}}
+& \multirow[c]{3}{=}{\makecell[l]{
+Top-3 Phase-1 \\
+$\times$ \\
+$\{\texttt{None},$ \\
+$\texttt{PCA}_{0.25},$ \\
+$\texttt{OSC}\}$
+}}
+& \rule{0pt}{3.2ex} Fixed hyperparameter \texttt{n\_estimators = 1}.
+& Fixed settings
+& Refit on full calibration set, \texttt{n\_estimators = 16}.
+& $(21 + 3\times3)\times 1 \times 3 = 90$
+\\
+\cmidrule(lr){1-1}\cmidrule(lr){4-7}
+
+\centering CatBoost
+& &
+& \rule{0pt}{3.2ex} Fixed hyperparameter \texttt{n\_estimators = 200}.
+& Fixed settings
+& Refit on full calibration set, \texttt{n\_estimators = 500}.
+& $30 \times 1 \times 3 = 90$
+\\
+\cmidrule(lr){1-1}\cmidrule(lr){4-7}
+
+\centering CNN-1D
+& &
+& \rule{0pt}{3.2ex} Predefined \texttt{nirs4all} hyperparameter space.
+& Optuna-TPE, 30 trials
+& Best selected configuration refit on the full calibration set.
+& $30 \times 30 \times 3 = 2700$
+\\
+
+\midrule
+
+\multirow[c]{2}{*}{\centering PLS}
+& \multirow[c]{2}{=}{\makecell[l]{
+$\{\texttt{None},$ \\
+$\texttt{ASLSBaseline},$ \\
+$\texttt{SavGol(11,2,1)},$ \\
+$\texttt{SavGol(15,2,1)},$ \\
+$\texttt{SavGol(21,2,1)},$ \\
+$\texttt{SavGol(15,3,2)},$ \\
+$\texttt{SavGol(21,3,2)},$ \\
+$\texttt{Gaussian}\}$ \\
+$\times$ \\
+$\{\texttt{None},$ \\
+$\texttt{SNV},$ \\
+$\texttt{EMSC}\}$
+}}
+& \multirow[c]{2}{=}{\makecell[l]{
+Top-3 Phase-1 \\
+$\times$ \\
+$\{\texttt{None},$ \\
+$\texttt{Haar},$ \\
+$\texttt{AreaNorm},$ \\
+$\texttt{OSC}\}$ \\
+$\times$ \\
+$\{\texttt{None},$ \\
+$\texttt{StandardScaler},$ \\
+$\texttt{MinMaxScaler}\}$
+}}
+& \rule{0pt}{3.2ex} \texttt{n\_components} searched exhaustively in $\{1,\dots,30\}$.
+& Exhaustive evaluation across folds
+& Best \texttt{n\_components} refit on the full calibration set.
+& $60 \times 30 \times 3 = 5400$
+\\
+\cmidrule(lr){1-1}\cmidrule(lr){4-7}
+
+\centering Ridge
+& &
+& \rule{0pt}{3.2ex} Continuous search of regularization parameter $\alpha$.
+& Optuna-TPE, 30 trials
+& Best $\alpha$ refit on the full calibration set.
+& $60 \times 30 \times 3 = 5400$
+\\
+
+\bottomrule
+\end{tabularx}
+\end{table}
+
+
+
+
+
+\FloatBarrier
+\subsection{Evaluation Metrics}
+
+The predictive performance of the models was assessed at two complementary levels: during cross-validation on the calibration set, where candidate preprocessing pipelines and model configurations were compared, and on the independent test set, where the final selected model was evaluated.
+
+~
+
+For regression tasks, prediction quality was primarily measured using the root mean squared error (RMSE), defined as
+
+\begin{equation}
+\operatorname{RMSE}(y,\hat{y})
+=
+\sqrt{\frac{1}{N}\sum_{k=1}^{N}(y_k-\hat{y}_k)^2},
+\end{equation}
+
+where $N$ is the number of predicted samples, $y \in \mathbb{R}^N$ is the vector of observed analytes, and $\hat{y}$ is the corresponding vector of predictions.
+
+~
+
+For classification tasks, predictive performance was assessed using balanced accuracy (ACC), which is particularly appropriate in the presence of class imbalance. In the general multiclass setting, balanced accuracy is defined as the average recall across classes:
+
+\begin{equation}
+\mathrm{ACC}
+=
+\frac{1}{C}
+\sum_{c=1}^{C}
+\frac{1}{N_c}
+\sum_{i \in \mathcal{I}_c}
+\mathbf{1}\!\left(\hat{y}_i = y_i\right),
+\end{equation}
+
+where $C$ is the number of classes, $\mathcal{I}_c$ denotes the set of samples belonging to class $c$, and $N_c = |\mathcal{I}_c|$.
+
+~
+
+To distinguish the different stages of the whole process, we report three families of metrics. First, during cross-validation, the mean validation performance across folds was used as the model-selection criterion. For regression, this quantity is denoted RMSECV and is defined as
+
+\begin{equation}
+\operatorname{RMSECV}
+=
+\frac{1}{K}\sum_{k=1}^{K}
+\operatorname{RMSE}\!\left(
+y^{\mathcal{F}_k},
+\hat{y}^{\mathcal{F}_k}_{(k)}
+\right),
+\end{equation}
+
+where $\mathcal{F}_k$ is the $k$-th validation fold and $\hat{y}^{\mathcal{F}_k}_{(k)}$ denotes the predictions obtained from the model trained without fold $\mathcal{F}_k$. The analogous quantity in classification is denoted ACC-CV.
+
+~
+
+Finally, after selecting the optimal preprocessing and hyperparameter configuration, the model was retrained on the full calibration set and evaluated once on the independent test set. The resulting regression metric is denoted RMSEP:
+
+\begin{equation}
+\operatorname{RMSEP}
+=
+\operatorname{RMSE}(y^{\mathrm{test}},\hat{y}^{\mathrm{test}}),
+\end{equation}
+
+with ACCP denoting the balanced accuracy evaluated on the test set.
+
+~
+
+In addition to absolute predictive errors, we also considered a relative improvement metric in regression in order to quantify the benefit brought by preprocessing or by a given model with respect to a reference configuration. For this purpose, we used the improvement ratio of RMSEP (iRMSEP), following the general principle recently introduced in the NIRS literature \cite{wang_comprehensive_2025}.
+
+~
+
+For a reference model with prediction error $\mathrm{RMSEP}^{\mathrm{ref}}$ and a compared model with prediction error $\mathrm{RMSEP}^{\mathrm{cmp}}$, iRMSEP is defined as
+\begin{equation}
+\mathrm{iRMSEP}
+=
+100 \times
+\frac{
+\mathrm{RMSEP}^{\mathrm{ref}}-\mathrm{RMSEP}^{\mathrm{cmp}}
+}{
+\mathrm{RMSEP}^{\mathrm{ref}}
+}.
+\end{equation}
+
+A positive iRMSEP indicates that the compared model improves upon the reference configuration, whereas a negative value indicates a degradation in predictive performance. In the present benchmark, the reference taken is PLS, since it is the standard chemometric predictor in NIRS. These relative-effect measures are more suitable for model comparisons across datasets with different response scales.
+
+~
+
+Taken together, these metrics allow us to disentangle two complementary aspects of model performance: fold-wise validation behavior during model selection, and final generalization performance after refitting on the full calibration data.
+
+
+
+
+
+
+\subsection{Robustness to spectral outliers and extrapolation} \label{sec:robustness}
+
+\subsubsection{Spectral-outlier evaluation}
+In addition to global predictive performance, we assessed model robustness to spectrally atypical samples. For each dataset, spectral outliers were identified only in the test set, without removing them from the calibration or evaluation procedure. More precisely, spectra were first transformed by SNV, then a PCA model was fitted on the calibration set only. The number of retained components was chosen as the smallest number explaining at least $95\%$ of the calibration variance. Test spectra were projected into this PCA space and their Hotelling's $T^2$ statistic \cite{hotelling_t2} was computed. Samples whose $T^2$ exceeded the $95\%$ threshold were considered spectral outliers. Let $\mathcal{I}_{\mathrm{out}}$ denote the corresponding set of test indices. Model performance on this subset was quantified by
+\[
+\mathrm{RMSEP}_{\mathrm{out}}
+=
+\operatorname{RMSE}\!\left(
+y^{\mathrm{test}}_{\mathcal{I}_{\mathrm{out}}},
+\hat{y}^{\mathrm{test}}_{\mathcal{I}_{\mathrm{out}}}
+\right)
+\]
+Relative performance was then expressed using iRMSEP with PLS as reference.
+
+~
+
+\subsubsection{Extrapolation evaluation}
+To assess extrapolation ability, we identified test samples whose target values fall outside the range observed in the calibration set. Formally, letting $[y_{\min}^{\mathrm{train}}, y_{\max}^{\mathrm{train}}]$ denote the range of $Y^{\mathrm{train}}$, we define
+\[
+\mathcal{I}_{\mathrm{extra}} =
+\left\{
+i : y_i^{\mathrm{test}} < y_{\min}^{\mathrm{train}}
+\ \text{or}\
+y_i^{\mathrm{test}} > y_{\max}^{\mathrm{train}}
+\right\}
+\]
+When $\mathcal{I}_{\mathrm{extra}} \neq \emptyset$, RMSE and iRMSEP were computed on this subset.
+
+
+% >>> ACA: methods subsection for the predictive-uncertainty analysis. Purely methodological
+%          (no result/interpretation here). References to add to the .bib (see keys below).
+\subsection{Predictive uncertainty evaluation} \label{sec:uncertainty}
+
+Beyond point-prediction accuracy, TabPFN returns a full predictive distribution for each test sample rather than a single value (Section~\ref{theory_pfn}). We use this to assess the predicted uncertainty, focusing on the comparison between TabPFN-Raw and TabPFN-opt, which isolates the effect of preprocessing on the predictive distribution of the same pretrained model. Using the fixed configurations selected above, prediction intervals were derived from the quantiles of the native predictive distribution on the regression test sets and evaluated along two complementary axes: \emph{calibration}, through the empirical coverage of central prediction intervals across nominal levels, summarized as reliability diagrams \cite{kuleshov_accurate_2018}; and \emph{sharpness}, through the mean prediction-interval width normalized by the standard deviation of the calibration targets. Both are combined in the continuous ranked probability score (CRPS), a proper scoring rule \cite{gneiting_strictly_2007}. TabPFN-Raw and TabPFN-opt were compared per dataset with a Wilcoxon signed-rank test.
+% <<< ACA
+
+
+\subsection{Statistical analysis of model performance}
+
+In order to assess whether the observed differences in predictive performance between models are statistically significant across the benchmark, we adopted a statistical analysis framework commonly used in multi-dataset machine learning studies. This framework combines rank-based global tests, and post-hoc pairwise comparisons.
+
+~
+
+For the statistical comparison based on ranks, aggregation was performed at the \emph{database level}. Let $\mathcal{B}=\{1,\dots,B\}$ denote the set of databases, and let $\mathcal{D}_b$ denote the set of datasets belonging to database $b$. For a given model $j$, let $s_{i,j}$ denote its predictive score on dataset $i$, where lower values indicate better performance in regression (RMSEP) and higher values indicate better performance in classification (ACCP). For each database $b$ and model $j$, we first compute an aggregated performance score
+\[
+\bar{s}_{b,j} =
+\frac{1}{|\mathcal{D}_b|}
+\sum_{i \in \mathcal{D}_b} s_{i,j},
+\]
+that is, the mean predictive performance of model $j$ across all datasets belonging to database $b$.
+
+~
+
+Models are then ranked according to these aggregated scores, with rank~1 assigned to the best-performing model. Let $r_{b,j}$ denote the rank obtained by model $j$ on database $b$. The average rank of model $j$ across the $B$ databases is defined as
+\[
+R_j = \frac{1}{B}\sum_{b=1}^{B} r_{b,j}.
+\]
+
+~
+
+This aggregation strategy ensures that databases contributing many datasets do not dominate the rank-based comparison solely because of their larger internal multiplicity. Instead, each database contributes one rank vector to the global statistical analysis, regardless of how many datasets it contains.
+
+~
+
+To determine whether the observed rank differences are statistically significant, we applied the Friedman test \cite{Friedman_test}, a non-parametric alternative to repeated-measures ANOVA that does not assume normality of the performance distributions. The null hypothesis of the Friedman test states that all models perform equivalently across databases, that is,
+\[
+H_0 : R_1 = R_2 = \dots = R_k,
+\]
+where $k$ is the number of compared models. When the null hypothesis is rejected, it indicates that at least one model performs significantly differently from the others at the database level.
+
+~
+
+When the Friedman test indicated a significant global difference, we performed a Nemenyi post-hoc test \cite{nemenyi_posthoc_test} in order to identify which pairs of models differed significantly. The Nemenyi procedure compares the difference between the average ranks of two models $j_1$ and $j_2$ to a critical distance
+\[
+CD = q_{\alpha} \sqrt{\frac{k(k+1)}{6B}},
+\]
+where $q_{\alpha}$ is a critical value derived from the Studentized range distribution, $k$ is the number of models, and $B$ is the number of databases. Two models are considered significantly different if the absolute difference between their average ranks exceeds this critical distance. The results are summarized using critical difference diagrams.
+
+
+
+
+
+\subsection{Computing hardware and environment} \label{sec:hardware}
+
+All experiments were conducted on a workstation running Ubuntu Linux. The system was equipped with an Intel Core i9-14900KF CPU (24 cores, 32 threads) and 192\,GB of RAM. Computations involving CatBoost and the CNN-1D model were accelerated using an NVIDIA GeForce RTX 5080 GPU with 16\,GB of VRAM and CUDA 12.9 support. For technical reasons, the GPU-enabled version of TabPFN could not be used in this study, and all TabPFN experiments were therefore performed on CPU. CPU-based computations were parallelized during cross-validation using up to 18 concurrent threads.
+
+~
+
+The software environment was based on Python 3.12.3, with PyTorch 2.11.0 (CUDA-enabled), scikit-learn 1.6.1, and Optuna 4.4.0 as the main libraries used for model development and optimization. All computations were performed in a controlled environment with fixed random seeds and deterministic settings when supported by the underlying libraries.
+
+
+
+
+
+
+
+\section{Results} \label{sec:results}
+
+\subsection{Regression Results}
+
+% >>> ACA-EDIT [point 4]: single global pointer to the Supplementary results (the per-subsection repeats are removed below).
+% --- ORIGINAL (commented; uncomment to revert) ---
+% We first focus on the performances for the regression task, across 54 different datasets. The predictive performances will be examined, along with the influence of preprocessing on the results and the robustness of each model to outliers or extrapolated values. In the following, TabPFN-Raw denotes the direct application of TabPFN to raw spectra, without any preprocessing step, whereas TabPFN-opt denotes the same pretrained TabPFN model embedded in the proposed preprocessing-selection framework, in which the preprocessing pipeline is optimized on the calibration set. A complete table of datasetwise performances is provided in the Supplementary Material.
+% --- REPLACEMENT ---
+We first focus on the performances for the regression task, across 54 different datasets. The predictive performances will be examined, along with the influence of preprocessing on the results and the robustness of each model to outliers or extrapolated values. In the following, TabPFN-Raw denotes the direct application of TabPFN to raw spectra, without any preprocessing step, whereas TabPFN-opt denotes the same pretrained TabPFN model embedded in the proposed preprocessing-selection framework, in which the preprocessing pipeline is optimized on the calibration set. Complete dataset-level results for both regression and classification are provided in the Supplementary Material.
+% <<< ACA-EDIT
+
+\subsubsection{Predictive performance across datasets}
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.92\textwidth]{Figures/merge_cd_beeswarm.png}
+    \caption{Critical difference diagram and beeswarm plot of iRMSEP values relative to PLS across regression datasets. Positive values indicate improved performance over PLS. For visual clarity, the beeswarm excludes a small number of extreme dataset-level iRMSEP values identified by a conservative 10$\times$IQR (interquartile range) display filter (excluding at the same time all iRMSEP values from the same dataset). The critical difference diagram is computed from the common subset of databases for which all compared models provide valid results. Full dataset-level values are given and displayed in the Supplementary Material, Table~S\ref{tab:complete_results_reg} and  Fig.~S\ref{fig:heatmap_regression_irmsep_vs_pls}.}
+    \label{fig:global_irmsep_beeswarm}
+\end{figure}
+
+Fig.~\ref{fig:global_irmsep_beeswarm} summarizes regression performance through two complementary views: dataset-level iRMSEP distributions relative to PLS, and database-level average ranks derived from the critical-difference analysis. The Friedman test indicates a significant difference between models ($p = 5.9 \times 10^{-5}$, $CD = 1.520$). TabPFN-opt achieves the best average rank (1.800), followed by Ridge (3.075), Catboost (3.650), TabPFN-Raw (3.875), PLS (4.050), and CNN-1D (4.550).
+
+~
+
+% >>> ACA-EDIT [point 4]: removed the trailing "see the tables in the Supplementary Material" pointer (now stated once globally above); the beeswarm caveat is kept.
+% --- ORIGINAL (commented; uncomment to revert) ---
+% At the dataset level, TabPFN-opt shows a predominance of positive iRMSEP values, indicating improvements over PLS across a majority of datasets. Ridge also exhibits a stable distribution centered near zero, reflecting performance close to PLS. In contrast, TabPFN-Raw, Catboost, and CNN-1D display more dispersed distributions. In particular, CNN-1D shows noticeable improvements as well as major degradations compared to PLS. These trends are consistent with the pairwise statistical analysis (Supplementary Table~S\ref{tab:cd_stats_full}), where TabPFN-opt differs significantly from Catboost, TabPFN-Raw, PLS, and CNN-1D, but not from Ridge. The beeswarm plots must be interpreted carefully since some points have been removed to improve the clarity of the figure. For complete results, see the tables in the Supplementary Material.
+% --- REPLACEMENT ---
+At the dataset level, TabPFN-opt shows a predominance of positive iRMSEP values, indicating improvements over PLS across a majority of datasets. Ridge also exhibits a stable distribution centered near zero, reflecting performance close to PLS. In contrast, TabPFN-Raw, Catboost, and CNN-1D display more dispersed distributions. In particular, CNN-1D shows noticeable improvements as well as major degradations compared to PLS. These trends are consistent with the pairwise statistical analysis (Supplementary Table~S\ref{tab:cd_stats_full}), where TabPFN-opt differs significantly from Catboost, TabPFN-Raw, PLS, and CNN-1D, but not from Ridge. The beeswarm plots must be interpreted carefully since some points have been removed to improve the clarity of the figure.
+% <<< ACA-EDIT
+
+~
+
+Fig.~\ref{fig:cumulative_irmsep_dataset_size} provides a complementary view by reporting cumulative iRMSEP values across datasets ordered by increasing sample size. TabPFN-opt remains above PLS across the full range of dataset sizes, while Ridge follows a flatter trajectory with occasional improvements. TabPFN-Raw exhibits cumulative improvements that are similar to its preprocessed version, with several negative iRMSEP in the medium-sized datasets regime. CNN-1D exhibits a more favorable trend on larger datasets, although it remains globally below PLS for the rest of the datasets in this benchmark. A more exhaustive figure is provided in the Supplementary Material, showing cumulative gains depending on the number of variables, and on the number of cells in the dataset (i.e. the number of samples multiplied by the number of variables).
+
+~
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.92\textwidth]{Figures/cumulative_irmsep_vs_reference_by_dataset_size.png}
+    \caption{Cumulative iRMSEP versus PLS across regression datasets ordered by dataset sample size. For visual clarity, the visualization excludes a small number of extreme dataset-level iRMSEP values identified by a 10$\times$IQR display filter.}
+    \label{fig:cumulative_irmsep_dataset_size}
+\end{figure}
+
+Finally, Table~\ref{tab:wtl_regression} reports database-level win/loss counts. TabPFN-opt dominates all competing methods, with clear margins against Catboost (21 wins vs. 3 losses), PLS (18 vs. 4), and Ridge (18 vs. 4), and strongly outperforms TabPFN-Raw (22 vs. 2).
+
+\begin{table}[!htbp]
+\centering
+\caption{Pairwise win/loss summary on regression databases.}
+\label{tab:wtl_regression}
+\small
+\input{Tables/table_win_tie_loss_summary.tex}
+\end{table}
+
+\FloatBarrier
+
+
+\subsubsection{Influence of preprocessing}
+
+% >>> ACA-EDIT [narrative]: connective transition (in Results; refers to the already-established average advantage). New text.
+Having established the average advantage of TabPFN-opt, we next ask how it is obtained, and in particular how much of it depends on spectroscopic preprocessing.
+% <<< ACA-EDIT
+
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.92\textwidth]{Figures/dumbbell_irmsep_vs_pls_size_outliers_removed_tabpfn.png}
+    \caption{Dataset-wise comparison between TabPFN-Raw and TabPFN-opt in terms of iRMSEP relative to PLS.}
+    \label{fig:dumbbell_tabpfn_preprocessing}
+\end{figure}
+
+Preprocessing has a variable impact across models and datasets. Fig.~\ref{fig:dumbbell_tabpfn_preprocessing} shows that TabPFN-opt generally improves over TabPFN-Raw, although the magnitude of improvement depends on the dataset. TabPFN-opt being outperformed by TabPFN-Raw means that, on this specific dataset, the best preprocessing configuration is overestimated during the cross-validation procedure and leads to suboptimal predictions on the test set. In such cases, the performances of TabPFN-opt are close to TabPFN-Raw. On the contrary, the optimized version significantly outperforms the raw version on several datasets.
+
+~
+
+The distribution of selected preprocessing components (Figs.~S\ref{fig:preprocessing_linear_models} and S\ref{fig:preprocessing_tabular_models} in the Supplementary Material) highlights different behaviors across model families. Nonlinear models (TabPFN, Catboost, CNN-1D) more often operate with Savitzky-Golay transformations. In particular, TabPFN seems to benefit from smoothing and derivatives with no additional transformation. Linear models (PLS and Ridge) along with CNN-1D frequently select scatter corrections such as SNV. Ridge and Catboost regularly apply signal transformations such as OSC.
+
+~
+
+No single preprocessing pipeline dominates across datasets. While SNV and Savitzky--Golay filtering are frequently selected, their use remains dataset-dependent.
+
+\FloatBarrier
+
+
+
+
+
+
+\subsubsection{Robustness to spectral outliers and extrapolation}
+
+% >>> ACA-EDIT [narrative]: transition into the "edges of the operating envelope" (in Results; framing only). New text.
+Average performance, however, describes only the centre of the operating range. We now turn to its edges, where deployment risk concentrates: spectrally atypical samples and target values lying outside the calibration range.
+% <<< ACA-EDIT
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.92\textwidth]{Figures/robustness_scatter_mean_ranks.png}
+    \caption{Scatter plot representing the database-wise average rank of each model on all test samples (x axis), versus on test samples that are detected as outliers.}
+    \label{fig:robustness_scatter_outlier_ranks}
+\end{figure}
+
+Spectral outliers were identified in 48 out of 54 regression datasets. Fig.~\ref{fig:robustness_scatter_outlier_ranks} compares model ranks computed on all test samples versus on outlier subsets. Models above the diagonal improve their relative ranking on outliers, while those below the diagonal deteriorate.
+
+~
+
+PLS, Catboost, and CNN-1D exhibit slight improvements in rank on outliers, whereas TabPFN-opt, Ridge, and TabPFN-Raw show moderate decreases. TabPFN-opt remains the best-performing model overall, but its relative advantage is reduced on these subsets.
+
+~
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.92\textwidth]{Figures/dumbbell_irmsep_extrapolation_vs_pls_size_outliers_removed.png}
+    \caption{Dataset-wise iRMSEP versus PLS on extrapolated target values (outside the training range). For visual clarity, the visualization excludes extreme dataset-level iRMSEP values identified by a 10$\times$IQR display filter.}
+    \label{fig:dumbbell_extrapolation_irmsep}
+\end{figure}
+
+Extrapolation regimes were observed in 23 datasets. As shown in Fig.~\ref{fig:dumbbell_extrapolation_irmsep}, all models experience a degradation in performance relative to PLS. TabPFN-opt and Ridge remain closest to PLS, while TabPFN-Raw, Catboost, and CNN-1D show larger deviations.
+
+
+
+
+\FloatBarrier
+
+\subsection{Classification results}
+
+% >>> ACA-EDIT [point 4]: removed the duplicate Supplementary pointer (stated once globally in the Results opening).
+% --- ORIGINAL (commented; uncomment to revert) ---
+% Classification performance was evaluated on 12 datasets using balanced accuracy. As in regression, TabPFN-Raw corresponds to direct inference on raw spectra, while TabPFN-opt includes preprocessing optimization. A complete table of datasetwise performances is provided in the Supplementary Material.
+% --- REPLACEMENT ---
+Classification performance was evaluated on 12 datasets using balanced accuracy. As in regression, TabPFN-Raw corresponds to direct inference on raw spectra, while TabPFN-opt includes preprocessing optimization.
+% <<< ACA-EDIT
+
+~
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.92\textwidth]{Figures/merge_cd_beeswarm_classif.png}
+    \caption{Critical difference diagram and beeswarm plot of relative balanced-accuracy gains versus PLS-DA across classification datasets. Positive values indicate improved performance over PLS-DA. The critical-difference analysis is computed on the common subset of databases for which all compared models provide valid results, including CNN-1D.}
+    \label{fig:classif_beeswarm_main}
+\end{figure}
+
+Fig.~\ref{fig:classif_beeswarm_main} combines dataset-level accuracy gains relative to PLS-DA with a database-level critical-difference diagram. TabPFN-Raw achieves the best average rank (2.000), followed by TabPFN-opt (2.417), PLS-DA (2.583), Catboost (3.083), and CNN-1D (4.917). The Friedman test indicates a significant global difference ($p = 0.011$, $CD = 2.345$), with TabPFN variants significantly outperforming CNN-1D. At the dataset level, both TabPFN variants show frequent positive gains relative to PLS-DA. Their performance distributions largely overlap, with only a slight advantage for TabPFN-Raw. Catboost shows intermediate behavior, while CNN-1D exhibits more frequent degradations relative to PLS-DA.
+
+~
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.92\textwidth]{Figures/cumulative_relative_balanced_accuracy_gain_vs_reference_by_dataset_size.png}
+    \caption{Cumulative relative balanced-accuracy gain versus PLS-DA across classification datasets ordered by dataset size.}
+    \label{fig:cumulative_acc_gain_classification}
+\end{figure}
+
+Fig.~\ref{fig:cumulative_acc_gain_classification} confirms these trends, with both TabPFN variants accumulating the largest gains across datasets. Dataset-level analyses in the Supplementary Material (Figs.~S\ref{fig:classif_dumbbell}, S\ref{fig:classif_rank_heatmap}) are consistent with these observations.
+
+% >>> ACA-EDIT [point 4]: caution about the 12 classification datasets removed here; retained (more fully) in "Limitations of the benchmark".
+% --- ORIGINAL (commented; uncomment to revert) ---
+% ~
+%
+% Due to the limited number of datasets, these results should be interpreted cautiously.
+% <<< ACA-EDIT
+
+
+% >>> ACA: NEW results subsection (scaffolding only). Addresses the reviewers' expected question on the
+%          cost of a training-free approach and on the CPU-only TabPFN setting (already disclosed in
+%          Section~\ref{sec:hardware}). The table is an EMPTY skeleton: do not state numbers until measured.
+\subsection{Computational cost} \label{sec:cost}
+
+\TODO{Reporter et comparer le coût de calcul des méthodes (p.~ex.\ temps de recherche de prétraitement, temps d'ajustement final, temps d'inférence) sur le matériel décrit en Section~\ref{sec:hardware}. Rappeler explicitement que TabPFN a été exécuté uniquement sur CPU (cf.\ Section~\ref{sec:hardware}) et discuter de l'effet de ce choix sur la comparaison des temps. Remplir le Tableau~\ref{tab:computational_cost}. \textbf{Note :} il s'agit surtout de chronométrer les exécutions déjà réalisées — pas de nouvelle campagne de calcul lourde.}
+
+\begin{table}[!htbp]
+\centering
+\caption{Computational cost of the compared models under the hardware described in Section~\ref{sec:hardware}. Times are intended as indicative wall-clock measurements. \textnormal{[Table skeleton --- to be filled with measured values; columns may be adapted, e.g.\ median time per dataset or total benchmark time.]}}
+\label{tab:computational_cost}
+\small
+\begin{tabular}{lccc}
+\toprule
+Model & Preprocessing search & Final fit & Inference \\
+\midrule
+PLS         & -- & -- & -- \\
+Ridge       & -- & -- & -- \\
+CatBoost    & -- & -- & -- \\
+CNN-1D      & -- & -- & -- \\
+TabPFN-Raw  & -- & -- & -- \\
+TabPFN-opt  & -- & -- & -- \\
+\bottomrule
+\end{tabular}
+\end{table}
+% <<< ACA
+
+
+% >>> ACA: NEW results subsection (scaffolding only). Reports the uncertainty evaluation defined in
+%          Section~\ref{sec:uncertainty}. EMPTY: do not state findings until experiments are run.
+\subsection{Predictive uncertainty} \label{sec:uncertainty_results}
+
+\TODO{Reporter les résultats de l'évaluation de l'incertitude définie en Section~\ref{sec:uncertainty} (p.~ex.\ couverture des intervalles de prédiction, log-vraisemblance négative, diagrammes de fiabilité), en comparant TabPFN aux lignes de base lorsque cela est pertinent. Ne rien affirmer avant d'avoir réalisé les expériences. Une figure et/ou un tableau de synthèse pourront être ajoutés ici (et les détails en Matériel Supplémentaire).}
+% <<< ACA
+
+
+
+
+\section{Discussion} \label{sec:discussion}
+
+% >>> ACA-EDIT [narrative]: Discussion opener that states the synthesis thread (operating envelope) and foreshadows the comparison with prior NIRS work. New text.
+Read together, these results sketch the operating envelope of a training-free calibration engine for NIRS: where it delivers the largest gains, how those gains arise, and where classical methods remain the safer choice. We discuss each facet in turn before situating the approach within existing NIRS practice.
+% <<< ACA-EDIT
+
+\subsection{Overall behavior across models}
+
+The benchmark highlights that no single model dominates uniformly across all NIRS datasets. Instead, different modeling strategies exhibit distinct performance profiles depending on dataset characteristics.
+
+~
+
+TabPFN-opt emerges as the strongest overall performer in regression, combining favorable average ranks with consistent improvements over the reference PLS model. However, the results also show that simpler approaches remain highly competitive. In particular, Ridge often achieves performance close to PLS and, in some cases, approaches that of TabPFN-opt, indicating that regularized linear models remain strong baselines in high-dimensional, collinear settings.
+
+
+% >>> ACA: NEW discussion subsection (scaffolding only). Analytica Chimica Acta explicitly requires authors
+%          to position their methodology relative to previously reported results for the analytes considered,
+%          even across different techniques. This is a desk-reject-sensitive requirement for ACA. Leave empty
+%          until completed; this is a literature look-up, not new computation.
+\subsection{Comparison with previously reported results}
+
+\TODO{Pour un sous-ensemble représentatif des jeux publics du benchmark (ceux disposant de résultats de calibration publiés), résumer les performances déjà rapportées (PLS ou autres méthodes) et les comparer aux résultats présents, même lorsqu'elles ont été obtenues avec des techniques ou des partitions différentes. Indiquer clairement toute différence de protocole d'évaluation (p.~ex.\ partitions SPXY identiques ici vs.\ protocoles hétérogènes dans la littérature). Cette sous-section répond à l'exigence d'\textit{Analytica Chimica Acta} de situer la méthodologie par rapport aux travaux antérieurs pour les analytes considérés.}
+% <<< ACA
+
+
+\subsection{Role of preprocessing for TabPFN}
+
+A key result of this study lies in the comparison between TabPFN-Raw and TabPFN-opt. This comparison isolates the contribution of preprocessing around the same pretrained model.
+
+~
+
+In regression, preprocessing optimization leads to systematic improvements, as reflected by the consistent shift from TabPFN-Raw to TabPFN-opt. This indicates that, although TabPFN can operate directly on raw spectra, part of the spectroscopic variability still benefits from explicit correction steps. The optimal preprocessing configurations obtained across datasets suggest that a major part of this improvement comes from applying a smoothing-derivative operator such as Savitzky-Golay. A careful tuning of this method's parameters, combined with TabPFN, is likely to yield competitive predictions on any NIRS dataset.
+
+~
+
+In contrast, in classification, the two variants perform similarly, suggesting that TabPFN is already able to extract relevant discriminant information from raw spectra. This difference between regression and classification highlights that the role of preprocessing is task-dependent.
+
+~
+
+More generally, these results show that TabPFN does not replace preprocessing in NIRS workflows, but can instead be effectively integrated within them.
+
+\subsection{Dataset regimes and robustness}
+
+The cumulative analyses indicate that the relative performance of TabPFN-opt is not restricted to a specific range of dataset sizes. Its gains over PLS are observed across small, medium, and larger datasets, suggesting that the learned prior transfers across different sample-size regimes.
+
+~
+
+However, the robustness analysis reveals a more nuanced picture. On spectral outliers and extrapolation subsets, the relative advantage of TabPFN-opt decreases, while PLS and, to a lesser extent, Catboost and CNN-1D show improved relative rankings. This suggests that models achieving the best average predictive performance are not necessarily those that are most robust in challenging regions of the data space.
+
+~
+
+These observations reinforce the idea that robustness and peak performance represent complementary properties, both of which are important in applied spectroscopy.
+
+\subsection{Comparison with CNN-1D}
+
+% >>> ACA-EDIT [point 1]: removed the "shared/constrained budget -> not the theoretical optimum" caveat here; it is now stated once in "Limitations of the benchmark". CNN-1D-specific content kept.
+% --- ORIGINAL (commented; uncomment to revert) ---
+% The comparison with CNN-1D illustrates a fundamental difference in learning paradigms rather than an inherent limitation of deep learning for spectral data. CNN-1D must be trained and tuned from scratch on each dataset, which makes its performance more sensitive to the available sample size and the allocated optimization budget. In the present benchmark, all models were compared under a shared and intentionally constrained optimization budget, so that no method was pushed to its theoretical optimum. Under these conditions, CNN-1D shows more variable results across datasets, with a tendency to underperform on smaller calibration sets. However, this should not be interpreted as a general weakness of convolutional architectures for NIRS: with a larger tuning budget, extended data augmentation strategies, or architecture search specifically tailored to spectral data, CNN-1D performance could likely improve substantially. The results reported here reflect a controlled workflow-level comparison, not a definitive ranking of the methods at their full potential.
+% --- REPLACEMENT ---
+The comparison with CNN-1D illustrates a fundamental difference in learning paradigms rather than an inherent limitation of deep learning for spectral data. CNN-1D must be trained and tuned from scratch on each dataset, which makes its performance more sensitive to the available sample size and the allocated optimization budget. Under the present benchmark conditions, CNN-1D shows more variable results across datasets, with a tendency to underperform on smaller calibration sets. However, this should not be interpreted as a general weakness of convolutional architectures for NIRS: with a larger tuning budget, extended data augmentation strategies, or architecture search specifically tailored to spectral data, CNN-1D performance could likely improve substantially.
+% <<< ACA-EDIT
+
+~
+
+In contrast, TabPFN provides competitive performance without dataset-specific training, which gives it a structural advantage under tight computational budgets. This asymmetry in optimization cost is itself a practically relevant dimension of the comparison.
+
+% >>> ACA: NEW discussion subsection (scaffolding only). To be completed once the uncertainty results
+%          (Section~\ref{sec:uncertainty_results}) exist. No interpretive claim until then.
+\subsection{Predictive uncertainty}
+
+\TODO{Discuter les résultats de l'évaluation de l'incertitude (Section~\ref{sec:uncertainty_results}) : la distribution prédictive de TabPFN est-elle bien calibrée sur des données NIR, et quelles implications pour le déploiement « uncertainty-aware » mentionné dans le résumé et la conclusion ?}
+% <<< ACA
+
+\subsection{Limitations of the benchmark}
+
+Several limitations should be kept in mind when interpreting these results. The benchmark was designed to remain computationally feasible across a large number of datasets, which necessarily constrained the extent of hyperparameter optimization for all methods. In particular, TabPFN and CatBoost were run with fixed hyperparameters, while CNN-1D was restricted to 30 architectural configurations per preprocessing pipeline and evaluated without any feature augmentation strategy, even though such techniques may constitute an important source of improvement for deep learning approaches on spectral data. Linear models such as PLS and Ridge were, by contrast, evaluated over substantially larger preprocessing and hyperparameter search spaces, reflecting both common chemometric practice and their stronger sensitivity to these choices. This asymmetry implies that the reported performances should not be interpreted as upper bounds: a benchmark allocating larger and more balanced optimization budgets could yield different absolute levels and potentially different relative rankings. In particular, the present study likely provides a conservative estimate of the achievable performance of TabPFN in NIRS, since it was not explored under the full range of configurations that could further improve its predictions.
+
+~
+
+A second limitation concerns the classification benchmark. Only 12 datasets were used, which remains too limited to claim strong generality with respect to the full diversity of NIRS classification problems. The classification results are therefore informative and suggestive, but they should be interpreted with more caution than the regression results. Expanding the number and diversity of classification datasets would be an important next step for consolidating the conclusions drawn here.
+
+
+
+\section{Conclusions}
+
+% >>> ACA-EDIT [narrative]: conclusion recast around the through-line ("where it helps").
+% --- ORIGINAL (commented; uncomment to revert) ---
+% This study evaluated the performance of TabPFN on a large and heterogeneous NIRS benchmark, and compared it with classical chemometric, machine learning, and deep learning approaches.
+% --- REPLACEMENT ---
+This study asked where a training-free tabular foundation model helps for NIR calibration, evaluating TabPFN on a large and heterogeneous benchmark against classical chemometric, machine-learning, and deep-learning approaches.
+% <<< ACA-EDIT
+
+~
+
+In regression, TabPFN combined with preprocessing optimization (TabPFN-opt) achieved the strongest overall performance, with consistent improvements over the reference PLS model across datasets. In classification, both TabPFN variants performed similarly, indicating that competitive results can already be obtained without preprocessing optimization.
+
+~
+
+At the same time, the results confirm that classical methods remain highly relevant. PLS continues to provide a robust reference across datasets and challenging regimes, while Ridge emerges as a particularly strong and stable baseline.
+
+~
+
+% >>> ACA-EDIT [point 1]: the budget caveat (5th occurrence) compressed to a single clause; the full statement now lives once in "Limitations of the benchmark".
+% --- ORIGINAL (commented; uncomment to revert) ---
+% These conclusions should nevertheless be interpreted in light of the benchmark design. The comparison was conducted under a shared and intentionally limited optimization budget, ensuring a fair and reproducible evaluation across a large number of datasets, but at the cost of leaving each method below its full potential. This applies equally to TabPFN, CatBoost, and CNN-1D: none of these models was exhaustively tuned. The present results should therefore be viewed as a robust large-scale comparison under controlled conditions, not as a definitive estimate of what each method can achieve given unlimited computational resources.
+% --- REPLACEMENT ---
+These conclusions should be read in light of the benchmark's shared and deliberately bounded optimization budget, under which no method, TabPFN included, was pushed to its full potential.
+% <<< ACA-EDIT
+
+~
+
+% >>> ACA-EDIT [point 4]: closing sentence trimmed so the "complementary tool / not a replacement" idea is stated once in this paragraph (it already opens with "complementary tool").
+% --- ORIGINAL (commented; uncomment to revert) ---
+% Overall, TabPFN appears as a powerful complementary tool for NIRS modeling, particularly in small- to medium-sized datasets. Several perspectives emerge from this work. First, TabPFN could likely benefit from a more extensive hyperparameter optimization strategy than the one considered here. Second, the preprocessing framework around TabPFN, especially for regression, could be further improved, in particular through more tailored dimensionality-reduction approaches, which appear especially relevant for highly collinear NIRS data. More broadly, the potential of PFN-based models has only been introduced and partially explored in this study. An important next step would be to investigate priors or pretraining strategies specifically constrained toward NIRS-type data, in order to better capture the structural properties of spectra and further improve domain-specific performance. Rather than replacing existing chemometric approaches, this study extends the range of effective modeling strategies available in practical spectroscopic workflows.
+% --- REPLACEMENT ---
+Overall, TabPFN appears as a powerful complementary tool for NIRS modeling, particularly in small- to medium-sized datasets. Several perspectives emerge from this work. First, TabPFN could likely benefit from a more extensive hyperparameter optimization strategy than the one considered here. Second, the preprocessing framework around TabPFN, especially for regression, could be further improved, in particular through more tailored dimensionality-reduction approaches, which appear especially relevant for highly collinear NIRS data. More broadly, the potential of PFN-based models has only been introduced and partially explored in this study. An important next step would be to investigate priors or pretraining strategies specifically constrained toward NIRS-type data, in order to better capture the structural properties of spectra and further improve domain-specific performance. In this way, the present study extends the range of effective modeling strategies available in practical spectroscopic workflows.
+% <<< ACA-EDIT
+
+
+% >>> ACA: Author declarations required by Elsevier / Analytica Chimica Acta. Placed after Conclusions and
+%          before the bibliography (standard Elsevier placement). Statements that depend on author input use
+%          the \TODO box; the competing-interest statement uses Elsevier's standard wording.
+\section*{CRediT authorship contribution statement}
+\textbf{Robin Reiter:} Conceptualization, Methodology, Software, Formal analysis, Investigation, Data curation, Writing, Visualization.\\
+\textbf{Denis Cornet:} Conceptualization, Methodology, Writing review, Supervision.\\
+\textbf{Fabien Michel:} Writing review, Supervision.\\
+\textbf{Lauriane Rouan:} Conceptualization, Writing review, Supervision.\\
+\textbf{Gregory Beurier:} Conceptualization, Methodology, Software, Data curation, Writing review, Supervision.
+
+\section*{Declaration of competing interest}
+The authors declare that they have no known competing financial interests or personal relationships that could have appeared to influence the work reported in this paper.
+
+\section*{Data and code availability}
+\TODO{The NIR datasets used in this benchmark are publicly available; their individual sources are listed in the Supplementary Materials (Tables~\ref{tab:dataset_description_long_regression} and ~\ref{tab:dataset_description_long_classification})). The preprocessing, calibration, and evaluation workflows were implemented in the open-source package \texttt{nirs4all} ~\cite{beurier2025nirs4all}. Provide a persistent link (e.g., a Zenodo DOI or a public repository) to the exact scripts and configuration files (including SPXY partitions) needed to reproduce the experiments.}
+
+\section*{Funding}
+This work was carried out as part of a PhD project. The doctoral contract was funded in equal parts by CIRAD and by the Occitanie Region (France), the latter through its "Émergence" call for projects (\url{https://www.laregion.fr/Appel-a-projets-EMERGENCE}).
+
+\section*{Declaration of generative AI in scientific writing}
+In the preparation of the manuscript, ChatGPT generative AI has been used to correct or improve English writing. It has also been used for coding, especially for visualization scripts.
+
+% <<< ACA
+
+
+% >>> ACA: For the FINAL Analytica Chimica Acta submission, the Elsevier style is numbered by order of
+%          appearance: switch to \documentclass{elsarticle} and \bibliographystyle{elsarticle-num}.
+%          Kept as-is below for first submission (Elsevier "Your Paper Your Way" allows free formatting).
+% <<< ACA
+\bibliographystyle{elsarticle-num}
+\bibliography{NIRS,ML_Models,TabPFN,Statistical_tests}
+
+
+
+
+\clearpage
+\section{Supplementary Material}
+
+\subsection{Theoretical foundations of PFNs} \label{theory_pfn}
+
+
+\subsubsection{Statistical context}
+
+Let $X \in \mathcal{X} \subset \mathbb{R}^d, \, Y \in \mathcal{Y}$ be a random vector of features and a random vector of targets, respectively.
+
+~ 
+
+Let us consider a classification task: the objective is to find, for any realization $(x,y)$ of $(X,Y)$, the probability $p_0(y|\, x) = \mathbb{P}(Y=y | \, X=x)$.
+
+~ 
+
+In the case of regression, it is in practice transposed to a classification problem by setting bins. Given $\{I_1, I_2, \dots, I_K \}$ a partition of $\mathcal{Y} \subset \mathbb{R}$, then we aim to find the probabilities $\mathbb{P}(Y \in I_k | \, X=x)$ for every $k \in \{1,2,\dots,K\}$.
+
+\subsubsection{Posterior Predictive Distribution}
+
+From a Bayesian nonparametric perspective, $p_0$ is the realization of a random infinite-dimensional model $p \in \mathcal{P}$ following a distribution $\Pi$. $\Pi$ is called the prior, which is a probability distribution induced by all the beliefs we have a priori, that is, before seeing the data.
+
+~
+
+To estimate $p_0$, the following process has been set up:
+
+\begin{enumerate}[label=\roman*]
+    \item Draw a model $p$ from the prior $\Pi$;
+    \item Draw iid samples $\mathcal{D}_n = (X_i,\, Y_i)_{i=1}^n$ from model $p$;
+    \item Draw iid test samples $(X^{\text{test}}, \,  Y^{\text{test}}) = (X_t^{\text{test}}, \,  Y_t^{\text{test}})_{t=1}^T$ from model $p$.
+\end{enumerate}
+
+The objective is then to estimate the probabilities: $p_0(y^{\text{test}}|\, x^{\text{test}}) = \mathbb{P}(Y^{\text{test}} = y^{\text{test}}|\, X^{\text{test}} = x^{\text{test}})$.
+
+~
+
+For every $n$, the tuple $(\mathcal{D}_n \cup (X^{\text{test}}, \,  Y^{\text{test}}),\, p)$ defines a joint distribution. An interesting estimation of $p_0(y^{\text{test}}|\, x^{\text{test}})$ is given by Posterior Predictive Distributions (PPD), defined as follows for every $n$:
+
+$$\pi(y^{\text{test}}|\, x^{\text{test}}, \, \mathcal{D}_n) = \int p(y^{\text{test}}|\, x^{\text{test}})\, d\Pi(p|\, x^{\text{test}},\, \mathcal{D}_n)$$
+
+~
+
+PFNs aim at approximating PPDs, since these define distributions that maximize the expectancy of the conditional log-likelihood induced by the prior:
+
+$$\pi(Y^{\text{test}}|\, X^{\text{test}}, \, \mathcal{D}_n) = \underset{q}{\text{argmax}}\, \mathbb{E}_{\Pi}[ \text{log}\, q(Y^{\text{test}}|\, X^{\text{test}}, \, \mathcal{D}_n)]$$
+
+\subsubsection{Approximation of PPDs}
+
+A PFN can be considered as a model $q_{\theta}$ parametrized by a parameter $\theta$. Drawing inspiration from Müller et al. (2021) \cite{muller_transformers_2024}, $\theta$ is optimized by solving:
+
+$$\theta^* = \underset{\theta}{\text{argmax}} \, \mathbb{E}_{\Pi_N} \mathbb{E}_{\Pi} [q_{\theta}(Y^{\text{test}}\, |\, X^{\text{test}}, \, \mathcal{D}_N)]$$
+
+Where $\Pi_N$ is a distribution over the sample size $N$.
+
+~
+
+In practice, a Monte-Carlo integration is performed to approximate $\theta^*$. More explicitly, the following procedure is applied:
+
+~
+
+\begin{enumerate}[label=\Alph*]
+    \item For $j \in \{1;2;\dots;J \}$,
+    
+    \begin{enumerate}[label=\roman*]
+        \item Draw a sample size $N_j \sim \Pi_N$;
+        \item Draw a model $p \sim \Pi$;
+        \item Draw $N_j$ iid samples $\mathcal{D}^{(j)} = (X_{j,i},\, Y_{j,i})_{i=1}^{N_j}$ from model p;
+        \item Draw $T_j$ iid test samples $\mathcal{D}^{(j)} = (X_{j,t}^{\text{test}},\, Y_{j,t}^{\text{test}})_{t=1}^{T_j}$ from model p;
+    \end{enumerate}
+
+    \item Compute the Negative Log-Likelihood (NLL) loss over the batch of datasets: $$\mathcal{L}(\theta) = - \frac{1}{J} \sum_{j=1}^J \frac{1}{T_j} \sum_{t=1}^{T_j} \text{log} \, q(X_{j,t}^{\text{test}}|\, Y_{j,t}^{\text{test}},\, \mathcal{D}^{(j)})$$
+    
+    \item Update the parameter $\theta$ via an optimization algorithm like AdamW.
+\end{enumerate}
+
+
+
+\subsubsection{In-context learning after pretraining}
+
+Once the PFN has been pretrained, no gradient-based optimization is performed anymore on a newly observed dataset. Instead, prediction is carried out entirely through \emph{in-context learning}. In this regime, the calibration samples and the unlabeled test samples are provided together as a single input sequence to the transformer. The model then uses the calibration examples as contextual information from which it infers the predictive relationship to be applied to the test inputs.
+
+~
+
+Formally, let
+\[
+\mathcal{D}_{\mathrm{train}} = \{(x_i,y_i)\}_{i=1}^{n}
+\qquad\text{and}\qquad
+\mathcal{D}_{\mathrm{test}} = \{x_j^{\mathrm{test}}\}_{j=1}^{T}.
+\]
+At inference time, the PFN receives the joint sequence formed by the labeled calibration points and the unlabeled test points. The labels associated with the test inputs are masked and therefore unavailable to the model. The output of the transformer is a predictive distribution for each test sample, conditionally on the whole calibration context:
+\[
+q_\theta\!\left(
+y_1^{\mathrm{test}},\dots,y_T^{\mathrm{test}}
+\,\middle|\,
+\mathcal{D}_{\mathrm{train}},x_1^{\mathrm{test}},\dots,x_T^{\mathrm{test}}
+\right).
+\]
+
+In other words, the model does not adapt its weights to the new task; instead, it performs task adaptation internally through the forward pass itself. The calibration set acts as an implicit support set that defines the local prediction problem, while the pretrained transformer applies the statistical regularities learned offline across a large distribution of tasks.
+
+
+
+\subsubsection{Transformer view of TabPFN inference}
+
+At a more operational level, TabPFN converts the new dataset into a sequence of tokens processed by a transformer architecture. Each sample is embedded into a latent representation, and labeled calibration samples are represented jointly from their features and targets, whereas test samples are represented from their features only. If $e_x(\cdot)$ and $e_y(\cdot)$ denote feature and label embedding maps, one may schematically write the token representations as
+\[
+h_i^{\mathrm{train}} = e_x(x_i) + e_y(y_i),
+\qquad
+h_j^{\mathrm{test}} = e_x(x_j^{\mathrm{test}}) + e_{\mathrm{mask}},
+\]
+where $e_{\mathrm{mask}}$ is a learned embedding indicating that the target is unknown.
+
+These token representations are then processed through stacked self-attention layers. For a matrix of token states $H \in \mathbb{R}^{m \times p}$, a standard self-attention head computes
+\[
+Q = HW_Q,\qquad K = HW_K,\qquad V = HW_V,
+\]
+where $W_Q,W_K,W_V$ are learned projection matrices. The attention output is
+\[
+\mathrm{Attn}(H)=\mathrm{softmax}\!\left(\frac{QK^\top}{\sqrt{p_k}} + M\right)V,
+\]
+where $M$ is a masking matrix enforcing the desired information flow. In the PFN setting, this masking mechanism prevents the model from accessing the unknown test labels while allowing test tokens to attend to calibration tokens and, depending on the implementation, to other test inputs.
+
+~
+
+Intuitively, the attention mechanism enables each test token to retrieve relevant information from the labeled calibration examples. Samples with similar feature patterns may exchange more information through larger attention weights, so that the transformer can internally construct a task-adapted predictor from the provided context. Repeating this process over multiple layers allows the network to build increasingly rich interactions between calibration and test points.
+
+~
+
+The final hidden state associated with each test token is then mapped to a predictive distribution. In classification, this typically corresponds to a softmax distribution over classes. In regression-oriented versions of PFNs, the output may instead represent a discretized conditional density over bins, from which moments or point predictions can be derived. This is the mechanism through which TabPFN approximates posterior predictive distributions without retraining on the target dataset.
+
+~
+
+
+Overall, TabPFN can therefore be viewed as a transformer that has learned, during offline pretraining, how to convert a set of labeled examples into a predictive rule for new unlabeled samples. Its originality does not lie in a dataset-specific optimization step, but in the fact that this optimization has effectively been amortized during pretraining over a large distribution of synthetic supervised tasks.
+
+
+
+
+
+
+
+\clearpage
+\subsection{CNN-1D architecture and hyperparameter search space}
+
+The CNN-1D baseline used in this benchmark follows a three-block convolutional architecture 
+operating directly on one-dimensional spectral inputs. The model is part of the \texttt{nirs4all} model collection \cite{beurier2025nirs4all}.
+
+~
+
+The architecture consists of the following sequential components. An initial spatial dropout layer 
+is applied to the raw input to regularize at the feature level before any convolution. Three 
+successive \texttt{Conv1D} blocks then extract spectral features at increasing levels of 
+abstraction: the first block uses a large kernel and stride to perform coarse spectral 
+summarization, the second applies a wider filter bank for intermediate-scale feature extraction, 
+and the third refines the representation with a smaller kernel. Each of the two latter 
+convolutional blocks is followed by a normalization layer (either Batch Normalization or Layer 
+Normalization). The convolutional output is then flattened and passed through a dense hidden 
+layer before a final sigmoid output unit. A standard dropout layer is inserted between the first 
+and second convolutional blocks.
+
+~
+
+All architectural components were jointly optimized, 
+including filter sizes, kernel sizes, strides, activation functions, normalization methods, 
+dropout rates, and the number of dense units.
+
+~
+
+It should be noted that the fixed three-block structure of this architecture implies minimum 
+input length constraints that depend on the sampled kernel sizes and strides. For the smallest 
+datasets in the benchmark, certain hyperparameter configurations may therefore produce 
+architecturally invalid models, in which case the trial is discarded and a new configuration 
+is sampled.
+
+
+
+\begin{table}[!htbp]
+\centering
+\caption{Search spaces of hyperparameter configuration of the CNN-1D architecture.}
+\label{tab:cnn1d_default}
+\small
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{llll}
+\toprule
+\texttt{Component} & \texttt{Parameter} & \texttt{Search space} & \texttt{Default value} \\
+\midrule
+Spatial Dropout      & rate          & $\mathcal{U}(0.01,\, 0.50)$         & 0.08 \\
+\midrule
+Conv1D block 1       & filters       & $\{4, 8, 16, 32, 64, 128, 256\}$        & 8 \\
+                     & kernel size   & $\{3, 5, 7, 9, 11, 13, 15\}$        & 15 \\
+                     & stride        & $\{1, 2, 3, 4, 5\}$        & 5 \\
+                     & activation    & \{ReLU, SELU, ELU, Swish\}        & SELU \\
+\midrule
+Dropout              & rate          & $\mathcal{U}(0.01,\, 0.50)$        & 0.20 \\
+\midrule
+Conv1D block 2       & filters       & $\{4, 8, 16, 32, 64, 128, 256\}$        & 64 \\
+                     & kernel size   & $\{3, 5, 7, 9, 11, 13, 15\}$        & 21 \\
+                     & stride        & $\{1, 2, 3, 4, 5\}$        & 3 \\
+                     & activation    & \{ReLU, SELU, ELU, Swish\}        & ReLU \\
+\midrule                     
+Normalization 1      & method        & \{Batch Norm., Layer Norm.\}        & Batch Normalization \\
+\midrule
+Conv1D block 3       & filters       & $\{4, 8, 16, 32, 64, 128, 256\}$        & 32 \\
+                     & kernel size   & $\{3, 5, 7, 9, 11, 13, 15\}$        & 5 \\
+                     & stride        & $\{1, 2, 3, 4, 5\}$        & 3 \\
+                     & activation    & \{ReLU, SELU, ELU, Swish\}        & ELU \\
+\midrule                     
+Normalization 2      & method        & \{Batch Norm., Layer Norm.\}        & Batch Normalization \\
+\midrule
+Dense hidden layer   & units         & $\{4, 8, 16, 32, 64, 128, 256\}$        & 16 \\
+                     & activation    & \{ReLU, SELU, ELU, Swish\}        & Sigmoid \\
+\midrule                     
+Output layer         & units         & \{1\}        & 1 \\
+                     & activation    & \{Sigmoid\}        & Sigmoid \\
+                     
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+
+
+
+
+
+
+
+\clearpage
+\subsection{Additional regression comparison figures}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.92\textwidth,height=0.8\textheight,keepaspectratio]{Figures/dumbbell_irmsep_vs_pls_size_outliers_removed.png}
+    \caption{Dataset-wise relative improvement versus PLS for regression tasks, expressed as iRMSEP. Each row corresponds to one dataset and each colored point to one model. Positive values indicate improved performance compared to PLS, whereas negative values indicate worse performance. For visual clarity, the visualization excludes extreme dataset-level iRMSEP values identified by a 10$\times$IQR display filter.}
+    \label{fig:dumbbell_regression_irmsep}
+\end{figure}
+
+\begin{figure}[p]
+\centering
+    \includegraphics[width=0.99\textwidth]{Figures/regression_irmsep_heatmap_vs_PLS.png}
+    \caption{Dataset-level heatmap of iRMSEP relative to PLS for regression tasks. Positive values indicate improved performance compared to PLS, whereas negative values indicate worse performance. Grey cells correspond to unavailable comparisons.}
+    \label{fig:heatmap_regression_irmsep_vs_pls}
+\end{figure}
+
+\begin{figure}[p]
+    \centering
+    \includegraphics[width=0.92\textwidth]{Figures/regression_rank_heatmap__databasewise__source_rank_table.png}
+    \caption{Regression rank heatmap after aggregation at the database level. Lower ranks indicate better predictive performance within each database. Grey cells correspond to unavailable model--database combinations.}
+    \label{fig:rank_heatmap_regression_database}
+\end{figure}
+
+\begin{figure}[p]
+    \centering
+    \includegraphics[width=0.92\textwidth]{Figures/cumulative_irmsep_vs_size_features_cells.png}
+    \caption{Cumulative iRMSEP values against PLS using 3 different x axis: dataset number of samples, dataset number of features, dataset number of cells (number of samples x number of features). For visual clarity, the visualization excludes extreme dataset-level iRMSEP values identified by a 10$\times$IQR display filter.}
+    \label{fig:cumsum_irmsep_size_features_cells}
+\end{figure}
+
+
+\begin{table}[!htbp]
+\centering
+\caption{Complete statistical summary for regression and classification benchmarks. Mean ranks are reported with and without restricting to datasets where CNN-1D is available. All pairwise Nemenyi comparisons are shown (unique pairs only).}
+\label{tab:cd_stats_full}
+\small
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.2}
+
+% =========================
+% RANKS
+% =========================
+\begin{tabular}{lcc}
+\toprule
+Model & Rank (with CNN-1D) & Rank (w/o CNN-1D) \\
+\midrule
+
+\multicolumn{3}{c}{\textbf{Regression}} \\
+\midrule
+TabPFN-opt & 1.800 & 1.587 \\
+Ridge      & 3.075 & 2.696 \\
+CatBoost   & 3.650 & 3.587 \\
+TabPFN-Raw & 3.875 & 3.370 \\
+PLS        & 4.050 & 3.761 \\
+CNN-1D     & 4.550 & -- \\
+
+\midrule
+\multicolumn{3}{c}{\textbf{Classification}} \\
+\midrule
+TabPFN-opt & 2.417 & 2.389 \\
+TabPFN-Raw & 2.000 & 1.944 \\
+CatBoost   & 3.083 & 3.111 \\
+PLS-DA     & 2.583 & 2.556 \\
+CNN-1D     & 4.917 & -- \\
+
+\bottomrule
+\end{tabular}
+
+\vspace{0.8em}
+
+% =========================
+% PAIRWISE TESTS
+% =========================
+\begin{tabular}{lcc}
+\toprule
+Model pair & $p$-value & Significance \\
+\midrule
+
+\multicolumn{3}{c}{\textbf{Regression}} \\
+\midrule
+TabPFN-opt vs Ridge      & 0.148 & ns \\
+TabPFN-opt vs CatBoost   & 0.0218 & * \\
+TabPFN-opt vs TabPFN-Raw & 0.0060 & ** \\
+TabPFN-opt vs PLS        & 0.0020 & ** \\
+TabPFN-opt vs CNN-1D     & $4.9 \times 10^{-5}$ & **** \\
+
+Ridge vs CatBoost        & 0.707 & ns \\
+Ridge vs TabPFN-Raw      & 0.922 & ns \\
+Ridge vs PLS             & 0.967 & ns \\
+Ridge vs CNN-1D          & 0.375 & ns \\
+
+CatBoost vs TabPFN-Raw   & 0.999 & ns \\
+CatBoost vs PLS          & 0.996 & ns \\
+CatBoost vs CNN-1D       & 0.777 & ns \\
+
+TabPFN-Raw vs PLS        & 0.999 & ns \\
+TabPFN-Raw vs CNN-1D     & 0.650 & ns \\
+
+PLS vs CNN-1D            & 0.533 & ns \\
+
+\midrule
+\multicolumn{3}{c}{\textbf{Classification}} \\
+\midrule
+TabPFN-opt vs TabPFN-Raw & 0.885 & ns \\
+TabPFN-opt vs CatBoost   & 0.635 & ns \\
+TabPFN-opt vs PLS-DA     & 0.993 & ns \\
+TabPFN-opt vs CNN-1D     & 0.049 & * \\
+
+TabPFN-Raw vs CatBoost   & 0.221 & ns \\
+TabPFN-Raw vs PLS-DA     & 0.747 & ns \\
+TabPFN-Raw vs CNN-1D     & 0.012 & * \\
+
+CatBoost vs PLS-DA       & 0.798 & ns \\
+CatBoost vs CNN-1D       & 0.262 & ns \\
+
+PLS-DA vs CNN-1D         & 0.079 & ns \\
+
+\bottomrule
+\end{tabular}
+
+\vspace{0.4em}
+\begin{minipage}{0.95\linewidth}
+\footnotesize
+\textit{Notes.} ``With CNN-1D'' corresponds to the strict intersection of datasets where all models provide valid results, while ``without CNN-1D'' includes datasets where CNN-1D may be unavailable. The Friedman test is significant for regression ($p = 5.9 \times 10^{-5}$, $CD = 1.520$) as well as for classification ($p = 0.011$, $CD = 2.345$). Significance codes: ns ($p \geq 0.05$), * ($p < 0.05$), ** ($p < 0.01$), *** ($p < 0.001$), **** ($p < 0.0001$).
+\end{minipage}
+\end{table}
+
+
+
+
+\FloatBarrier
+
+
+\clearpage
+\subsection{Influence of preprocessings}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.92\textwidth,height=0.8\textheight,keepaspectratio]{Figures/weighted_component_frequencies_linear_models_regression.png}
+    \caption{Weighted preprocessing frequencies for linear models (PLS and Ridge) across the regression benchmark. Frequencies are shown separately for Phase~1 signal-correction steps (baseline correction, smoothing, derivatives, scatter correction) and Phase~2 transformations (representation and scaling).}
+    \label{fig:preprocessing_linear_models}
+\end{figure}
+
+\begin{figure}[p]
+    \centering
+    \includegraphics[width=0.92\textwidth]{Figures/weighted_component_frequencies_tabular_models_regression.png}
+    \caption{Weighted preprocessing frequencies for nonlinear models (CatBoost, TabPFN, and CNN) across the regression benchmark. Frequencies are shown separately for Phase~1 signal-correction steps and Phase~2 representation-level transformations.}
+    \label{fig:preprocessing_tabular_models}
+\end{figure}
+
+\FloatBarrier
+
+
+
+
+
+\clearpage
+\subsection{Additional classification comparison figures}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.92\textwidth,height=0.8\textheight,keepaspectratio]{Figures/dumbbell_relative_balanced_accuracy_gain_vs_pls-da_size.png}
+    \caption{Dataset-wise relative balanced-accuracy gain versus PLS-DA for classification tasks. Each row corresponds to one dataset and each colored point to one model. Positive values indicate improved performance compared to PLS-DA, whereas negative values indicate worse performance. The dashed vertical line indicates parity with PLS-DA.}
+    \label{fig:classif_dumbbell}
+\end{figure}
+
+\begin{figure}[p]
+    \centering
+    \includegraphics[width=0.92\textwidth]{Figures/classification_rank_heatmap__databasewise__source_rank_table.png}
+    \caption{Classification rank heatmap after aggregation at the database level. Lower ranks indicate better predictive performance within each database. Grey cells correspond to unavailable model--database combinations.}
+    \label{fig:classif_rank_heatmap}
+\end{figure}
+
+\begin{figure}[p]
+    \centering
+    \includegraphics[width=0.92\textwidth]{Figures/weighted_component_frequencies_tabular_models_classification.png}
+    \caption{Weighted preprocessing frequencies by search subspace for CatBoost, TabPFN, and CNN in the classification benchmark. Frequencies are shown separately for Phase~1 signal-correction choices and Phase~2 representation-level transformations.}
+    \label{fig:classif_preprocessing_tabular_models}
+\end{figure}
+
+% >>> ACA: If uncertainty and/or computational-cost results generate additional figures or tables,
+%          they can be placed here in the Supplementary Material (e.g. per-dataset reliability diagrams,
+%          full runtime tables). Leave empty until the corresponding experiments are run.
+% <<< ACA
+
+
+
+\FloatBarrier
+
+\clearpage 
+\begin{landscape}
+\subsection{Complete datasetwise regression results}\label{supp:complete_results_reg}
+
+\begingroup
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+\label{tab:complete_results_reg}
+\input{Tables/supp_regression_table.tex}
+\endgroup
+\end{landscape}
+
+
+\clearpage 
+\begin{landscape}
+\subsection{Complete datasetwise classification results}\label{supp:complete_results_classif}
+
+\begingroup
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+\input{Tables/supp_classification_table.tex}
+\endgroup
+\end{landscape}
+
+
+
+
+\FloatBarrier
+
+\clearpage
+\begin{landscape}
+\subsection{Complete dataset overview}\label{supp:dataset_overview}
+
+\begingroup
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+\input{Tables/table_dataset_overview_supp.tex}
+\endgroup
+\end{landscape}
+
+\end{document}
